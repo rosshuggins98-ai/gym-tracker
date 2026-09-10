@@ -204,7 +204,7 @@
 <body>
 <div class="wrap">
  <header>
-  <div class="title"><h1>Gym Tracker</h1><span class="sub" id="weekTag"></span><span class="spacer"></span>
+  <div class="title"><h1>Gym Tracker</h1><span class="pill reps" id="buildBadge" style="margin-left:2px"></span><span class="sub" id="weekTag"></span><span class="spacer"></span>
    <button class="hbtn" id="progBtn" onclick="openProgress()" aria-label="Progress"></button>
    <button class="hbtn" id="editBtn" onclick="openEdit()" aria-label="Edit plan"></button>
    <button class="hbtn" id="dataBtn" onclick="openData()" aria-label="Data"></button>
@@ -374,7 +374,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-09-10a";   /* shown in the Data panel so you can confirm the version */
+const BUILD="2026-09-10b";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -1068,6 +1068,7 @@ async function pullLegacyWeights(){
 }
 
 /* ============ BOOT ============ */
+document.getElementById('buildBadge').textContent=BUILD;
 document.getElementById('dataBtn').innerHTML=I.db;
 document.getElementById('editBtn').innerHTML=I.edit;
 document.getElementById('progBtn').innerHTML=I.chart;
