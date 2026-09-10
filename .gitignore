@@ -1,0 +1,4 @@
+gym-backups/
+*.local.json
+.fetched.html
+.DS_Store
