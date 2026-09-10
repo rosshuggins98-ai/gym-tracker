@@ -100,6 +100,19 @@ if [ -f "$TOOLS/update-url" ]; then
       fi
       rm -f "$TMP"
     fi
+    # sw.js (offline shell cache) lives alongside the app file at the same URL,
+    # same directory. No BUILD stamp of its own -- it changes rarely, and isn't
+    # what's serving stale app data if it lags a run behind (the shell it
+    # caches still gets its own BUILD check above). Best-effort: a missing or
+    # unreachable sw.js just means no offline cache, not a broken install.
+    SWURL="${URLSRC%/*}/sw.js"
+    TMPSW="$TOOLS/.fetched-sw.js"
+    if curl -fsSL --max-time 8 "$SWURL" -o "$TMPSW" 2>/dev/null; then
+      if [ -s "$TMPSW" ] && ! cmp -s "$TMPSW" "$WEB/sw.js" 2>/dev/null; then
+        cp -f "$TMPSW" "$WEB/sw.js"
+      fi
+      rm -f "$TMPSW"
+    fi
   fi
 fi
 
@@ -119,6 +132,8 @@ if [ -n "$NEW" ]; then
   fi
 fi
 [ -f "$WEB/gym-tracker.html" ] || { toast "gym-tracker.html not found in Downloads"; exit 1; }
+# same manual path for sw.js -- best-effort, no BUILD stamp to compare
+[ -f "$DL/sw.js" ] && ! cmp -s "$DL/sw.js" "$WEB/sw.js" 2>/dev/null && cp -f "$DL/sw.js" "$WEB/sw.js"
 
 # 2. archive backups, keep newest 20
 mkdir -p "$BACKUPS"

@@ -10,7 +10,8 @@ can be changed entirely from inside the app.
 ## Layout
 
 ```
-app/gym-tracker.html     the whole app (no build step, no dependencies)
+app/gym-tracker.html     the app (no build step, no dependencies)
+app/sw.js                offline shell cache; optional, the app works without it
 termux/gym-setup.sh      installs the Android/Termux server + widgets
 serve.py                 dev server with caching disabled
 docs/ARCHITECTURE.md     data model, storage keys, migration history
@@ -31,10 +32,11 @@ storage (see ARCHITECTURE.md, "Storage modes").
 
 Two options.
 
-**Manual:** copy `app/gym-tracker.html` to the phone's Downloads and tap the Gym
-widget. The server script installs it automatically.
+**Manual:** copy `app/gym-tracker.html` (and, optionally, `app/sw.js` for offline
+support) to the phone's Downloads and tap the Gym widget. The server script installs
+whichever of the two it finds automatically.
 
-**Automatic (better):** host the file anywhere reachable — GitHub raw, your own
+**Automatic (better):** host the files anywhere reachable — GitHub raw, your own
 server, Netlify — and tell the phone where to look, once:
 
 ```bash
@@ -42,8 +44,19 @@ echo "https://raw.githubusercontent.com/USER/REPO/main/app/gym-tracker.html" \
   > ~/gymtools/update-url
 ```
 
-From then on, every widget tap fetches the newest build before opening. Push a
-commit, tap the widget, you're on the new version.
+From then on, every widget tap fetches the newest build before opening — `sw.js`
+too, from the same directory as the URL above. Push a commit, tap the widget, you're
+on the new version.
+
+## Working offline
+
+Once the app has loaded successfully at least once over http://, `app/sw.js`
+registers a service worker that caches the shell, so the app opens (and your
+already-logged data is fully readable and editable) even with the Termux server
+stopped or unreachable — the biggest practical annoyance of the plain single-file
+version. It's optional: if `sw.js` is missing or fails to register (older phone
+setup, or a non-`localhost` origin, which isn't a secure context), the app runs
+exactly as it always did, online-only.
 
 ## Principles worth keeping
 

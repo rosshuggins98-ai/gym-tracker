@@ -419,7 +419,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-09-11g";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-09-11h";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -1446,6 +1446,11 @@ async function pullLegacyWeights(){
 }
 
 /* ============ BOOT ============ */
+/* Offline shell cache -- see sw.js. Registration itself fails quietly
+   wherever it can't work (file://, or a non-localhost LAN origin isn't a
+   secure context): the app already ran fine before this existed, so a
+   rejected registration just means no offline cache, not a broken app. */
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
 document.getElementById('buildBadge').textContent=BUILD;
 document.getElementById('dataBtn').innerHTML=I.db;
 document.getElementById('editBtn').innerHTML=I.edit;

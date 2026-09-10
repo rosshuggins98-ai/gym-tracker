@@ -11,7 +11,13 @@ him turning up. Motivation is a feature, not decoration.
 
 ## Hard constraints
 - **One file.** `app/gym-tracker.html` must stay self-contained and runnable by
-  `python3 -m http.server`. No npm, no bundler, no runtime CDN.
+  `python3 -m http.server`. No npm, no bundler, no runtime CDN. The one narrow,
+  deliberate exception is `app/sw.js` (offline shell cache) — a service worker has
+  to be a same-origin file by browser security policy, a `blob:`/`data:` URL can't
+  be registered as one, so it can't be inlined into the HTML. It's still no build
+  step, no bundler, no CDN, and the app works fully without it if it's ever missing
+  (registration is wrapped in a no-op `.catch()`). Don't add a third file without
+  an equally load-bearing platform reason.
 - **Three storage modes.** Claude artifact storage, localStorage, and none (file://,
   falls back to mirroring state into the URL hash). Don't collapse this.
 - **Migration is load-bearing.** Several older key formats are migrated on boot.
@@ -55,10 +61,13 @@ Then serve and click through: log a set, swap an exercise, edit the plan, create
 custom exercise, finish a session, open Progress, export a backup, re-import it.
 
 ## Good next tasks
-- Unit tests for migration and PB detection (highest value — they're the logic most
-  likely to silently corrupt data)
-- Service worker so the app works offline without the server running
+- Unit tests for migration, PB detection, and the volume/trend/1RM calculations
+  added 2026-09-11 (highest value — this is the logic most likely to silently
+  corrupt data, and there's more of it now than when this note was first written)
+- Supersets (linking sets across two exercises) — warm-up/failure/drop set types
+  shipped 2026-09-11, supersets didn't
 - A POST endpoint in the server so finished sessions write to disk automatically,
   removing the reliance on manual backup exports
-- Split into `src/` modules with a concat step that still emits one file
-- Body-weight tracking, session summary screen, plate calculator
+- Split into `src/` modules with a concat step that still emits one file (now two,
+  with `sw.js` — see Hard constraints)
+- Body-weight tracking, session summary screen

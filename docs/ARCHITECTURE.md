@@ -69,6 +69,12 @@ this change merges rather than going dark.
 
 ## Known rough edges
 - No test coverage
-- `innerHTML` throughout; safe because custom names are stripped at input
+- `innerHTML` throughout; safe because custom names/notes are stripped/escaped at
+  input and render respectively
 - Hand-rolled SVG chart, fine to ~20 points
-- No offline support; the server must be running
+- `app/sw.js` (see CLAUDE.md) caches the shell for offline use once loaded at least
+  once over http://; it isn't build-stamp-aware, just stale-while-revalidate, so a
+  brand new build still needs one successful online load to become the new cached
+  version
+- Set types cover warm-up/failure/drop; supersets (linking sets across two
+  exercises) aren't implemented
