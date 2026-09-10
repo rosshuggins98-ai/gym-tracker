@@ -212,6 +212,14 @@
   justify-content:center;font-size:10px;font-weight:800;color:var(--dim);text-transform:uppercase}
  .wk div.hit{background:var(--accent);color:var(--onfill)}
  .wk div.today{outline:2px solid var(--accent);outline-offset:-2px}
+ .histrow{display:flex;align-items:center;gap:7px;padding:8px 0;border-top:1px solid var(--line)}
+ .histrow:first-of-type{border-top:0}
+ .histrow .hdt{width:52px;flex-shrink:0;font-size:11.5px;color:var(--muted);font-weight:700}
+ .histrow input{width:50px;background:var(--card2);border:1px solid var(--line);border-radius:8px;color:var(--text);
+  font-family:inherit;font-weight:700;font-size:13px;text-align:center;padding:7px 2px;outline:none}
+ .histrow input:focus{border-color:var(--accent)}
+ .histrow .hx{font-size:10.5px;color:var(--dim);flex-shrink:0}
+ .histrow .hdel{margin-left:auto}
  .pbrow{display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--line);font-size:14px}
  .pbrow:first-of-type{border-top:0}
  .pbrow .tag{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--done);
@@ -275,6 +283,14 @@
  <div class="vol" id="volNote"></div>
  <h5>Add an exercise</h5>
  <div id="addBody" class="addlist"></div>
+ <div class="hr"></div>
+ <h5>Routines</h5>
+ <p class="small">Save this plan under a name, keep several, and switch between them. Your logged history stays with each exercise either way, so switching routines never loses a number.</p>
+ <div class="erow" style="align-items:stretch">
+  <div class="en" style="flex:1"><input id="routineName" placeholder="Routine name (e.g. Deload week)"></div>
+  <button class="mini" id="routineSaveBtn" style="width:auto;padding:0 12px;font-size:12px">Save current</button>
+ </div>
+ <div id="routineBody" style="margin-top:6px"></div>
  <div class="hr"></div>
  <button class="dbtn" onclick="resetPlan()">Reset to the starter plan</button>
 </div></div>
@@ -403,7 +419,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-09-11f";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-09-11g";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -1090,8 +1106,46 @@ function openChart(exId,dId){
    '<div class="stat"><b>'+last.val+'</b><span>'+(last.today?'Today':'Latest')+' kg</span></div>'+
    '<div class="stat"><b>'+(est1rm!==null?est1rm:'—')+'</b><span>Est. 1RM</span></div></div>'+
    '<div class="note">'+h.length+' session'+(h.length===1?'':'s')+' logged.'+trendTxt+'</div>'+target+
-   variantBlock(exId,k); }
+   variantBlock(exId,k)+
+   '<h5 style="margin:18px 0 8px">Sessions</h5><div id="histRows">'+histRows(h)+'</div>'+
+   (h.length?'<div class="note">Edit a weight or reps directly, or delete a mis-logged entry — saves immediately.</div>':'');
+  wireHistRows(k,exId,dId);
+ }
  applyAccent(); document.getElementById('chartbg').classList.add('show');
+}
+/* Past-session list: shown newest-first, but each row's data-i is the index
+   into the actual (chronological) hist[k] array, so edits/deletes address
+   the right entry regardless of display order. */
+function histRows(h){
+ if(!h.length) return '<div class="note">No sessions logged yet.</div>';
+ return h.map((e,i)=>({e,i})).sort((a,b)=>a.e.date<b.e.date?1:-1)
+  .map(({e,i})=>'<div class="histrow" data-i="'+i+'"><span class="hdt">'+shortDate(e.date)+'</span>'+
+   '<input class="hw" inputmode="decimal" value="'+e.top+'"><span class="hx">kg ×</span>'+
+   '<input class="hrp" inputmode="numeric" value="'+(e.reps!=null?e.reps:'')+'">'+
+   '<button class="mini del hdel">×</button></div>').join('');
+}
+function wireHistRows(k,exId,dId){
+ const box=document.getElementById('histRows'); if(!box) return;
+ box.querySelectorAll('.histrow').forEach(row=>{
+  const i=+row.dataset.i, hw=row.querySelector('.hw'), hrp=row.querySelector('.hrp'), del=row.querySelector('.hdel');
+  const commit=async()=>{
+   const arr=hist[k]; if(!arr||!arr[i]) return;
+   const w=parseFloat(hw.value); if(isNaN(w)) return;
+   const r=parseInt(hrp.value,10);
+   arr[i].top=w; arr[i].reps=isNaN(r)?null:r;
+   arr.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+   await Store.set('gt4_hist',hist);
+   openChart(exId,dId);
+  };
+  hw.addEventListener('change',commit); hrp.addEventListener('change',commit);
+  del.addEventListener('click',async()=>{
+   const arr=hist[k]; if(!arr) return;
+   arr.splice(i,1);
+   if(!arr.length) delete hist[k];
+   await Store.set('gt4_hist',hist);
+   openChart(exId,dId);
+  });
+ });
 }
 function variantBlock(exId,activeKey){
  const vm=variantMap(exId), keys=Object.keys(vm);
@@ -1109,6 +1163,7 @@ document.getElementById('chartbg').addEventListener('click',e=>{ if(e.target.id=
 function openEdit(){ applyAccent(); drawEdit(); document.getElementById('editbg').classList.add('show'); }
 function closeEdit(){ document.getElementById('editbg').classList.remove('show'); render(); }
 document.getElementById('editbg').addEventListener('click',e=>{ if(e.target.id==='editbg')closeEdit(); });
+document.getElementById('routineSaveBtn').addEventListener('click',saveRoutine);
 function drawEdit(){
  const d=day(ACTIVE);
  document.getElementById('editTitle').textContent='Edit '+d.name+' — '+d.tag;
@@ -1193,9 +1248,48 @@ function drawEdit(){
    }
    add.appendChild(bt); });
  });
+ drawRoutines();
 }
 function savePlan(){ Store.set('gt4_plan',PLAN); mirrorHash(); }
 function resetPlan(){ PLAN=DEFAULT_PLAN(); ACTIVE=PLAN.days[0].id; savePlan(); drawEdit(); render(); }
+
+/* ============ ROUTINES ============ */
+/* Named snapshots of PLAN.days, switchable. Logged history is keyed by
+   exercise, not by routine or day, so switching never loses a number --
+   only which exercises are currently planned changes. */
+let routines=[];
+function newRoutineId(){ return 'r_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+async function saveRoutine(){
+ const inp=document.getElementById('routineName'), nm=cleanName(inp.value); if(!nm) return;
+ routines.push({id:newRoutineId(),label:nm,savedISO:today(),days:JSON.parse(JSON.stringify(PLAN.days))});
+ await Store.set('gt4_routines',routines);
+ inp.value=''; drawRoutines();
+}
+async function loadRoutine(id){
+ const r=routines.find(x=>x.id===id); if(!r) return;
+ PLAN={name:r.label,startedISO:today(),days:JSON.parse(JSON.stringify(r.days))};
+ ACTIVE=PLAN.days[0].id;
+ await Store.set('gt4_plan',PLAN); mirrorHash();
+ drawEdit(); render();
+}
+async function deleteRoutine(id){
+ routines=routines.filter(x=>x.id!==id);
+ await Store.set('gt4_routines',routines);
+ drawRoutines();
+}
+function drawRoutines(){
+ const box=document.getElementById('routineBody'); if(!box) return;
+ if(!routines.length){ box.innerHTML='<div class="note">No saved routines yet.</div>'; return; }
+ box.innerHTML=routines.map(r=>'<div class="erow" data-id="'+r.id+'"><div class="en"><b>'+r.label+'</b>'+
+  '<small>'+r.days.length+' day'+(r.days.length===1?'':'s')+' · saved '+shortDate(r.savedISO)+'</small></div>'+
+  '<button class="mini rload" style="width:auto;padding:0 10px;font-size:11px">Load</button>'+
+  '<button class="mini del rdel" style="width:auto;padding:0 10px;font-size:11px">Delete</button></div>').join('');
+ box.querySelectorAll('.erow').forEach(row=>{
+  const id=row.dataset.id;
+  row.querySelector('.rload').addEventListener('click',()=>loadRoutine(id));
+  row.querySelector('.rdel').addEventListener('click',()=>deleteRoutine(id));
+ });
+}
 
 /* ============ THEME ============ */
 function setTheme(t){ THEME=t; document.documentElement.setAttribute('data-theme',t);
@@ -1221,7 +1315,7 @@ function openData(){
 function closeData(){ document.getElementById('databg').classList.remove('show'); }
 document.getElementById('databg').addEventListener('click',e=>{ if(e.target.id==='databg')closeData(); });
 function backup(){ return {app:"gym-tracker",version:4,build:BUILD,exported:new Date().toISOString(),
- plan:PLAN,cur,prev,swaps,history:hist,warm:warmDone,custom,barWeight:BARWEIGHT,notes,weekTarget:WEEKTARGET}; }
+ plan:PLAN,cur,prev,swaps,history:hist,warm:warmDone,custom,barWeight:BARWEIGHT,notes,weekTarget:WEEKTARGET,routines}; }
 function dl(n,t,m){ try{ const b=new Blob([t],{type:m}),u=URL.createObjectURL(b),a=document.createElement('a');
  a.href=u;a.download=n;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);return true;}catch(e){return false;} }
 function showExport(t,n){ document.getElementById('exportText').value=t;
@@ -1269,10 +1363,11 @@ async function applyImport(){ const d=window.__imp; if(!d)return;
  custom=d.custom||{}; Object.keys(custom).forEach(id=>LIB[id]=custom[id]);
  if(typeof d.barWeight==='number'&&d.barWeight>=0) BARWEIGHT=d.barWeight;
  if(typeof d.weekTarget==='number'&&d.weekTarget>0) WEEKTARGET=d.weekTarget;
- notes=d.notes||{};
+ notes=d.notes||{}; routines=d.routines||[];
  await Promise.all([Store.set('gt4_plan',PLAN),Store.set('gt4_cur',cur),Store.set('gt4_prev',prev),
   Store.set('gt4_hist',hist),Store.set('gt4_swaps',swaps),Store.set('gt4_warm',warmDone),Store.set('gt4_custom',custom),
-  Store.set('gt4_barweight',BARWEIGHT),Store.set('gt4_notes',notes),Store.set('gt4_weektarget',WEEKTARGET)]);
+  Store.set('gt4_barweight',BARWEIGHT),Store.set('gt4_notes',notes),Store.set('gt4_weektarget',WEEKTARGET),
+  Store.set('gt4_routines',routines)]);
  window.__imp=null;
  document.getElementById('importPreview').innerHTML='<b>Restored ✓</b><div class="note">Your data is back.</div>';
  render(); }
@@ -1376,6 +1471,7 @@ document.getElementById('progBtn').innerHTML=I.chart;
  const bw=await Store.get('gt4_barweight'); if(typeof bw==='number'&&bw>=0) BARWEIGHT=bw;
  const wt=await Store.get('gt4_weektarget'); if(typeof wt==='number'&&wt>0) WEEKTARGET=wt;
  notes=(await Store.get('gt4_notes'))||{};
+ routines=(await Store.get('gt4_routines'))||[];
  ACTIVE=(a&&PLAN.days.some(d=>d.id===a))?a:PLAN.days[0].id;
  if(Store.mode()==='none'){
   const rec=readHash();

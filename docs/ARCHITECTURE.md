@@ -22,6 +22,7 @@ history. This is the central design decision.
 | `gt4_prev` | last completed session, drives the "last" hint |
 | `gt4_hist` | `{historyKey: [{date, top, reps, vol?}]}` -- `vol` (sets x reps x kg, working sets only) is present from 2026-09-11 onward; older entries lack it and count as 0 toward volume stats rather than being guessed at |
 | `gt4_weektarget` | sessions/week target shown on the main screen (default 3) |
+| `gt4_routines` | `[{id, label, savedISO, days}]`, named snapshots of `PLAN.days`, switchable from the plan editor |
 | `gt4_swaps` | `{exId: alternativeName}` |
 | `gt4_custom` | user-created exercises |
 | `gt4_legacylast` | weights recovered from older versions |
