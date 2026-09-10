@@ -95,7 +95,7 @@ if [ -f "$TOOLS/update-url" ]; then
       if [ -s "$TMP" ] && grep -q "const BUILD=" "$TMP"; then
         if ! cmp -s "$TMP" "$WEB/gym-tracker.html"; then
           cp -f "$TMP" "$WEB/gym-tracker.html"
-          toast "Updated from the web: $(grep -o 'const BUILD="[^"]*"' "$TMP" | head -1 | cut -d'\"' -f2)"
+          toast "Updated from the web: $(grep -o 'const BUILD="[^"]*"' "$TMP" | head -1 | cut -d'"' -f2)"
         fi
       fi
       rm -f "$TMP"
@@ -103,14 +103,19 @@ if [ -f "$TOOLS/update-url" ]; then
   fi
 fi
 
-# 1. install newest app file from Downloads (compares content, not just dates)
+# 1. install a newer app file from Downloads, if there is one (manual override /
+#    local testing without touching GitHub). Compares BUILD stamps, not just file
+#    content or mtime -- a byte-different but OLDER file (e.g. a copy left over
+#    from months ago) must never win over what's already installed, including
+#    whatever step 0 just fetched. BUILD is "YYYY-MM-DD" + a letter suffix, so a
+#    plain string compare sorts it chronologically.
 NEW=$(ls -t "$DL"/gym-tracker*.html 2>/dev/null | head -n1)
 if [ -n "$NEW" ]; then
-  A=$(md5sum "$NEW" 2>/dev/null | cut -d' ' -f1)
-  B=$(md5sum "$WEB/gym-tracker.html" 2>/dev/null | cut -d' ' -f1)
-  if [ "$A" != "$B" ]; then
+  NEWBUILD=$(grep -o 'const BUILD="[^"]*"' "$NEW" 2>/dev/null | head -1 | cut -d'"' -f2)
+  CURBUILD=$(grep -o 'const BUILD="[^"]*"' "$WEB/gym-tracker.html" 2>/dev/null | head -1 | cut -d'"' -f2)
+  if [ -n "$NEWBUILD" ] && [ "$NEWBUILD" \> "$CURBUILD" ]; then
     cp -f "$NEW" "$WEB/gym-tracker.html"
-    toast "Installed $(basename "$NEW")"
+    toast "Installed $(basename "$NEW") (build $NEWBUILD)"
   fi
 fi
 [ -f "$WEB/gym-tracker.html" ] || { toast "gym-tracker.html not found in Downloads"; exit 1; }
