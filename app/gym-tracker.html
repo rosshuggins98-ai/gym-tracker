@@ -60,6 +60,8 @@
  .ex.swapped{border-color:var(--accent)}
  .ex-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:14px 12px 12px 14px}
  .ex-head .name{font-size:16px;font-weight:700;line-height:1.25;margin-bottom:6px}
+ .exnote{font-size:11.5px;color:var(--muted);font-weight:600;margin:-3px 0 7px;cursor:pointer;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
  .meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
  .pill{font-size:11px;font-weight:700;border-radius:7px;padding:4px 8px;line-height:1}
  .pill.reps{color:var(--muted);background:var(--card2)}
@@ -386,7 +388,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-09-11c";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-09-11d";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -407,7 +409,7 @@ const Store=(function(){
 
 /* ============ STATE ============ */
 let PLAN=null, ACTIVE=null, THEME='dark', DIRTY=false;
-let cur={}, prev={}, hist={}, swaps={}, warmDone={};
+let cur={}, prev={}, hist={}, swaps={}, warmDone={}, notes={};
 
 function day(id){ return PLAN.days.filter(d=>d.id===id)[0]||PLAN.days[0]; }
 function exName(exId){ return (LIB[exId]&&LIB[exId].n)||exId; }
@@ -426,6 +428,15 @@ function hkey(exId,alt){ if(!alt) return exId;
  const m=nameToId(alt); if(m&&m!==exId) return m;
  return 'alt::'+slug(alt); }
 function vName(exId,alt){ return alt||exName(exId); }
+/* Per-exercise persistent notes (machine settings, bench angle, grip width).
+   Keyed the same as history -- a swap-in gets its own note too, since "pin 4"
+   on the lat pulldown means nothing on assisted pull-ups. */
+function noteFor(k){ return notes[k]||''; }
+/* Notes are free-typed user input rendered via innerHTML (the card preview),
+   unlike exercise names which are pre-sanitized once at creation in
+   cleanName() -- escape at render here instead, per CLAUDE.md's own rule for
+   anything that skips that path. */
+function escHTML(t){ return String(t||'').replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c])); }
 function repsFor(it){ const r=(it.reps||[]).slice(0,it.sets); while(r.length<it.sets) r.push(r.length?r[r.length-1]:10); return r; }
 function setCount(d){ return d.items.reduce((s,it)=>s+it.sets,0); }
 function addSet(it){ const r=repsFor(it); r.push(r.length?r[r.length-1]:10); it.reps=r; it.sets=r.length; savePlan(); }
@@ -604,14 +615,18 @@ function render(){
 }
 function card(it,d){
  const exId=it.ex, alt=swaps[exId]||null, name=vName(exId,alt), reps=repsFor(it);
+ const noteText=noteFor(hkey(exId,alt));
+ const notePreview=noteText?'<div class="exnote">'+
+  escHTML(noteText.split('\n')[0].slice(0,60))+(noteText.length>60||noteText.indexOf('\n')>=0?'…':'')+'</div>':'';
  const c=document.createElement('div'); c.className='ex'+(alt?' swapped':'');
  const h=document.createElement('div'); h.className='ex-head';
- h.innerHTML='<div><div class="name">'+name+'</div><div class="meta"></div></div><div class="exbtns">'+
+ h.innerHTML='<div><div class="name">'+name+'</div>'+notePreview+'<div class="meta"></div></div><div class="exbtns">'+
   '<button class="ibtn infob">'+I.info+'</button>'+
   '<button class="ibtn swapb'+(alt?' on':'')+'">'+I.swap+'</button>'+
   '<button class="ibtn chartb">'+I.chart+'</button>'+
   '<button class="ibtn plateb">'+I.plate+'</button></div>';
  c.appendChild(h);
+ if(noteText) h.querySelector('.exnote').addEventListener('click',()=>openCue(exId));
  h.querySelector('.infob').addEventListener('click',()=>openCue(exId));
  h.querySelector('.swapb').addEventListener('click',()=>openSwap(exId));
  h.querySelector('.chartb').addEventListener('click',()=>openChart(exId,d.id));
@@ -809,13 +824,28 @@ document.getElementById('progbg').addEventListener('click',e=>{ if(e.target.id==
 
 /* ============ CUES ============ */
 function openCue(exId){
- const L=LIB[exId]; document.getElementById('cueTitle').textContent=exName(exId);
+ const L=LIB[exId], k=hkey(exId,swaps[exId]||null);
+ document.getElementById('cueTitle').textContent=exName(exId);
  document.getElementById('cueBody').innerHTML=(L&&L.c?L.c:['No cues saved for this one yet.'])
   .map((t,i)=>'<div class="cue"><span class="n">'+(i+1)+'</span><span>'+t+'</span></div>').join('')+
-  '<div class="note">Form beats weight every time as a beginner. If your form breaks down, that set is done.</div>';
+  '<div class="note">Form beats weight every time as a beginner. If your form breaks down, that set is done.</div>'+
+  '<h5>Your note</h5><p class="small" style="margin-bottom:8px">Machine settings, bench angle, grip width — whatever helps you set up the same way next time.</p>'+
+  '<textarea id="noteText" placeholder="e.g. pin 4, seat height 3" style="width:100%;min-height:76px;background:var(--card2);'+
+  'border:1px solid var(--line);border-radius:12px;color:var(--text);font-family:inherit;font-size:14px;padding:10px;outline:none;resize:vertical"></textarea>'+
+  '<div class="note" id="noteSaved" style="min-height:14px"></div>';
+ const nt=document.getElementById('noteText'); nt.value=noteFor(k);
+ let nSaveT=null;
+ nt.addEventListener('input',()=>{
+  clearTimeout(nSaveT);
+  nSaveT=setTimeout(async()=>{
+   if(nt.value) notes[k]=nt.value; else delete notes[k];
+   await Store.set('gt4_notes',notes);
+   const sv=document.getElementById('noteSaved'); if(sv){ sv.textContent='Saved'; setTimeout(()=>{ if(sv)sv.textContent=''; },1000); }
+  },400);
+ });
  applyAccent(); document.getElementById('cuebg').classList.add('show');
 }
-function closeCue(){ document.getElementById('cuebg').classList.remove('show'); }
+function closeCue(){ document.getElementById('cuebg').classList.remove('show'); render(); }
 document.getElementById('cuebg').addEventListener('click',e=>{ if(e.target.id==='cuebg')closeCue(); });
 
 /* ============ SWAP ============ */
@@ -1074,7 +1104,7 @@ function openData(){
 function closeData(){ document.getElementById('databg').classList.remove('show'); }
 document.getElementById('databg').addEventListener('click',e=>{ if(e.target.id==='databg')closeData(); });
 function backup(){ return {app:"gym-tracker",version:4,build:BUILD,exported:new Date().toISOString(),
- plan:PLAN,cur,prev,swaps,history:hist,warm:warmDone,custom,barWeight:BARWEIGHT}; }
+ plan:PLAN,cur,prev,swaps,history:hist,warm:warmDone,custom,barWeight:BARWEIGHT,notes}; }
 function dl(n,t,m){ try{ const b=new Blob([t],{type:m}),u=URL.createObjectURL(b),a=document.createElement('a');
  a.href=u;a.download=n;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);return true;}catch(e){return false;} }
 function showExport(t,n){ document.getElementById('exportText').value=t;
@@ -1083,14 +1113,18 @@ function showExport(t,n){ document.getElementById('exportText').value=t;
 function exportJSON(){ const t=JSON.stringify(backup(),null,2),n='gym-backup-'+today()+'.json'; dl(n,t,'application/json'); showExport(t,n); }
 function cell(v){ return '"'+String(v).replace(/"/g,'""')+'"'; }
 function exportCSV(){
+ /* keyName() already handles both a merged-into-a-real-exercise key (e.g.
+    "bench") and a synthetic global alt key (e.g. "alt::machine-chest-press")
+    correctly -- reused here instead of re-deriving it, since the old
+    base/variant split this used to do here assumed the pre-2026-09-10 key
+    scheme and mislabeled every alt-only key as the literal string "alt". */
  const rows=[];
  Object.keys(hist).forEach(k=>{
-  const p=k.split('::'), base=p[0], variant=p[1]||null;
-  const nm=variant?variant.replace(/-/g,' '):exName(base);
-  (hist[k]||[]).forEach(h=>rows.push([h.date,exName(base),nm,variant?'yes':'no',h.top,h.reps||'']));
+  const nm=keyName(k), nt=noteFor(k);
+  (hist[k]||[]).forEach(h=>rows.push([h.date,nm,h.top,h.reps||'',nt]));
  });
  rows.sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0);
- const t=[['Date','Exercise','Performed','Swapped','Top weight (kg)','Reps at top weight'].map(cell).join(',')]
+ const t=[['Date','Exercise','Top weight (kg)','Reps at top weight','Note'].map(cell).join(',')]
   .concat(rows.map(r=>r.map(cell).join(','))).join('\r\n');
  const n='gym-history-'+today()+'.csv';
  if(!rows.length){ showExport('No history yet — finish a session first.',n); return; }
@@ -1117,9 +1151,10 @@ async function applyImport(){ const d=window.__imp; if(!d)return;
  cur=d.cur||{}; prev=d.prev||{}; hist=migrate(d.history||{}); swaps=d.swaps||{}; warmDone=d.warm||{};
  custom=d.custom||{}; Object.keys(custom).forEach(id=>LIB[id]=custom[id]);
  if(typeof d.barWeight==='number'&&d.barWeight>=0) BARWEIGHT=d.barWeight;
+ notes=d.notes||{};
  await Promise.all([Store.set('gt4_plan',PLAN),Store.set('gt4_cur',cur),Store.set('gt4_prev',prev),
   Store.set('gt4_hist',hist),Store.set('gt4_swaps',swaps),Store.set('gt4_warm',warmDone),Store.set('gt4_custom',custom),
-  Store.set('gt4_barweight',BARWEIGHT)]);
+  Store.set('gt4_barweight',BARWEIGHT),Store.set('gt4_notes',notes)]);
  window.__imp=null;
  document.getElementById('importPreview').innerHTML='<b>Restored ✓</b><div class="note">Your data is back.</div>';
  render(); }
@@ -1219,6 +1254,7 @@ document.getElementById('progBtn').innerHTML=I.chart;
  else { legacyLast=await pullLegacyWeights(); if(Object.keys(legacyLast).length) await Store.set('gt4_legacylast',legacyLast); }
  swaps=sw||{}; cur=c||{}; prev=p||{}; warmDone=w||{};
  const bw=await Store.get('gt4_barweight'); if(typeof bw==='number'&&bw>=0) BARWEIGHT=bw;
+ notes=(await Store.get('gt4_notes'))||{};
  ACTIVE=(a&&PLAN.days.some(d=>d.id===a))?a:PLAN.days[0].id;
  if(Store.mode()==='none'){
   const rec=readHash();
