@@ -16,7 +16,8 @@ history. This is the central design decision.
 | Key | Contents |
 |---|---|
 | `gt4_plan` | the editable plan |
-| `gt4_cur` | in-progress session `{dayId: {exId: [{w,r,done}]}}` |
+| `gt4_cur` | in-progress session `{dayId: {exId: [{w,r,done,t?}]}}` -- `t` is the set type: undefined ('work'), 'warm', 'amrap', or 'drop' |
+| `gt4_barweight` | plate calculator's bar weight, kg (default 20) |
 | `gt4_prev` | last completed session, drives the "last" hint |
 | `gt4_hist` | `{historyKey: [{date, top, reps}]}` |
 | `gt4_swaps` | `{exId: alternativeName}` |
