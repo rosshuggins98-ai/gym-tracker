@@ -81,12 +81,15 @@
  .set .idx b{font-size:15px;font-weight:800;color:var(--muted)}
  .set .idx small{font-size:10px;color:var(--dim);font-weight:600}
  .field{position:relative}
- .field input{width:100%;background:var(--card2);border:1px solid transparent;border-radius:11px;color:var(--text);
-  font-family:inherit;font-weight:700;font-size:17px;text-align:center;padding:12px 4px;outline:none;-moz-appearance:textfield}
+ .fstep{display:flex;align-items:center;gap:4px}
+ .field input{width:100%;min-width:0;background:var(--card2);border:1px solid transparent;border-radius:11px;color:var(--text);
+  font-family:inherit;font-weight:700;font-size:15px;text-align:center;padding:10px 2px;outline:none;-moz-appearance:textfield}
  .field input::-webkit-outer-spin-button,.field input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
  .field input:focus{border-color:var(--accent)}
  .field input::placeholder{color:var(--dim);font-weight:600}
- .field .unit{position:absolute;right:9px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--dim);font-weight:700;pointer-events:none}
+ .stepbtn{width:26px;height:36px;flex-shrink:0;border-radius:8px;border:1px solid var(--line);background:var(--card2);
+  color:var(--text);font-family:inherit;font-weight:800;font-size:16px;line-height:1;cursor:pointer;padding:0}
+ .stepbtn:active{border-color:var(--accent);color:var(--accent)}
  .field .last{display:block;text-align:center;font-size:10px;color:var(--dim);font-weight:600;margin-top:3px;height:12px}
  .field .last b{color:var(--accent);font-weight:700}
  .tick{width:46px;height:46px;border-radius:12px;border:1.5px solid var(--line);background:var(--card2);cursor:pointer;
@@ -374,7 +377,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-09-10d";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-09-11a";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -424,7 +427,14 @@ function removeSet(it,dId){ if(it.sets<=1) return false;
  const a=cur[dId]&&cur[dId][it.ex]; if(a) a.length=Math.min(a.length,r.length);
  savePlan(); return true; }
 function slot(dId,exId,i){ if(!cur[dId])cur[dId]={}; if(!cur[dId][exId])cur[dId][exId]=[];
- if(!cur[dId][exId][i])cur[dId][exId][i]={w:'',r:'',done:false}; return cur[dId][exId][i]; }
+ if(!cur[dId][exId][i]){
+  /* Pre-fill from last session's same set so a matched set is one tap on the
+     tick and nothing else. Only happens once, at creation -- never overwrites
+     something already typed, since the slot object is reused after this. */
+  const lw=lastW(dId,exId,i), lr=lastR(dId,exId,i);
+  cur[dId][exId][i]={w:lw!==null?String(lw):'',r:lr!==null?String(lr):'',done:false};
+ }
+ return cur[dId][exId][i]; }
 let custom={};       /* user-created exercises, merged into LIB at boot */
 function cleanName(t){ return String(t||'').replace(/[<>&"'`]/g,'').replace(/\s+/g,' ').trim().slice(0,40); }
 function newExId(name){
@@ -455,6 +465,8 @@ let legacyFound=0;
 function lastW(dId,exId,i){ const p=prev[dId]&&prev[dId][exId];
  if(p&&p[i]&&p[i].w) return p[i].w;
  const L=legacyLast[exId]; return (L&&L[i])?L[i]:null; }
+function lastR(dId,exId,i){ const p=prev[dId]&&prev[dId][exId];
+ return (p&&p[i]&&p[i].r)?p[i].r:null; }
 function topOf(a){ let m=null; if(a)a.forEach(s=>{const v=parseFloat(s&&s.w); if(!isNaN(v)&&(m===null||v>m))m=v;}); return m; }
 function bestOf(k){ let m=null; (hist[k]||[]).forEach(h=>{ if(m===null||h.top>m)m=h.top; }); return m; }
 function topWithReps(dId,exId){
@@ -589,14 +601,32 @@ function card(it,d){
   const lw=lastW(d.id,exId,i), lt=lw!==null?'last <b>'+lw+'</b>':'';
   const row=document.createElement('div'); row.className='set';
   row.innerHTML='<div class="idx"><b>'+(i+1)+'</b><small>×'+tt+'</small></div>'+
-   '<div class="field"><input inputmode="decimal" placeholder="–" value="'+(x.w||'')+'" data-k="w"><span class="unit">kg</span><span class="last">'+lt+'</span></div>'+
-   '<div class="field"><input inputmode="numeric" placeholder="'+tt+'" value="'+(x.r||'')+'" data-k="r"><span class="last"></span></div>'+
+   '<div class="field"><div class="fstep">'+
+    '<button class="stepbtn" data-f="w" data-d="-2.5">&minus;</button>'+
+    '<input inputmode="decimal" placeholder="–" value="'+(x.w||'')+'" data-k="w">'+
+    '<button class="stepbtn" data-f="w" data-d="2.5">+</button></div>'+
+    '<span class="last">'+lt+'</span></div>'+
+   '<div class="field"><div class="fstep">'+
+    '<button class="stepbtn" data-f="r" data-d="-1">&minus;</button>'+
+    '<input inputmode="numeric" placeholder="'+tt+'" value="'+(x.r||'')+'" data-k="r">'+
+    '<button class="stepbtn" data-f="r" data-d="1">+</button></div>'+
+    '<span class="last"></span></div>'+
    '<button class="tick'+(x.done?' on':'')+'">'+I.tick+'</button>';
   const wI=row.querySelector('[data-k="w"]'),rI=row.querySelector('[data-k="r"]'),tk=row.querySelector('.tick');
   wI.addEventListener('input',()=>{ slot(d.id,exId,i).w=wI.value; queueSave(); pills(c,it,d); });
   wI.addEventListener('blur',flush);
   rI.addEventListener('input',()=>{ slot(d.id,exId,i).r=rI.value; queueSave(); });
   rI.addEventListener('blur',flush);
+  row.querySelectorAll('.stepbtn').forEach(btn=>{
+   btn.addEventListener('click',()=>{
+    const f=btn.dataset.f, delta=parseFloat(btn.dataset.d), y=slot(d.id,exId,i);
+    let v=parseFloat(f==='w'?y.w:y.r); if(isNaN(v))v=0;
+    v=Math.max(0,Math.round((v+delta)*100)/100);
+    const sv=f==='w'?String(v):String(Math.round(v));
+    if(f==='w'){ y.w=sv; wI.value=sv; } else { y.r=sv; rI.value=sv; }
+    queueSave(); flush(); pills(c,it,d);
+   });
+  });
   tk.addEventListener('click',()=>{ const y=slot(d.id,exId,i); y.done=!y.done; tk.classList.toggle('on',y.done);
    if(y.done&&!y.r&&tt!=='max'){ y.r=String(tt); rI.value=tt; }
    if(y.done) restStart(60);
