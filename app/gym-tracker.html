@@ -13,11 +13,11 @@
 <style>
  :root,:root[data-theme="dark"]{--bg:#12151a;--card:#1b212b;--card2:#232b37;--line:#2c3644;
   --text:#eef2f7;--muted:#8b95a4;--dim:#5c6675;--a1:#f2a93b;--a1s:#f2a93b22;--a2:#35b8c7;--a2s:#35b8c722;
-  --a3:#a98bf0;--a3s:#a98bf022;--a4:#ec6b9e;--a4s:#ec6b9e22;--done:#4ac084;--dones:#4ac08422;--warn:#f2734b;--warns:#f2734b22;
+  --a3:#a98bf0;--a3s:#a98bf022;--done:#4ac084;--dones:#4ac08422;--warn:#f2734b;--warns:#f2734b22;
   --onfill:#14171c;--overlay:rgba(0,0,0,.62)}
  :root[data-theme="light"]{--bg:#eef1f6;--card:#fff;--card2:#eef2f7;--line:#dbe1e9;
   --text:#1b2430;--muted:#5d6875;--dim:#9aa4b0;--a1:#b4720f;--a1s:#b4720f18;--a2:#0f8493;--a2s:#0f849318;
-  --a3:#6b4bc4;--a3s:#6b4bc418;--a4:#c23a74;--a4s:#c23a7418;--done:#2f9e69;--dones:#2f9e6918;--warn:#c2522a;--warns:#c2522a18;
+  --a3:#6b4bc4;--a3s:#6b4bc418;--done:#2f9e69;--dones:#2f9e6918;--warn:#c2522a;--warns:#c2522a18;
   --onfill:#fff;--overlay:rgba(20,28,40,.45)}
  :root{--accent:var(--a1);--accent-soft:var(--a1s)}
  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -346,17 +346,9 @@ const LIB={
   c:["Elbow braced against the inside of your thigh.","Curl slowly and squeeze at the top.","One arm at a time, no swinging."]}
 };
 
-/* ============ STARTER PLAN — beginner PPL (+ full body) ============ */
-/* Day 4 lives in its own function so it can both seed a fresh install (below)
-   and be appended, once, to a plan someone already customized — see BOOT. */
-function FULLBODY_DAY(){ return {
- id:"full",name:"Day 4",tag:"Full Body",av:"--a4",
- warm:"10 minutes: light cardio, then bodyweight squats, band pull-aparts, and a light set on your first lift.",
- items:[{ex:"squat",sets:3,reps:[10,8,8]},{ex:"bench",sets:3,reps:[10,8,8]},{ex:"bbrow",sets:2,reps:[10,8]},
-        {ex:"dbshoulder",sets:2,reps:[10,10]},{ex:"hammer",sets:2,reps:[12,10]}]
-};}
+/* ============ STARTER PLAN — beginner PPL ============ */
 function DEFAULT_PLAN(){ return {
- name:"Push / Pull / Legs / Full Body",
+ name:"Push / Pull / Legs",
  startedISO:new Date().toISOString().slice(0,10),
  days:[
   {id:"push",name:"Day 1",tag:"Push",av:"--a1",
@@ -370,8 +362,7 @@ function DEFAULT_PLAN(){ return {
   {id:"legs",name:"Day 3",tag:"Legs",av:"--a3",
    warm:"10 minutes: light cardio, then bodyweight squats, hip hinges, and a light set on your first lift.",
    items:[{ex:"squat",sets:3,reps:[10,8,8]},{ex:"rdl",sets:3,reps:[10,8,8]},{ex:"legpress",sets:2,reps:[12,10]},
-          {ex:"legcurl",sets:2,reps:[12,12]},{ex:"calf",sets:2,reps:[15,15]}]},
-  FULLBODY_DAY()
+          {ex:"legcurl",sets:2,reps:[12,12]},{ex:"calf",sets:2,reps:[15,15]}]}
  ]};
 }
 /* Old ids from earlier versions -> library ids, so nothing logged is orphaned. */
@@ -383,7 +374,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-09-10c";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-09-10d";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -1086,10 +1077,12 @@ document.getElementById('progBtn').innerHTML=I.chart;
   Store.get('gt4_hist'),Store.get('gt4_swaps'),Store.get('gt4_cur'),Store.get('gt4_prev'),Store.get('gt4_warm')]);
  const cx=await Store.get('gt4_custom'); if(cx){ custom=cx; Object.keys(cx).forEach(id=>LIB[id]=cx[id]); }
  PLAN=(pl&&pl.days&&pl.days.length)?pl:DEFAULT_PLAN();
- /* One-time, additive: give an already-customized plan the new Full Body day
-    too, without touching anything else about it. Never fires again once the
-    day exists — including if it's since been edited or its exercises changed. */
- if(!PLAN.days.some(d=>d.id==='full')){ PLAN.days.push(FULLBODY_DAY()); await Store.set('gt4_plan',PLAN); }
+ /* One-time: the Full Body day (added 2026-09-10, removed shortly after) may
+    already be sitting in a saved plan from before it was pulled back out.
+    Strip it if present, leaving everything else about the plan untouched.
+    No-op once it's gone; doesn't touch its exercises' logged history, which
+    stays keyed by exercise and is still reachable if the day ever comes back. */
+ if(PLAN.days.some(d=>d.id==='full')){ PLAN.days=PLAN.days.filter(d=>d.id!=='full'); await Store.set('gt4_plan',PLAN); }
  setTheme(th==='light'?'light':'dark');
  hist=h?migrate(h):await pullLegacy();
  if(!h) await Store.set('gt4_hist',hist);
