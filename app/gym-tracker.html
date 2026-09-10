@@ -143,6 +143,9 @@
  .stat b{display:block;font-size:20px;font-weight:800}
  .stat span{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
  .cx-line{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
+ .cx-line2{fill:none;stroke:var(--dim);stroke-width:1.5;stroke-dasharray:4 3;stroke-linejoin:round;stroke-linecap:round}
+ .trend{font-size:11px;margin-left:4px}
+ .trend.up{color:var(--done)} .trend.down{color:var(--warn)} .trend.flat{color:var(--dim)}
  .cx-dot{fill:var(--accent)} .cx-dot.best{fill:var(--done)} .cx-dot.today{fill:var(--card2);stroke:var(--accent);stroke-width:2.5}
  .cx-lbl{fill:var(--text);font-size:11px;font-weight:700} .cx-ax{fill:var(--dim);font-size:10px;font-weight:600}
  .erow{display:flex;align-items:center;gap:8px;background:var(--card2);border-radius:12px;padding:10px 10px 10px 12px;margin-bottom:8px}
@@ -388,7 +391,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-09-11d";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-09-11e";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -762,6 +765,62 @@ function weekStreak(){
  while(weeks[cur.toISOString().slice(0,10)]){ n++; cur.setDate(cur.getDate()-7); }
  return n;
 }
+/* --- Volume, 1RM estimate, trend --------------------------------------- */
+function setVol(x){ if(!x||x.t==='warm') return 0;
+ const w=parseFloat(x.w), r=parseInt(x.r,10); return (!isNaN(w)&&!isNaN(r))?w*r:0; }
+function exVolume(a){ return (a||[]).reduce((s,x)=>s+setVol(x),0); }
+/* Volume from every in-progress (unfinished) session across all days -- not
+   just the active tab, in case a day was switched away from mid-workout. */
+function liveVolume(){
+ return Object.values(cur).reduce((s,dayObj)=>
+  s+Object.values(dayObj||{}).reduce((s2,a)=>s2+exVolume(a),0),0);
+}
+/* A key merged into a real library exercise (no swap, or swapped to a name
+   that matched one) resolves to a muscle group; a synthetic alt:: key has no
+   group of its own -- it was never a tracked exercise, just a name. */
+function groupOf(k){ return (k.indexOf('::')<0&&LIB[k])?LIB[k].g:null; }
+function weekVolume(){
+ const mon=mondayISO(); let v=0;
+ Object.values(hist).forEach(a=>(a||[]).forEach(e=>{ if(e.date>=mon) v+=(e.vol||0); }));
+ return Math.round(v+liveVolume());
+}
+function volumeByGroup(){
+ const mon=mondayISO(), byG={};
+ Object.keys(hist).forEach(k=>{ const g=groupOf(k); if(!g) return;
+  (hist[k]||[]).forEach(e=>{ if(e.date>=mon) byG[g]=(byG[g]||0)+(e.vol||0); }); });
+ Object.keys(cur).forEach(dId=>Object.keys(cur[dId]||{}).forEach(exId=>{
+  const alt=swaps[exId]||null, g=groupOf(hkey(exId,alt))||(LIB[exId]&&LIB[exId].g);
+  if(g) byG[g]=(byG[g]||0)+exVolume(cur[dId][exId]);
+ }));
+ Object.keys(byG).forEach(g=>byG[g]=Math.round(byG[g]));
+ return byG;
+}
+/* Most recent trained date per muscle group, from history only -- a group
+   only entered live today doesn't count as "trained" until the session is
+   finished, same as everywhere else PB/top-set logic works. */
+function groupLastTrained(){
+ const last={};
+ Object.keys(hist).forEach(k=>{ const g=groupOf(k); if(!g) return;
+  (hist[k]||[]).forEach(e=>{ if(!last[g]||e.date>last[g]) last[g]=e.date; }); });
+ return last;
+}
+function allGroups(){
+ const s={}; Object.values(LIB).forEach(x=>s[x.g]=1); return Object.keys(s).sort();
+}
+/* Epley estimated 1RM: w * (1 + reps/30). Falls back to the raw weight when
+   reps weren't recorded (older/legacy entries), rather than showing nothing. */
+function e1RM(top,reps){ return top*(1+((reps||0)/30)); }
+/* Plain up/flat/down over the last up-to-4 sessions, using estimated 1RM so
+   "same weight, more reps" reads as progress too, not just a heavier top set.
+   +/-2% is treated as flat -- noise, not a trend. */
+function trendFor(k){
+ const h=(hist[k]||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+ if(h.length<2) return null;
+ const win=h.slice(-4), a=e1RM(win[0].top,win[0].reps), b=e1RM(win[win.length-1].top,win[win.length-1].reps);
+ if(!a) return null;
+ const pct=(b-a)/a;
+ return pct>0.02?'up':pct<-0.02?'down':'flat';
+}
 function recentPBs(limit){
  const out=[];
  Object.keys(hist).forEach(k=>{
@@ -783,10 +842,11 @@ function nextTargets(){
   const k=hkey(it.ex,swaps[it.ex]||null), b=pbOf(k);
   if(!b) return;
   const bump=b.w>=40?2.5:(b.w>=15?2:1);
-  rows.push({nm:keyName(k),cur:b.w,reps:b.reps,next:Math.round((b.w+bump)*2)/2});
+  rows.push({nm:keyName(k),cur:b.w,reps:b.reps,next:Math.round((b.w+bump)*2)/2,trend:trendFor(k)});
  }));
  return rows;
 }
+const TREND_ICON={up:'<span class="trend up">▲</span>',down:'<span class="trend down">▼</span>',flat:'<span class="trend flat">▬</span>'};
 function openProgress(){
  applyAccent();
  const ds=allSessionDates(), wk=workoutsThisWeek(), streak=weekStreak();
@@ -801,7 +861,8 @@ function openProgress(){
   h+='<div class="note" style="margin-top:10px">'+
    (gap===0?'Trained today. ':gap===1?'Last session was yesterday. ':'Last session was '+gap+' days ago. ')+
    (wk>=3?'Three this week — that is the target hit.':wk===2?'One more this week hits the target.':
-    wk===1?'Two more this week hits the target.':'Nothing logged this week yet.')+'</div>';
+    wk===1?'Two more this week hits the target.':'Nothing logged this week yet.')+'</div>'+
+   '<div class="note">This week: <b>'+weekVolume()+'kg</b> total volume moved (working sets only).</div>';
   const pbs=recentPBs(6);
   if(pbs.length){
    h+='<h5>Recent personal bests</h5>'+pbs.map(p=>'<div class="pbrow"><span class="tag">'+p.kind+'</span>'+
@@ -810,10 +871,21 @@ function openProgress(){
   }
   const tg=nextTargets();
   if(tg.length){
-   h+='<h5>What to beat next</h5>'+tg.map(t=>'<div class="goal"><span class="nm">'+t.nm+'</span>'+
+   h+='<h5>What to beat next</h5>'+tg.map(t=>'<div class="goal"><span class="nm">'+t.nm+(t.trend?TREND_ICON[t.trend]:'')+'</span>'+
     '<span class="dt" style="margin-right:8px">'+t.cur+'kg'+(t.reps?' × '+t.reps:'')+'</span>'+
     '<span class="tg">→ '+t.next+'kg</span></div>').join('');
-   h+='<div class="note">Match your last reps at the current weight with clean form, then take the jump.</div>';
+   h+='<div class="note">Match your last reps at the current weight with clean form, then take the jump. Arrow is the trend in estimated 1RM over your last 4 sessions.</div>';
+  }
+  const vbg=volumeByGroup(), glt=groupLastTrained(), groups=allGroups();
+  if(groups.length){
+   h+='<h5>This week by muscle group</h5>'+groups.map(g=>{
+    const v=vbg[g]||0, last=glt[g];
+    const daysSince=last?Math.floor((new Date(today())-new Date(last))/864e5):null;
+    const flagged=(daysSince===null||daysSince>=7);
+    const flag=flagged?' <span class="trend down">⚠ '+(daysSince===null?'never trained':daysSince+'d ago')+'</span>':'';
+    return '<div class="goal"><span class="nm">'+g+flag+'</span><span class="tg">'+v+'kg</span></div>';
+   }).join('');
+   h+='<div class="note">Volume moved this week per muscle group, using each exercise\'s library category. Flagged if nothing in that group has been logged in 7+ days.</div>';
   }
  }
  document.getElementById('progBody').innerHTML=h;
@@ -938,31 +1010,42 @@ function closePlates(){ document.getElementById('platebg').classList.remove('sho
 document.getElementById('platebg').addEventListener('click',e=>{ if(e.target.id==='platebg')closePlates(); });
 
 /* ============ CHART ============ */
-function buildChart(pts){
+function buildChart(pts,pts2){
  if(!pts.length)return '';
- const W=320,H=150,pl=30,pr=14,pt=18,pb=26, vals=pts.map(p=>p.val);
+ const W=320,H=150,pl=30,pr=14,pt=18,pb=26;
+ const vals=pts.concat(pts2||[]).map(p=>p.val);
  let mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals);
  if(mn===mx){mn=Math.max(0,mn-5);mx=mx+5;}
  const rg=mx-mn||1, iw=W-pl-pr, ih=H-pt-pb;
  const X=i=>pts.length===1?pl+iw/2:pl+(i/(pts.length-1))*iw, Y=v=>pt+ih-((v-mn)/rg)*ih;
- const top=Math.max.apply(null,vals); let path='',dots='',lbls='';
+ const top=Math.max.apply(null,pts.map(p=>p.val)); let path='',dots='',lbls='';
  pts.forEach((p,i)=>{ path+=(i?'L':'M')+X(i).toFixed(1)+' '+Y(p.val).toFixed(1)+' ';
   dots+='<circle class="cx-dot '+(p.today?'today':(p.val===top?'best':''))+'" cx="'+X(i).toFixed(1)+'" cy="'+Y(p.val).toFixed(1)+'" r="'+(p.today?4.5:4)+'"/>';
   if(i===pts.length-1||p.val===top)lbls+='<text class="cx-lbl" x="'+X(i).toFixed(1)+'" y="'+(Y(p.val)-9).toFixed(1)+'" text-anchor="middle">'+p.val+'</text>'; });
+ let path2='';
+ if(pts2&&pts2.length>1) pts2.forEach((p,i)=>{ path2+=(i?'L':'M')+X(i).toFixed(1)+' '+Y(p.val).toFixed(1)+' '; });
  let ax='<text class="cx-ax" x="'+pl+'" y="'+(H-8)+'" text-anchor="start">'+pts[0].label+'</text>';
  if(pts.length>1)ax+='<text class="cx-ax" x="'+(W-pr)+'" y="'+(H-8)+'" text-anchor="end">'+pts[pts.length-1].label+'</text>';
  ax+='<text class="cx-ax" x="4" y="'+(pt+4)+'">'+mx+'</text><text class="cx-ax" x="4" y="'+(pt+ih)+'">'+mn+'</text>';
- return '<div class="chartwrap"><svg viewBox="0 0 '+W+' '+H+'">'+(pts.length>1?'<path class="cx-line" d="'+path.trim()+'"/>':'')+dots+lbls+ax+'</svg></div>';
+ return '<div class="chartwrap"><svg viewBox="0 0 '+W+' '+H+'">'+
+  (path2?'<path class="cx-line2" d="'+path2.trim()+'"/>':'')+
+  (pts.length>1?'<path class="cx-line" d="'+path.trim()+'"/>':'')+dots+lbls+ax+'</svg></div>';
 }
 function openChart(exId,dId){
  const alt=swaps[exId]||null, k=hkey(exId,alt);
  document.getElementById('chartTitle').textContent=vName(exId,alt);
  const h=hist[k]||[], pts=h.map(e=>({label:shortDate(e.date),val:e.top}));
- const live=dId?curTop(dId,exId):null; if(live!==null)pts.push({label:'Today',val:live,today:true});
+ const pts2=h.map(e=>({label:shortDate(e.date),val:Math.round(e1RM(e.top,e.reps)*10)/10}));
+ const live=dId?curTop(dId,exId):null;
+ if(live!==null){
+  pts.push({label:'Today',val:live,today:true});
+  const liveT=dId?topWithReps(dId,exId):null;
+  pts2.push({label:'Today',val:Math.round(e1RM(live,liveT&&liveT.reps)*10)/10,today:true});
+ }
  const body=document.getElementById('chartBody');
  if(!pts.length){ body.innerHTML='<div class="empty">No weights logged for this yet.<br>Log a weight and finish a session — your top set charts here.</div>'; }
  else{ const best=Math.max.apply(null,pts.map(p=>p.val)), last=pts[pts.length-1];
-  const lastH=h[h.length-1];
+  const lastH=h[h.length-1], est1rm=pts2.length?pts2[pts2.length-1].val:null;
   const repNote=(lastH&&lastH.reps)?(' × '+lastH.reps):'';
   let target='';
   if(lastH&&!last.today){
@@ -970,9 +1053,12 @@ function openChart(exId,dId){
    target='<div class="note"><b>Next time:</b> you logged '+lastH.top+'kg'+repNote+
     ' last session. Match it with good form, then try '+(Math.round((lastH.top+bump)*2)/2)+'kg on your top set.</div>';
   }
-  body.innerHTML=buildChart(pts)+'<div class="stats"><div class="stat"><b>'+best+'</b><span>Best kg</span></div>'+
+  const trend=trendFor(k);
+  const trendTxt=trend==='up'?' Trending up over your last sessions.':trend==='down'?' Trending down over your last sessions.':trend==='flat'?' Holding flat over your last sessions.':'';
+  body.innerHTML=buildChart(pts,pts.length>1?pts2:null)+'<div class="stats"><div class="stat"><b>'+best+'</b><span>Best kg</span></div>'+
    '<div class="stat"><b>'+last.val+'</b><span>'+(last.today?'Today':'Latest')+' kg</span></div>'+
-   '<div class="stat"><b>'+h.length+'</b><span>Sessions</span></div></div>'+target+
+   '<div class="stat"><b>'+(est1rm!==null?est1rm:'—')+'</b><span>Est. 1RM</span></div></div>'+
+   '<div class="note">'+h.length+' session'+(h.length===1?'':'s')+' logged.'+trendTxt+'</div>'+target+
    variantBlock(exId,k); }
  applyAccent(); document.getElementById('chartbg').classList.add('show');
 }
@@ -1168,10 +1254,12 @@ async function doNewSession(){
  const d=day(ACTIVE), td=today();
  d.items.forEach(it=>{ const e=topWithReps(d.id,it.ex);
   if(e){ const k=hkey(it.ex,swaps[it.ex]||null); if(!hist[k])hist[k]=[];
+   const vol=exVolume(cur[d.id]&&cur[d.id][it.ex]);
    const lastE=hist[k][hist[k].length-1];
    if(lastE&&lastE.date===td){ /* same-day re-finish: keep the better one, don't duplicate the point */
     if(e.top>lastE.top||(e.top===lastE.top&&(e.reps||0)>(lastE.reps||0))){ lastE.top=e.top; lastE.reps=e.reps; }
-   } else hist[k].push({date:td,top:e.top,reps:e.reps}); } });
+    lastE.vol=vol;
+   } else hist[k].push({date:td,top:e.top,reps:e.reps,vol}); } });
  if(cur[d.id]&&Object.keys(cur[d.id]).length){ prev[d.id]=JSON.parse(JSON.stringify(cur[d.id])); }
  cur[d.id]={}; delete warmDone[d.id];
  await Promise.all([Store.set('gt4_hist',hist),Store.set('gt4_prev',prev),Store.set('gt4_cur',cur),Store.set('gt4_warm',warmDone)]);
