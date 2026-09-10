@@ -41,6 +41,10 @@
  .progress{margin:12px 2px 2px;height:6px;background:var(--card);border-radius:99px;overflow:hidden}
  .progress i{display:block;height:100%;width:0;background:var(--accent);border-radius:99px;transition:width .3s}
  .pmeta{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);margin:7px 2px 6px;font-weight:600}
+ .weekgoal{display:flex;align-items:center;gap:9px;margin:10px 2px 2px;font-size:11.5px;font-weight:700;
+  color:var(--muted);cursor:pointer}
+ .weekgoal .streak{color:var(--accent)}
+ .weekgoal .hit{color:var(--done)}
  .saved{font-size:11px;font-weight:700;color:var(--done);opacity:0;transition:opacity .3s}
  .saved.show{opacity:1}
  .banner{background:var(--warns);border:1px solid var(--warn);border-radius:12px;padding:11px 13px;font-size:12.5px;
@@ -66,7 +70,13 @@
  .pill{font-size:11px;font-weight:700;border-radius:7px;padding:4px 8px;line-height:1}
  .pill.reps{color:var(--muted);background:var(--card2)}
  .pill.best{color:var(--accent);background:var(--accent-soft)}
- .pill.pb{color:var(--done);background:var(--dones);display:inline-flex;align-items:center;gap:4px}
+ .pill.pb{color:var(--done);background:var(--dones);display:inline-flex;align-items:center;gap:4px;animation:pbpop .45s ease}
+ @keyframes pbpop{0%{transform:scale(1)}45%{transform:scale(1.22)}100%{transform:scale(1)}}
+ .pbtoast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));z-index:50;
+  transform:translateX(-50%) translateY(-14px);background:var(--done);color:var(--onfill);font-weight:800;
+  font-size:13px;padding:11px 20px;border-radius:99px;opacity:0;pointer-events:none;
+  transition:opacity .25s,transform .25s;box-shadow:0 8px 24px rgba(0,0,0,.3);white-space:nowrap}
+ .pbtoast.show{opacity:1;transform:translateX(-50%) translateY(0)}
  .pill.pb svg{width:11px;height:11px;stroke:var(--done);stroke-width:3;fill:none}
  .pill.swap{color:var(--accent);background:var(--accent-soft)}
  .exbtns{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
@@ -223,6 +233,7 @@
    <button class="hbtn" id="dataBtn" onclick="openData()" aria-label="Data"></button>
    <button class="hbtn" id="themeBtn" onclick="toggleTheme()" aria-label="Theme"></button></div>
   <div class="toggle" id="dayToggle"></div>
+  <div class="weekgoal" id="weekGoal" title="Tap to change your weekly target"></div>
   <div class="progress"><i id="bar"></i></div>
   <div class="pmeta"><span id="pcount">0 / 0 sets</span><span class="saved" id="savedTag">Saved</span><span id="plabel"></span></div>
   <div class="banner" id="storeWarn"><b>Opened as a local file.</b> Chrome blocks proper saving here, so this session is kept in the address bar &mdash; it survives a refresh but not closing the tab. Serve it over http:// to fix it.</div>
@@ -231,6 +242,7 @@
 </div>
 <div class="rest" id="rest"><span class="rt" id="restT">1:00</span><span class="rl" id="restL">Rest</span>
  <button onclick="restAdd(30)">+30s</button><button onclick="restStop()">Done</button></div>
+<div class="pbtoast" id="pbToast">🎉 New PB!</div>
 <div class="foot"><div class="inner"><button onclick="openSheet()">Finish &amp; start new session</button></div></div>
 
 <div class="sheet-bg" id="sheetbg"><div class="sheet">
@@ -391,7 +403,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-09-11e";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-09-11f";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -413,6 +425,7 @@ const Store=(function(){
 /* ============ STATE ============ */
 let PLAN=null, ACTIVE=null, THEME='dark', DIRTY=false;
 let cur={}, prev={}, hist={}, swaps={}, warmDone={}, notes={};
+let WEEKTARGET=3;   /* sessions/week; configurable via the weekgoal strip, default matches the plan */
 
 function day(id){ return PLAN.days.filter(d=>d.id===id)[0]||PLAN.days[0]; }
 function exName(exId){ return (LIB[exId]&&LIB[exId].n)||exId; }
@@ -599,8 +612,13 @@ function render(){
  applyAccent(); renderTabs();
  const d=day(ACTIVE);
  document.getElementById('plabel').textContent=setCount(d)+' sets planned';
- const wk=workoutsThisWeek();
- document.getElementById('weekTag').textContent='Week '+weekNo()+(wk?' · '+wk+' workout'+(wk===1?'':'s')+' this week':'');
+ const wk=workoutsThisWeek(), streak=weekStreak();
+ document.getElementById('weekTag').textContent='Week '+weekNo();
+ const wg=document.getElementById('weekGoal'), hit=wk>=WEEKTARGET;
+ wg.innerHTML=(streak?'<span class="streak">🔥 '+streak+'-week streak</span>':'')+
+  '<span class="'+(hit?'hit':'')+'">'+wk+' of '+WEEKTARGET+' this week'+(hit?' — hit ✓':'')+'</span>';
+ wg.onclick=async()=>{ const opts=[2,3,4,5,6]; WEEKTARGET=opts[(opts.indexOf(WEEKTARGET)+1)%opts.length];
+  await Store.set('gt4_weektarget',WEEKTARGET); render(); };
  const app=document.getElementById('app'); app.innerHTML='';
  if(d.warm){
   const w=document.createElement('div'); w.className='warm'+(warmDone[d.id]===today()?' on':'');
@@ -618,7 +636,8 @@ function render(){
 }
 function card(it,d){
  const exId=it.ex, alt=swaps[exId]||null, name=vName(exId,alt), reps=repsFor(it);
- const noteText=noteFor(hkey(exId,alt));
+ const k0=hkey(exId,alt);
+ const noteText=noteFor(k0);
  const notePreview=noteText?'<div class="exnote">'+
   escHTML(noteText.split('\n')[0].slice(0,60))+(noteText.length>60||noteText.indexOf('\n')>=0?'…':'')+'</div>':'';
  const c=document.createElement('div'); c.className='ex'+(alt?' swapped':'');
@@ -673,6 +692,8 @@ function card(it,d){
   tk.addEventListener('click',()=>{ const y=slot(d.id,exId,i); y.done=!y.done; tk.classList.toggle('on',y.done);
    if(y.done&&!y.r&&tt!=='max'){ y.r=String(tt); rI.value=tt; }
    if(y.done) restStart(60);
+   pills(c,it,d);
+   if(y.done&&pbCheck(d.id,exId,k0)) celebratePB();
    done(c,it,d); updateProgress(); queueSave(); flush(); });
   row.querySelector('.idx').addEventListener('click',()=>{
    const y=slot(d.id,exId,i); y.t=nextSetType(y.t);
@@ -741,6 +762,16 @@ function restTick(){
   setTimeout(()=>{ if(!restIv) restStop(); },8000); return; }
  const s=Math.ceil(ms/1000);
  t.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+}
+
+/* Fired the moment a ticked-done set is a PB -- the pill alone was too quiet
+   for the single most motivating moment in the app. */
+function celebratePB(){
+ const el=document.getElementById('pbToast'); if(!el) return;
+ el.classList.add('show');
+ if(navigator.vibrate) navigator.vibrate([60,40,60,40,140]);
+ clearTimeout(celebratePB._t);
+ celebratePB._t=setTimeout(()=>el.classList.remove('show'),1800);
 }
 
 /* ============ PROGRESS ============ */
@@ -1190,7 +1221,7 @@ function openData(){
 function closeData(){ document.getElementById('databg').classList.remove('show'); }
 document.getElementById('databg').addEventListener('click',e=>{ if(e.target.id==='databg')closeData(); });
 function backup(){ return {app:"gym-tracker",version:4,build:BUILD,exported:new Date().toISOString(),
- plan:PLAN,cur,prev,swaps,history:hist,warm:warmDone,custom,barWeight:BARWEIGHT,notes}; }
+ plan:PLAN,cur,prev,swaps,history:hist,warm:warmDone,custom,barWeight:BARWEIGHT,notes,weekTarget:WEEKTARGET}; }
 function dl(n,t,m){ try{ const b=new Blob([t],{type:m}),u=URL.createObjectURL(b),a=document.createElement('a');
  a.href=u;a.download=n;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);return true;}catch(e){return false;} }
 function showExport(t,n){ document.getElementById('exportText').value=t;
@@ -1237,10 +1268,11 @@ async function applyImport(){ const d=window.__imp; if(!d)return;
  cur=d.cur||{}; prev=d.prev||{}; hist=migrate(d.history||{}); swaps=d.swaps||{}; warmDone=d.warm||{};
  custom=d.custom||{}; Object.keys(custom).forEach(id=>LIB[id]=custom[id]);
  if(typeof d.barWeight==='number'&&d.barWeight>=0) BARWEIGHT=d.barWeight;
+ if(typeof d.weekTarget==='number'&&d.weekTarget>0) WEEKTARGET=d.weekTarget;
  notes=d.notes||{};
  await Promise.all([Store.set('gt4_plan',PLAN),Store.set('gt4_cur',cur),Store.set('gt4_prev',prev),
   Store.set('gt4_hist',hist),Store.set('gt4_swaps',swaps),Store.set('gt4_warm',warmDone),Store.set('gt4_custom',custom),
-  Store.set('gt4_barweight',BARWEIGHT),Store.set('gt4_notes',notes)]);
+  Store.set('gt4_barweight',BARWEIGHT),Store.set('gt4_notes',notes),Store.set('gt4_weektarget',WEEKTARGET)]);
  window.__imp=null;
  document.getElementById('importPreview').innerHTML='<b>Restored ✓</b><div class="note">Your data is back.</div>';
  render(); }
@@ -1342,6 +1374,7 @@ document.getElementById('progBtn').innerHTML=I.chart;
  else { legacyLast=await pullLegacyWeights(); if(Object.keys(legacyLast).length) await Store.set('gt4_legacylast',legacyLast); }
  swaps=sw||{}; cur=c||{}; prev=p||{}; warmDone=w||{};
  const bw=await Store.get('gt4_barweight'); if(typeof bw==='number'&&bw>=0) BARWEIGHT=bw;
+ const wt=await Store.get('gt4_weektarget'); if(typeof wt==='number'&&wt>0) WEEKTARGET=wt;
  notes=(await Store.get('gt4_notes'))||{};
  ACTIVE=(a&&PLAN.days.some(d=>d.id===a))?a:PLAN.days[0].id;
  if(Store.mode()==='none'){

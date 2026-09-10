@@ -20,7 +20,8 @@ history. This is the central design decision.
 | `gt4_barweight` | plate calculator's bar weight, kg (default 20) |
 | `gt4_notes` | `{historyKey: text}`, per-exercise persistent notes (machine settings, bench angle, grip width) |
 | `gt4_prev` | last completed session, drives the "last" hint |
-| `gt4_hist` | `{historyKey: [{date, top, reps}]}` |
+| `gt4_hist` | `{historyKey: [{date, top, reps, vol?}]}` -- `vol` (sets x reps x kg, working sets only) is present from 2026-09-11 onward; older entries lack it and count as 0 toward volume stats rather than being guessed at |
+| `gt4_weektarget` | sessions/week target shown on the main screen (default 3) |
 | `gt4_swaps` | `{exId: alternativeName}` |
 | `gt4_custom` | user-created exercises |
 | `gt4_legacylast` | weights recovered from older versions |
