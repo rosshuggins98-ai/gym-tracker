@@ -77,9 +77,14 @@
   font-weight:700;text-transform:uppercase;letter-spacing:.6px}
  .colhead div:nth-child(3),.colhead div:nth-child(4){text-align:center}
  .set{display:grid;grid-template-columns:38px 1fr 1fr 46px;gap:8px;align-items:center;padding:6px 5px}
- .set .idx{display:flex;flex-direction:column;gap:1px}
+ .set .idx{display:flex;flex-direction:column;gap:1px;cursor:pointer}
  .set .idx b{font-size:15px;font-weight:800;color:var(--muted)}
  .set .idx small{font-size:10px;color:var(--dim);font-weight:600}
+ .set .idx .typ{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.3px}
+ .set .idx .typ.warm{color:var(--dim)}
+ .set .idx .typ.amrap{color:var(--accent)}
+ .set .idx .typ.drop{color:var(--warn)}
+ .set.warm{opacity:.72}
  .field{position:relative}
  .fstep{display:flex;align-items:center;gap:4px}
  .field input{width:100%;min-width:0;background:var(--card2);border:1px solid transparent;border-radius:11px;color:var(--text);
@@ -377,7 +382,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-09-11a";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-09-11b";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -435,6 +440,10 @@ function slot(dId,exId,i){ if(!cur[dId])cur[dId]={}; if(!cur[dId][exId])cur[dId]
   cur[dId][exId][i]={w:lw!==null?String(lw):'',r:lr!==null?String(lr):'',done:false};
  }
  return cur[dId][exId][i]; }
+/* Set type cycle, tapped via the set-number badge: work (default/undefined) ->
+   warm-up -> failure/AMRAP -> drop -> back to work. */
+function nextSetType(t){ return t==='drop'?undefined:t==='amrap'?'drop':t==='warm'?'amrap':'warm'; }
+function typeLabel(t){ return t==='warm'?'warm-up':t==='amrap'?'failure':t==='drop'?'drop set':''; }
 let custom={};       /* user-created exercises, merged into LIB at boot */
 function cleanName(t){ return String(t||'').replace(/[<>&"'`]/g,'').replace(/\s+/g,' ').trim().slice(0,40); }
 function newExId(name){
@@ -467,12 +476,19 @@ function lastW(dId,exId,i){ const p=prev[dId]&&prev[dId][exId];
  const L=legacyLast[exId]; return (L&&L[i])?L[i]:null; }
 function lastR(dId,exId,i){ const p=prev[dId]&&prev[dId][exId];
  return (p&&p[i]&&p[i].r)?p[i].r:null; }
-function topOf(a){ let m=null; if(a)a.forEach(s=>{const v=parseFloat(s&&s.w); if(!isNaN(v)&&(m===null||v>m))m=v;}); return m; }
+/* Set types: undefined/'work' (default), 'warm', 'amrap', 'drop'. Warmups are
+   real reps on the screen but must never count toward a top set, a PB, or (once
+   volume is tracked) volume -- a light warmup logged in the weight box must not
+   look like today's working weight. AMRAP/drop sets are working sets and count
+   normally; a drop set is lighter by definition so it naturally never wins the
+   max() below anyway. */
+function topOf(a){ let m=null; if(a)a.forEach(s=>{ if(s&&s.t==='warm')return;
+ const v=parseFloat(s&&s.w); if(!isNaN(v)&&(m===null||v>m))m=v;}); return m; }
 function bestOf(k){ let m=null; (hist[k]||[]).forEach(h=>{ if(m===null||h.top>m)m=h.top; }); return m; }
 function topWithReps(dId,exId){
  const a=cur[dId]&&cur[dId][exId]; if(!a) return null;
  let best=null;
- a.forEach(x=>{ const w=parseFloat(x&&x.w); if(isNaN(w)) return;
+ a.forEach(x=>{ if(x&&x.t==='warm')return; const w=parseFloat(x&&x.w); if(isNaN(w)) return;
   if(!best||w>best.top) best={top:w,reps:parseInt(x.r,10)||null}; });
  return best;
 }
@@ -599,8 +615,10 @@ function card(it,d){
  reps.forEach((tg,i)=>{
   const x=slot(d.id,exId,i), tt=(tg===null||tg==='max')?'max':tg;
   const lw=lastW(d.id,exId,i), lt=lw!==null?'last <b>'+lw+'</b>':'';
-  const row=document.createElement('div'); row.className='set';
-  row.innerHTML='<div class="idx"><b>'+(i+1)+'</b><small>×'+tt+'</small></div>'+
+  const typLbl=typeLabel(x.t);
+  const row=document.createElement('div'); row.className='set'+(x.t==='warm'?' warm':'');
+  row.innerHTML='<div class="idx"><b>'+(i+1)+'</b><small>×'+tt+'</small>'+
+   (typLbl?'<small class="typ '+x.t+'">'+typLbl+'</small>':'')+'</div>'+
    '<div class="field"><div class="fstep">'+
     '<button class="stepbtn" data-f="w" data-d="-2.5">&minus;</button>'+
     '<input inputmode="decimal" placeholder="–" value="'+(x.w||'')+'" data-k="w">'+
@@ -631,6 +649,10 @@ function card(it,d){
    if(y.done&&!y.r&&tt!=='max'){ y.r=String(tt); rI.value=tt; }
    if(y.done) restStart(60);
    done(c,it,d); updateProgress(); queueSave(); flush(); });
+  row.querySelector('.idx').addEventListener('click',()=>{
+   const y=slot(d.id,exId,i); y.t=nextSetType(y.t);
+   queueSave(); flush(); render();
+  });
   s.appendChild(row);
  });
  c.appendChild(s);
