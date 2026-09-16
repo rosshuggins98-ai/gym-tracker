@@ -46,6 +46,7 @@ legacy weights. So a new preset shows real numbers from its first session.
 | `gt4_custom` | user-created exercises |
 | `gt4_legacylast` | weights recovered from older versions |
 | `gt4_warm` | warmup ticked, per day per date |
+| `gt4_autobackup` | `{date, file}` of the last successful POST to `/api/save` (see `serve.py`); shown in the Data panel |
 | `gt4_active`, `gt4_theme` | UI state |
 
 ## Storage modes

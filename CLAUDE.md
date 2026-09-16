@@ -29,6 +29,13 @@ him turning up. Motivation is a feature, not decoration.
   characters in `cleanName()` because the app renders with innerHTML throughout. If
   that ever changes, escape at render instead.
 
+## Server
+`serve.py` (stdlib only) serves `app/` and handles `POST /api/save`, which the app
+calls from `autoBackup()` after every finished session. It is embedded verbatim in
+`termux/gym-setup.sh` as a heredoc and a test asserts the two match — edit
+`serve.py`, then paste it into the heredoc (or regenerate) before committing.
+`autoBackup()` must stay fire-and-forget: no UI, no error, if the endpoint is absent.
+
 ## File order
 CSS → HTML shell → `LIB` (exercise library + form cues) → `DEFAULT_PLAN` →
 `FULL_BODY_PLAN` / `PRESETS` → `MIGRATE`
@@ -84,8 +91,6 @@ change: log a set, swap an exercise, edit the plan, create a custom exercise,
 finish a session, open Progress, export a backup, re-import it.
 
 ## Good next tasks
-- A POST endpoint in the server so finished sessions write to disk automatically,
-  removing the reliance on manual backup exports
 - Split into `src/` modules with a concat step that still emits one file (now two,
   with `sw.js` — see Hard constraints)
 - Body-weight tracking, session summary screen

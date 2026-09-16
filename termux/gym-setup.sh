@@ -1,6 +1,6 @@
 #!/data/data/com.termux/files/usr/bin/bash
 # ============================================================
-#  Gym Tracker - Termux setup (v2)
+#  Gym Tracker - Termux setup (v3: serve.py with auto-backup endpoint)
 #  Run once:   bash ~/storage/downloads/gym-setup.sh
 #  Safe to re-run: it replaces the scripts with fixed versions.
 # ============================================================
@@ -10,7 +10,7 @@ WEB="$TOOLS/web"
 SHORTCUTS="$HOME/.shortcuts"
 BACKUPS="$HOME/gym-backups"
 
-echo "Setting up Gym Tracker v2..."
+echo "Setting up Gym Tracker v3..."
 mkdir -p "$TOOLS" "$WEB" "$SHORTCUTS" "$BACKUPS"
 
 if [ ! -d "$HOME/storage" ]; then
@@ -69,6 +69,133 @@ def main():
 main()
 PYEOF
 
+# ---------- HTTP server (static + POST /api/save auto-backup) ----------
+# Verbatim copy of serve.py from the repo root; the test suite checks they
+# match. Edit serve.py, not this heredoc.
+cat > "$TOOLS/serve.py" << 'PYSRVEOF'
+#!/usr/bin/env python3
+"""Gym Tracker server: static files plus an auto-backup endpoint.
+
+    python3 serve.py [--port 8000] [--host 127.0.0.1] [--dir app] [--backups DIR]
+
+GET  /<file>       static, served with no-store so edits show on refresh (the
+                   service worker does its own caching for offline use)
+GET  /api/status   {"ok":true,"backups":N,"latest":"gym-backup-....json"|null}
+POST /api/save     body = the app's backup JSON; written to
+                   <backups>/gym-backup-YYYY-MM-DD.json (one file per day,
+                   later finishes that day overwrite it) and mirrored to
+                   <backups>/gym-latest.json. Keeps the newest 20 dated files.
+
+The app calls POST /api/save after every finished session, so a phone with the
+Termux server running gets a backup on disk without the manual export. It's
+best-effort on the app side -- no server, no endpoint, no problem. Binds to
+localhost by default: the endpoint writes to disk, so don't expose it to the
+LAN without meaning to (--host 0.0.0.0).
+
+Stdlib only. This exact file is also embedded in termux/gym-setup.sh; the
+test suite checks the two copies match, so edit here and re-run the tests.
+"""
+import argparse, glob, http.server, json, os, sys, datetime
+
+MAX_BODY = 32 * 1024 * 1024
+KEEP = 20
+
+def parse_args(argv):
+    here = os.path.dirname(os.path.abspath(__file__))
+    p = argparse.ArgumentParser(description="Gym Tracker server")
+    p.add_argument("--port", type=int, default=8000)
+    p.add_argument("--host", default="127.0.0.1")
+    p.add_argument("--dir", default=os.path.join(here, "app"), help="directory to serve")
+    p.add_argument("--backups", default=os.path.join(here, "gym-backups"), help="where POST /api/save writes")
+    return p.parse_args(argv)
+
+def make_handler(backups):
+    class Handler(http.server.SimpleHTTPRequestHandler):
+        def end_headers(self):
+            self.send_header("Cache-Control", "no-store, must-revalidate")
+            super().end_headers()
+
+        def log_message(self, fmt, *args):
+            # keep the Termux notification log quiet; errors still go to stderr
+            if args and str(args[0]).startswith("POST"):
+                sys.stderr.write("%s - %s\n" % (self.address_string(), fmt % args))
+
+        def _json(self, code, obj):
+            body = json.dumps(obj).encode("utf-8")
+            self.send_response(code)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def do_GET(self):
+            if self.path.split("?")[0] == "/api/status":
+                files = dated_backups(backups)
+                return self._json(200, {"ok": True, "backups": len(files),
+                                        "latest": os.path.basename(files[-1]) if files else None})
+            return super().do_GET()
+
+        def do_POST(self):
+            if self.path.split("?")[0] != "/api/save":
+                return self._json(404, {"ok": False, "error": "no such endpoint"})
+            try:
+                n = int(self.headers.get("Content-Length") or 0)
+            except ValueError:
+                n = 0
+            if n <= 0 or n > MAX_BODY:
+                return self._json(413 if n > MAX_BODY else 400, {"ok": False, "error": "bad length"})
+            raw = self.rfile.read(n)
+            try:
+                data = json.loads(raw.decode("utf-8"))
+            except Exception:
+                return self._json(400, {"ok": False, "error": "not json"})
+            if not isinstance(data, dict) or data.get("app") != "gym-tracker":
+                return self._json(400, {"ok": False, "error": "not a gym-tracker backup"})
+            try:
+                name = save_backup(backups, data)
+            except OSError as e:
+                return self._json(500, {"ok": False, "error": str(e)})
+            self._json(200, {"ok": True, "file": name})
+    return Handler
+
+def dated_backups(backups):
+    return sorted(glob.glob(os.path.join(backups, "gym-backup-????-??-??.json")))
+
+def save_backup(backups, data, today=None):
+    """Write one dated file (overwriting today's) plus gym-latest.json, prune to KEEP."""
+    os.makedirs(backups, exist_ok=True)
+    day = today or datetime.date.today().isoformat()
+    name = "gym-backup-%s.json" % day
+    text = json.dumps(data, indent=1, ensure_ascii=False)
+    for fn in (name, "gym-latest.json"):
+        tmp = os.path.join(backups, "." + fn + ".tmp")
+        with open(tmp, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        os.replace(tmp, os.path.join(backups, fn))   # atomic: never a half-written backup
+    files = dated_backups(backups)
+    for old in files[:-KEEP] if len(files) > KEEP else []:
+        try:
+            os.remove(old)
+        except OSError:
+            pass
+    return name
+
+def main(argv=None):
+    a = parse_args(sys.argv[1:] if argv is None else argv)
+    os.chdir(a.dir)
+    srv = http.server.ThreadingHTTPServer((a.host, a.port), make_handler(os.path.abspath(a.backups)))
+    print("http://localhost:%d/gym-tracker.html  (backups -> %s)" % (a.port, a.backups), flush=True)
+    try:
+        srv.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        srv.server_close()
+
+if __name__ == "__main__":
+    main()
+PYSRVEOF
+
 # ---------- main server script ----------
 cat > "$TOOLS/serve.sh" << 'SRVEOF'
 #!/data/data/com.termux/files/usr/bin/bash
@@ -99,6 +226,17 @@ if [ -f "$TOOLS/update-url" ]; then
         fi
       fi
       rm -f "$TMP"
+    fi
+    # serve.py sits at the repo root, one level above app/. Best-effort like
+    # sw.js; the sanity grep stops a 404 page or a truncated download from
+    # replacing a working server. Takes effect next start (step 5).
+    PYURL="${URLSRC%/app/*}/serve.py"
+    TMPPY="$TOOLS/.fetched-serve.py"
+    if curl -fsSL --max-time 8 "$PYURL" -o "$TMPPY" 2>/dev/null; then
+      if [ -s "$TMPPY" ] && grep -q "api/save" "$TMPPY" && ! cmp -s "$TMPPY" "$TOOLS/serve.py"; then
+        cp -f "$TMPPY" "$TOOLS/serve.py"
+      fi
+      rm -f "$TMPPY"
     fi
     # sw.js (offline shell cache) lives alongside the app file at the same URL,
     # same directory. No BUILD stamp of its own -- it changes rarely, and isn't
@@ -157,9 +295,17 @@ fi
 RUNNING=""
 if [ -f "$PIDF" ] && kill -0 "$(cat "$PIDF")" 2>/dev/null; then RUNNING=1; fi
 if [ -z "$RUNNING" ]; then
-  pkill -f "python3 -m http.server $PORT" 2>/dev/null   # clear any stray old server
-  cd "$WEB" || exit 1
-  nohup python3 -m http.server "$PORT" > /dev/null 2>&1 &
+  pkill -f "python3 -m http.server $PORT" 2>/dev/null   # clear a pre-2026-09-16 server
+  pkill -f "gymtools/serve.py" 2>/dev/null               # ...or a stray one of ours
+  # serve.py = static files + POST /api/save, which the app calls after every
+  # finished session so a backup lands in $BACKUPS with no manual export.
+  # Falls back to the bare module server if serve.py is somehow missing.
+  if [ -f "$TOOLS/serve.py" ]; then
+    nohup python3 "$TOOLS/serve.py" --port "$PORT" --dir "$WEB" --backups "$BACKUPS" > "$TOOLS/server.log" 2>&1 &
+  else
+    cd "$WEB" || exit 1
+    nohup python3 -m http.server "$PORT" > /dev/null 2>&1 &
+  fi
   echo $! > "$PIDF"
   sleep 1
 fi
@@ -197,6 +343,7 @@ export PATH="$PREFIX/bin:/system/bin:$PATH"
 PIDF="$HOME/gymtools/server.pid"
 [ -f "$PIDF" ] && { kill "$(cat "$PIDF")" 2>/dev/null; rm -f "$PIDF"; }
 pkill -f "python3 -m http.server 8000" 2>/dev/null
+pkill -f "gymtools/serve.py" 2>/dev/null
 "$PREFIX/bin/termux-wake-unlock" 2>/dev/null
 "$PREFIX/bin/termux-notification-remove" gymtracker 2>/dev/null
 "$PREFIX/bin/termux-toast" -g top "Gym Tracker stopped" 2>/dev/null
@@ -225,7 +372,7 @@ cat > "$SHORTCUTS/Gym-Stop.sh" << 'W2EOF'
 bash "$HOME/gymtools/stop.sh"
 W2EOF
 
-chmod +x "$TOOLS/serve.sh" "$TOOLS/stop.sh" "$TOOLS/open.sh" "$TOOLS/stats.py" "$SHORTCUTS/Gym.sh" "$SHORTCUTS/Gym-Stop.sh"
+chmod +x "$TOOLS/serve.sh" "$TOOLS/stop.sh" "$TOOLS/open.sh" "$TOOLS/stats.py" "$TOOLS/serve.py" "$SHORTCUTS/Gym.sh" "$SHORTCUTS/Gym-Stop.sh"
 rm -f "$SHORTCUTS/gym.sh" 2>/dev/null   # retire the old shortcut
 
 echo ""
@@ -248,7 +395,9 @@ for f in "$DL"/gym-tracker*.html; do
   echo "  $(basename "$f"): $(grep -o 'const BUILD="[^"]*"' "$f" 2>/dev/null | head -1) $(wc -c < "$f") bytes"
 done
 echo ""
-echo "Server: $(pgrep -f 'http.server 8000' >/dev/null && echo running || echo stopped)"
+echo "Server: $(pgrep -f 'gymtools/serve.py' >/dev/null && echo "running (serve.py)" || (pgrep -f 'http.server 8000' >/dev/null && echo "running (bare http.server, no auto-backup)" || echo stopped))"
+echo "Auto-backups in $HOME/gym-backups: $(ls "$HOME"/gym-backups/gym-backup-*.json 2>/dev/null | wc -l) (latest: $(ls -t "$HOME"/gym-backups/gym-backup-*.json 2>/dev/null | head -1 | xargs -r basename))"
+[ -f "$TOOLS/server.log" ] && { echo "Last server log lines:"; tail -3 "$TOOLS/server.log"; }
 DOCEOF
 chmod +x "$TOOLS/doctor.sh"
 

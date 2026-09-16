@@ -13,7 +13,8 @@ plan is data and can be changed entirely from inside the app.
 app/gym-tracker.html     the app (no build step, no dependencies)
 app/sw.js                offline shell cache; optional, the app works without it
 termux/gym-setup.sh      installs the Android/Termux server + widgets
-serve.py                 dev server with caching disabled
+serve.py                 server: static files + POST /api/save auto-backup (dev and Termux)
+test/                    node --test test/  (no npm)
 docs/ARCHITECTURE.md     data model, storage keys, migration history
 docs/TRAINING-PLAN.md    the programme and the reasoning behind it
 CLAUDE.md                context for Claude Code
@@ -22,11 +23,21 @@ CLAUDE.md                context for Claude Code
 ## Running it locally
 
 ```bash
-./serve.py         # http://localhost:8000/gym-tracker.html
+./serve.py         # http://localhost:8000/gym-tracker.html, backups -> ./gym-backups/
+node --test test/  # the suite
 ```
 
 It must be served over http:// — opened directly as a file, Chrome gives it no
 storage (see ARCHITECTURE.md, "Storage modes").
+
+## Auto-backup
+
+Every finished session is POSTed to `/api/save`; `serve.py` writes it to
+`gym-backups/gym-backup-<date>.json` (one per day, newest 20 kept) and
+`gym-backups/gym-latest.json`. On the phone that's `~/gym-backups/`, the same folder
+the manual exports get archived to. If the app is served by anything else (or
+`file://`), it silently does nothing — the manual export in the Data panel is
+unchanged. The Data panel shows when the last auto-backup landed.
 
 ## Deploying to the phone
 
@@ -45,7 +56,7 @@ echo "https://raw.githubusercontent.com/USER/REPO/main/app/gym-tracker.html" \
 ```
 
 From then on, every widget tap fetches the newest build before opening — `sw.js`
-too, from the same directory as the URL above. Push a commit, tap the widget, you're
+too, from the same directory as the URL above, and `serve.py` from one level up. Push a commit, tap the widget, you're
 on the new version.
 
 ## Working offline
@@ -63,6 +74,6 @@ exactly as it always did, online-only.
 1. **History belongs to the exercise, not the day.** Rearranging the plan must never
    orphan logged weights.
 2. **Single file, no build step.** It has to be servable by `python3 -m http.server`
-   from a phone.
+   from a phone; `serve.py` only adds the backup endpoint on top.
 3. **Never lose data silently.** Every storage mode is detected and reported.
 4. **Gym-floor usability first.** Large tap targets, minimal typing, one-handed.
