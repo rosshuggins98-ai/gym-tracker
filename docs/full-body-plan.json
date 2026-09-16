@@ -1,0 +1,214 @@
+{
+  "plan_name": "3-Day Full Body (A/B/C)",
+  "rotation": "Week 1: A, B, C — Week 2: repeat A, B, C in same order (adjust to A/B/A, B/C/B if you prefer alternating just two per week)",
+  "target_session_length_minutes": "55-70",
+  "workouts": [
+    {
+      "day_label": "Workout A",
+      "exercises": [
+        {
+          "name": "Squat",
+          "variant": "Barbell or Goblet",
+          "movement_pattern": "squat",
+          "target_muscle": "quads",
+          "secondary_muscles": ["glutes", "hamstrings"],
+          "sets": 3,
+          "rep_range": "6-8",
+          "rest_seconds": 150
+        },
+        {
+          "name": "Bench Press",
+          "variant": "Barbell",
+          "movement_pattern": "horizontal_push",
+          "target_muscle": "chest",
+          "secondary_muscles": ["triceps", "front_delts"],
+          "sets": 3,
+          "rep_range": "6-8",
+          "rest_seconds": 150
+        },
+        {
+          "name": "Pull-Up",
+          "variant": "Bodyweight or Lat Pulldown",
+          "movement_pattern": "vertical_pull",
+          "target_muscle": "lats",
+          "secondary_muscles": ["biceps", "upper_back"],
+          "sets": 3,
+          "rep_range": "8-10",
+          "rest_seconds": 120
+        },
+        {
+          "name": "Shoulder Press",
+          "variant": "Seated Dumbbell",
+          "movement_pattern": "vertical_push",
+          "target_muscle": "front_delts",
+          "secondary_muscles": ["side_delts", "triceps"],
+          "sets": 2,
+          "rep_range": "8-10",
+          "rest_seconds": 105
+        },
+        {
+          "name": "Romanian Deadlift",
+          "variant": "Barbell or Dumbbell",
+          "movement_pattern": "hinge",
+          "target_muscle": "hamstrings",
+          "secondary_muscles": ["glutes", "lower_back"],
+          "sets": 2,
+          "rep_range": "8-10",
+          "rest_seconds": 105
+        },
+        {
+          "name": "Lying Dumbbell Fly",
+          "variant": "Flat Bench",
+          "movement_pattern": "horizontal_push_isolation",
+          "target_muscle": "chest",
+          "secondary_muscles": [],
+          "sets": 2,
+          "rep_range": "12-15",
+          "rest_seconds": 75
+        }
+      ]
+    },
+    {
+      "day_label": "Workout B",
+      "exercises": [
+        {
+          "name": "Deadlift",
+          "variant": "Conventional",
+          "movement_pattern": "hinge",
+          "target_muscle": "hamstrings",
+          "secondary_muscles": ["glutes", "lower_back", "lats"],
+          "sets": 3,
+          "rep_range": "5-6",
+          "rest_seconds": 180
+        },
+        {
+          "name": "Incline Press",
+          "variant": "Dumbbell",
+          "movement_pattern": "horizontal_push",
+          "target_muscle": "chest",
+          "secondary_muscles": ["front_delts", "triceps"],
+          "sets": 3,
+          "rep_range": "8-10",
+          "rest_seconds": 120
+        },
+        {
+          "name": "Seated Cable Row",
+          "variant": "Cable",
+          "movement_pattern": "horizontal_pull",
+          "target_muscle": "upper_back",
+          "secondary_muscles": ["lats", "biceps"],
+          "sets": 3,
+          "rep_range": "8-10",
+          "rest_seconds": 120
+        },
+        {
+          "name": "Leg Press",
+          "variant": "Machine or Bulgarian Split Squat",
+          "movement_pattern": "squat",
+          "target_muscle": "quads",
+          "secondary_muscles": ["glutes"],
+          "sets": 2,
+          "rep_range": "10-12",
+          "rest_seconds": 90
+        },
+        {
+          "name": "Lateral Raise",
+          "variant": "Dumbbell",
+          "movement_pattern": "vertical_push_isolation",
+          "target_muscle": "side_delts",
+          "secondary_muscles": [],
+          "sets": 2,
+          "rep_range": "12-15",
+          "rest_seconds": 60
+        },
+        {
+          "name": "Bicep Curl",
+          "variant": "Dumbbell",
+          "movement_pattern": "arms",
+          "target_muscle": "biceps",
+          "secondary_muscles": [],
+          "sets": 2,
+          "rep_range": "10-12",
+          "rest_seconds": 45,
+          "superset_with": "Tricep Pushdown"
+        },
+        {
+          "name": "Tricep Pushdown",
+          "variant": "Cable",
+          "movement_pattern": "arms",
+          "target_muscle": "triceps",
+          "secondary_muscles": [],
+          "sets": 2,
+          "rep_range": "10-12",
+          "rest_seconds": 45,
+          "superset_with": "Bicep Curl"
+        }
+      ]
+    },
+    {
+      "day_label": "Workout C",
+      "exercises": [
+        {
+          "name": "Front Squat",
+          "variant": "Barbell or Leg Press",
+          "movement_pattern": "squat",
+          "target_muscle": "quads",
+          "secondary_muscles": ["glutes", "core"],
+          "sets": 3,
+          "rep_range": "8-10",
+          "rest_seconds": 135
+        },
+        {
+          "name": "Overhead Press",
+          "variant": "Barbell",
+          "movement_pattern": "vertical_push",
+          "target_muscle": "front_delts",
+          "secondary_muscles": ["side_delts", "triceps"],
+          "sets": 3,
+          "rep_range": "6-8",
+          "rest_seconds": 150
+        },
+        {
+          "name": "Chest-Supported Row",
+          "variant": "Machine or T-Bar",
+          "movement_pattern": "horizontal_pull",
+          "target_muscle": "upper_back",
+          "secondary_muscles": ["lats", "biceps"],
+          "sets": 3,
+          "rep_range": "8-10",
+          "rest_seconds": 120
+        },
+        {
+          "name": "Hamstring Curl",
+          "variant": "Machine",
+          "movement_pattern": "hinge_isolation",
+          "target_muscle": "hamstrings",
+          "secondary_muscles": [],
+          "sets": 2,
+          "rep_range": "10-12",
+          "rest_seconds": 90
+        },
+        {
+          "name": "Chest Fly or Dip",
+          "variant": "Machine or Bodyweight",
+          "movement_pattern": "horizontal_push_isolation",
+          "target_muscle": "chest",
+          "secondary_muscles": ["triceps"],
+          "sets": 2,
+          "rep_range": "10-12",
+          "rest_seconds": 90
+        },
+        {
+          "name": "Standing Calf Raise",
+          "variant": "Machine",
+          "movement_pattern": "calves",
+          "target_muscle": "calves",
+          "secondary_muscles": [],
+          "sets": 3,
+          "rep_range": "10-15",
+          "rest_seconds": 60
+        }
+      ]
+    }
+  ]
+}

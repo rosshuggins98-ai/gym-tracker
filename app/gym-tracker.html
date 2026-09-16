@@ -292,7 +292,10 @@
  </div>
  <div id="routineBody" style="margin-top:6px"></div>
  <div class="hr"></div>
- <button class="dbtn" onclick="resetPlan()">Reset to the starter plan</button>
+ <h5>Presets</h5>
+ <p class="small">Switch to a built-in plan. The plan you're on now is saved as a routine first, so you can come straight back to it.</p>
+ <button class="dbtn" onclick="loadPreset('fullbody')">3-Day Full Body (A / B / C)</button>
+ <button class="dbtn" onclick="loadPreset('ppl')">Push / Pull / Legs (starter)</button>
 </div></div>
 
 <div class="sheet-bg" id="progbg"><div class="sheet">
@@ -345,6 +348,8 @@ const LIB={
   c:["Sit tall with a slight knee bend and keep your chest up.","Pull to your stomach, squeezing the shoulder blades together at the end.","Let the weight stretch your lats on the return, but don't let your back round."]},
  dbrow:{n:"Single-arm DB Row",g:"Back",alts:["Cable Row","Chest-Supported Row","Inverted Row"],
   c:["Knee and hand on a bench, back flat and roughly parallel to the floor.","Pull the dumbbell to your hip, not straight up to your shoulder.","Avoid twisting your torso to get extra range."]},
+ csrow:{n:"Chest-Supported Row",g:"Back",alts:["T-Bar Row","Cable Row","Single-arm DB Row"],
+  c:["Chest stays glued to the pad for every rep — if it lifts off, the weight is too heavy.","Pull the elbows back and squeeze the shoulder blades together at the top.","Let the arms straighten fully at the bottom for a stretch, without letting the shoulders roll forward."]},
  pullup:{n:"Assisted Pull Ups",g:"Back",alts:["Lat Pulldown","Band-Assisted Pull Ups","Inverted Row"],
   c:["Start from a full hang with shoulders engaged, not fully slack.","Pull until your chin clears the bar, then lower under control.","Use as little assistance as you can manage while still hitting the reps."]},
  pullover:{n:"DB Pullover",g:"Back",alts:["Lat Pulldown","Cable Pullover","Assisted Pull Ups"],
@@ -353,12 +358,16 @@ const LIB={
   c:["Brace as though about to be punched in the stomach, and hold that through the rep.","Push your knees out in line with your toes — don't let them cave in.","Descend to at least parallel if your mobility allows, keeping your heels planted throughout."]},
  goblet:{n:"Goblet Squat",g:"Legs",alts:["Barbell Squat","Leg Press","Bulgarian Split Squat"],
   c:["Hold the weight at chest height, elbows tucked in.","Sit down between your hips and keep your chest tall.","A great place to learn squat depth without a bar on your back."]},
+ frontsquat:{n:"Front Squat",g:"Legs",alts:["Goblet Squat","Leg Press","Barbell Squat"],
+  c:["Bar sits on the front of the shoulders, elbows driven high so the upper arms stay near parallel to the floor.","Stay upright — if your elbows drop, the bar rolls forward. This is a quad and upper-back exercise as much as a squat.","Lighter than your back squat is normal. Start well under it and build."]},
  legpress:{n:"Leg Press",g:"Legs",alts:["Hack Squat","Goblet Squat","Walking Lunges"],
   c:["Start lighter than you think and add weight each set — the first set is a build-up.","Lower until your knees reach about 90°. Don't let your lower back peel off the pad.","Never lock the knees out hard at the top."]},
  lunge:{n:"Walking Lunges",g:"Legs",alts:["Bulgarian Split Squat","Goblet Squat","Leg Press"],
   c:["Take a long enough step that your front shin stays fairly vertical.","Drop the back knee towards the floor rather than lunging forward.","Keep your torso upright and start bodyweight-only."]},
  bulgarian:{n:"Bulgarian Split Squat",g:"Legs",alts:["Walking Lunges","Goblet Squat","Leg Press"],
   c:["Rear foot on a bench, front foot far enough forward to keep the shin vertical.","Go straight down, not forward.","Brutal for how light it feels — start with bodyweight."]},
+ deadlift:{n:"Deadlift",g:"Legs",alts:["Trap Bar Deadlift","RDLs","Rack Pull"],
+  c:["Bar over the middle of your foot, shins close to it, hips higher than your knees and lower than your shoulders.","Take the slack out of the bar and brace hard before it leaves the floor. Push the floor away rather than pulling with your back.","Lock out by standing tall — don't lean back. Lower under control; don't drop it and don't bounce the next rep."]},
  rdl:{n:"RDLs",g:"Legs",alts:["Dumbbell RDL","Single-leg RDL","Good Mornings"],
   c:["Push your hips back rather than bending your knees — this is a hinge, not a squat.","Keep the bar close to your legs, almost dragging down the thighs.","Stop when you feel a strong hamstring stretch. Back stays flat the whole way; never round it."]},
  legcurl:{n:"Leg Curls",g:"Legs",alts:["Single-leg RDL","Hip Thrust","Good Mornings"],
@@ -410,6 +419,36 @@ function DEFAULT_PLAN(){ return {
           {ex:"legcurl",sets:2,reps:[12,12]},{ex:"calf",sets:2,reps:[15,15]}]}
  ]};
 }
+/* ============ PRESET — 3-day full body A/B/C ============
+   Source of record: docs/full-body-plan.json. Rep targets are the top of each
+   range there (3 × "6-8" -> [8,8,8]) because the app's progression rule is
+   "all sets hit target -> add weight", i.e. double progression; the lower bound
+   is where you land after the jump. Rest carries over per exercise. Pull-ups
+   and dips are planned as their pulldown / fly equivalents (can't do either
+   yet); the JSON's supersets are just consecutive exercises here. */
+function FULL_BODY_PLAN(){ return {
+ name:"3-Day Full Body",
+ startedISO:new Date().toISOString().slice(0,10),
+ days:[
+  {id:"fbA",name:"Workout A",tag:"Full body",av:"--a1",
+   warm:"10 minutes: light cardio, then bodyweight squats, arm circles, band pull-aparts, and an empty-bar set of squat and bench.",
+   items:[{ex:"squat",sets:3,reps:[8,8,8],rest:150},{ex:"bench",sets:3,reps:[8,8,8],rest:150},
+          {ex:"latpulldown",sets:3,reps:[10,10,10],rest:120},{ex:"dbshoulder",sets:2,reps:[10,10],rest:105},
+          {ex:"rdl",sets:2,reps:[10,10],rest:105},{ex:"dbfly",sets:2,reps:[15,15],rest:75}]},
+  {id:"fbB",name:"Workout B",tag:"Full body",av:"--a2",
+   warm:"10 minutes: light cardio, then hip hinges, cat-cows, band pull-aparts, and two light build-up sets of deadlift.",
+   items:[{ex:"deadlift",sets:3,reps:[6,6,6],rest:180},{ex:"incline",sets:3,reps:[10,10,10],rest:120},
+          {ex:"cablerow",sets:3,reps:[10,10,10],rest:120},{ex:"legpress",sets:2,reps:[12,12],rest:90},
+          {ex:"lateral",sets:2,reps:[15,15],rest:60},{ex:"dbcurl",sets:2,reps:[12,12],rest:45},
+          {ex:"pushdown",sets:2,reps:[12,12],rest:45}]},
+  {id:"fbC",name:"Workout C",tag:"Full body",av:"--a3",
+   warm:"10 minutes: light cardio, then bodyweight squats, shoulder dislocates, and an empty-bar set of front squat and overhead press.",
+   items:[{ex:"frontsquat",sets:3,reps:[10,10,10],rest:135},{ex:"ohp",sets:3,reps:[8,8,8],rest:150},
+          {ex:"csrow",sets:3,reps:[10,10,10],rest:120},{ex:"legcurl",sets:2,reps:[12,12],rest:90},
+          {ex:"dbfly",sets:2,reps:[12,12],rest:90},{ex:"calf",sets:3,reps:[15,15,15],rest:60}]}
+ ]};
+}
+const PRESETS={ppl:{label:"Push / Pull / Legs",make:DEFAULT_PLAN},fullbody:{label:"3-Day Full Body",make:FULL_BODY_PLAN}};
 /* Old ids from earlier versions -> library ids, so nothing logged is orphaned. */
 const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"bench",br:"bbrow",d2_bbrow:"bbrow",
  rdl2:"rdl",d1_rdl:"rdl",lpd:"latpulldown",lpd3:"latpulldown",d2_latpull:"latpulldown",lat:"lateral",d2_lateral:"lateral",
@@ -419,7 +458,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-09-11h";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-09-16a";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -469,6 +508,12 @@ function noteFor(k){ return notes[k]||''; }
    cleanName() -- escape at render here instead, per CLAUDE.md's own rule for
    anything that skips that path. */
 function escHTML(t){ return String(t||'').replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c])); }
+/* Rest between sets, per plan item. Older plans and saved routines have no
+   .rest, so the historical hard-coded 60s stays the default -- a 5-rep deadlift
+   and a lateral raise shouldn't share a timer, but nothing existing changes. */
+const REST_DEFAULT=60;
+function restFor(it){ const r=parseInt(it&&it.rest,10); return (r>0)?r:REST_DEFAULT; }
+function fmtRest(sec){ return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'); }
 function repsFor(it){ const r=(it.reps||[]).slice(0,it.sets); while(r.length<it.sets) r.push(r.length?r[r.length-1]:10); return r; }
 function setCount(d){ return d.items.reduce((s,it)=>s+it.sets,0); }
 function addSet(it){ const r=repsFor(it); r.push(r.length?r[r.length-1]:10); it.reps=r; it.sets=r.length; savePlan(); }
@@ -707,7 +752,7 @@ function card(it,d){
   });
   tk.addEventListener('click',()=>{ const y=slot(d.id,exId,i); y.done=!y.done; tk.classList.toggle('on',y.done);
    if(y.done&&!y.r&&tt!=='max'){ y.r=String(tt); rI.value=tt; }
-   if(y.done) restStart(60);
+   if(y.done) restStart(restFor(it));
    pills(c,it,d);
    if(y.done&&pbCheck(d.id,exId,k0)) celebratePB();
    done(c,it,d); updateProgress(); queueSave(); flush(); });
@@ -733,6 +778,7 @@ function pills(c,it,d){
  const rl=repsFor(it).map(r=>(r===null||r==='max')?'max':r).join(' · ');
  const b=pbOf(k);
  let h='<span class="pill reps">'+it.sets+' × '+rl+'</span>';
+ if(restFor(it)!==REST_DEFAULT) h+='<span class="pill reps">rest '+fmtRest(restFor(it))+'</span>';
  if(alt)h+='<span class="pill swap">swapped</span>';
  if(b) h+='<span class="pill best">best '+b.w+'kg'+(b.reps?' × '+b.reps:'')+'</span>';
  else {
@@ -1176,13 +1222,20 @@ function drawEdit(){
    '<span class="sv">'+it.sets+' set'+(it.sets===1?'':'s')+'</span>'+
    '<button class="sb" data-a="plus">+</button></div>'+
    '<input value="'+repsFor(it).join(', ')+'" data-i="'+idx+'">'+
-   '<small>Reps per set, comma separated. Type <b>max</b> for to-failure.</small></div>'+
+   '<small>Reps per set, comma separated. Type <b>max</b> for to-failure.</small>'+
+   '<input inputmode="numeric" data-rest="1" value="'+restFor(it)+'" style="width:72px">'+
+   '<small>Rest between sets, seconds.</small></div>'+
    '<button class="mini" data-a="up">'+I.up+'</button><button class="mini" data-a="dn">'+I.dn+'</button>'+
    '<button class="mini del" data-a="rm">×</button>';
   r.querySelectorAll('.sb').forEach(btn=>btn.addEventListener('click',()=>{
    if(btn.dataset.a==='plus') addSet(it); else removeSet(it,d.id);
    drawEdit(); }));
-  const inp=r.querySelector('input');
+  const rinp=r.querySelector('[data-rest]');
+  rinp.addEventListener('change',()=>{
+   const v=parseInt(rinp.value,10);
+   if(v>0&&v!==REST_DEFAULT) it.rest=Math.min(v,600); else delete it.rest;
+   savePlan(); drawEdit(); });
+  const inp=r.querySelector('input:not([data-rest])');
   inp.addEventListener('change',()=>{
    const parts=inp.value.split(',').map(s=>s.trim()).filter(Boolean)
      .map(s=>/^max$/i.test(s)?'max':(parseInt(s,10)||10));
@@ -1251,7 +1304,22 @@ function drawEdit(){
  drawRoutines();
 }
 function savePlan(){ Store.set('gt4_plan',PLAN); mirrorHash(); }
-function resetPlan(){ PLAN=DEFAULT_PLAN(); ACTIVE=PLAN.days[0].id; savePlan(); drawEdit(); render(); }
+function sameDays(a,b){ return JSON.stringify(a)===JSON.stringify(b); }
+/* Swap the whole plan for a built-in one. The outgoing plan is kept as a
+   routine unless an identical one is already saved -- "try full body for a
+   month" must never mean re-typing PPL by hand to go back. Per-day state
+   (today's sets, last-session prefill, warm-up ticks) is keyed by day id and
+   simply stops being displayed; history is per exercise and unaffected. */
+async function loadPreset(key){
+ const P=PRESETS[key]; if(!P) return;
+ if(!routines.some(r=>sameDays(r.days,PLAN.days))){
+  routines.push({id:newRoutineId(),label:cleanName(PLAN.name||'Previous plan')||'Previous plan',savedISO:today(),days:JSON.parse(JSON.stringify(PLAN.days))});
+  await Store.set('gt4_routines',routines);
+ }
+ PLAN=P.make(); ACTIVE=PLAN.days[0].id;
+ savePlan(); drawRoutines(); drawEdit(); render();
+}
+function resetPlan(){ return loadPreset('ppl'); }
 
 /* ============ ROUTINES ============ */
 /* Named snapshots of PLAN.days, switchable. Logged history is keyed by
@@ -1399,6 +1467,15 @@ function migrate(h){
  Object.keys(h||{}).forEach(k=>{
   const p=k.split('::'), base=p[0], variant=p[1];
   const nb=MIGRATE[base]||base;
+  /* A shared alt:: key whose name has since been promoted to a real library
+     exercise (e.g. "Chest-Supported Row" was only ever a swap alt until the
+     full-body plan needed it as a slot of its own). hkey() now resolves that
+     name straight to the id, so history logged under the old alt:: key has to
+     follow it or the exercise starts from zero. */
+  if(base==='alt'&&variant){
+   const id=Object.keys(LIB).filter(x=>slug(LIB[x].n)===variant)[0];
+   const nk=id||k; out[nk]=(out[nk]||[]).concat(h[k]||[]); return;
+  }
   if(!variant){
    if(!LIB[nb]&&nb.indexOf('c_')!==0) { out[k]=(out[k]||[]).concat(h[k]||[]); return; }
    out[nb]=(out[nb]||[]).concat(h[k]||[]); return;

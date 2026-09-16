@@ -3,13 +3,26 @@
 ## Data model
 
 ```js
-PLAN = { name, startedISO, days: [ { id, name, tag, av, warm, items:[ {ex, sets, reps[]} ] } ] }
+PLAN = { name, startedISO, days: [ { id, name, tag, av, warm, items:[ {ex, sets, reps[], rest?} ] } ] }
 LIB  = { exerciseId: { n, g: group, alts: [...], c: [form cues], custom?: true } }
 ```
 
 The plan references exercises by id. **All logged data is keyed by exercise id**, so
 moving an exercise between days, reordering, removing, or re-adding preserves
 history. This is the central design decision.
+
+`rest` is seconds between sets for that slot, used by the auto-starting rest timer;
+absent means `REST_DEFAULT` (60s), which is what every plan saved before 2026-09-16
+gets without migration. Two built-in presets exist, `DEFAULT_PLAN()` (push/pull/legs)
+and `FULL_BODY_PLAN()` (3-day A/B/C, source of record `docs/full-body-plan.json`);
+`loadPreset()` snapshots the outgoing plan into `gt4_routines` first unless an
+identical one is already saved.
+
+Two things are *not* keyed by exercise alone: `gt4_prev` and `gt4_cur` are keyed
+`dayId -> exId`, so switching to a plan with new day ids starts the inline "last"
+prefill empty until each day has been finished once (charts and PBs are unaffected),
+and `gt4_swaps` is keyed by `exId` only, so an exercise that appears on two days is
+swapped on both.
 
 ## Storage keys
 

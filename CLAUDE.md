@@ -30,7 +30,8 @@ him turning up. Motivation is a feature, not decoration.
   that ever changes, escape at render instead.
 
 ## File order
-CSS → HTML shell → `LIB` (exercise library + form cues) → `DEFAULT_PLAN` → `MIGRATE`
+CSS → HTML shell → `LIB` (exercise library + form cues) → `DEFAULT_PLAN` →
+`FULL_BODY_PLAN` / `PRESETS` → `MIGRATE`
 → storage adapter → state helpers → PB helpers → render → rest timer → progress
 sheet → cues/swap/chart sheets → plan editor → export/import → boot.
 
@@ -48,6 +49,18 @@ sheet → cues/swap/chart sheets → plan editor → export/import → boot.
   original bug (PBs on a shared alternate didn't "translate" between the
   exercises it was swapped in for).
 - **PB**: heavier weight, *or* same weight for more reps. Both count.
+- **Rest**: per plan item, `it.rest` seconds, read through `restFor(it)`. Absent means
+  `REST_DEFAULT` (60s) — that's the migration for every pre-2026-09-16 plan and
+  routine, so never make `rest` required.
+- **Promoting an alt to a real exercise**: if a name that was only ever in some
+  `alts:[]` list gets its own `LIB` entry (as Chest-Supported Row did), `hkey()` starts
+  resolving that name to the new id. `migrate()` handles this generically — any
+  `alt::<slug>` key whose slug matches a library name is merged into that id — so
+  adding the entry is enough, no `MIGRATE` line needed.
+- **Presets vs routines**: `PRESETS` are the two built-in plans; `routines` are the
+  user's saved snapshots. `loadPreset()` snapshots the outgoing plan into routines
+  first. `prev`/`cur` are keyed by day id, so a new preset's inline "last" hints are
+  empty until each day has been finished once — expected, not a bug.
 
 ## Testing
 No suite yet. Minimum check after any edit:
@@ -63,9 +76,16 @@ custom exercise, finish a session, open Progress, export a backup, re-import it.
 ## Good next tasks
 - Unit tests for migration, PB detection, and the volume/trend/1RM calculations
   added 2026-09-11 (highest value — this is the logic most likely to silently
-  corrupt data, and there's more of it now than when this note was first written)
+  corrupt data, and there's more of it now than when this note was first written).
+  The 2026-09-16 work added a throwaway harness that extracts pure functions from
+  the HTML by regex and asserts on them — that shape works without jsdom and is a
+  reasonable seed for a real `test/` directory.
 - Supersets (linking sets across two exercises) — warm-up/failure/drop set types
-  shipped 2026-09-11, supersets didn't
+  shipped 2026-09-11, supersets didn't. The full-body plan's curl/pushdown pair is
+  the first concrete need: one rest timer for the pair, not one after each.
+- "Last" prefill falling back to the most recent `hist` entry for the exercise when
+  `prev[dayId]` is empty — switching plans currently blanks the inline hints for a
+  full rotation even though the numbers exist
 - A POST endpoint in the server so finished sessions write to disk automatically,
   removing the reliance on manual backup exports
 - Split into `src/` modules with a concat step that still emits one file (now two,

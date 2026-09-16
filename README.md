@@ -4,8 +4,8 @@ A single-file workout tracker that runs on a phone. Logs weight and reps per set
 charts progress per exercise, allows equipment swaps mid-workout, and lets the
 training plan be edited without losing history.
 
-Built around a 3-day beginner push/pull/legs programme, but the plan is data — it
-can be changed entirely from inside the app.
+Ships two 3-day presets — a beginner push/pull/legs and a full-body A/B/C — but the
+plan is data and can be changed entirely from inside the app.
 
 ## Layout
 
