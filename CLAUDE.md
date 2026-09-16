@@ -63,23 +63,24 @@ sheet → cues/swap/chart sheets → plan editor → export/import → boot.
   empty until each day has been finished once — expected, not a bug.
 
 ## Testing
-No suite yet. Minimum check after any edit:
-
 ```bash
-node -e "const s=require('fs').readFileSync('app/gym-tracker.html','utf8');
-new Function(s.match(/<script>([\s\S]*)<\/script>/)[1]); console.log('parses')"
+node --test test/
 ```
 
-Then serve and click through: log a set, swap an exercise, edit the plan, create a
-custom exercise, finish a session, open Progress, export a backup, re-import it.
+No npm, nothing to install: `test/harness.js` evaluates the app's `<script>` in a
+`vm` sandbox with a stub DOM (every element is a Proxy that swallows everything),
+so the whole file boots and every top-level function/variable is reachable as
+`app.name`, assignable via `set('name', value)`. Storage lands in `Store`'s
+in-memory fallback, so each `load()` is a clean slate. Sandbox values have their
+own prototypes — compare with `deq()` (JSON round-trip) not `assert.deepEqual`.
+Coverage: migration, PB detection, volume/trend/1RM, the finish-session flow,
+backup round-trip, presets. Add a test whenever you touch any of those.
+
+The suite doesn't render anything, so still serve and click through after a UI
+change: log a set, swap an exercise, edit the plan, create a custom exercise,
+finish a session, open Progress, export a backup, re-import it.
 
 ## Good next tasks
-- Unit tests for migration, PB detection, and the volume/trend/1RM calculations
-  added 2026-09-11 (highest value — this is the logic most likely to silently
-  corrupt data, and there's more of it now than when this note was first written).
-  The 2026-09-16 work added a throwaway harness that extracts pure functions from
-  the HTML by regex and asserts on them — that shape works without jsdom and is a
-  reasonable seed for a real `test/` directory.
 - Supersets (linking sets across two exercises) — warm-up/failure/drop set types
   shipped 2026-09-11, supersets didn't. The full-body plan's curl/pushdown pair is
   the first concrete need: one rest timer for the pair, not one after each.
