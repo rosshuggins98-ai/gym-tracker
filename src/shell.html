@@ -1,0 +1,90 @@
+</head>
+<body>
+<div class="wrap">
+ <header>
+  <div class="title"><h1>Gym Tracker</h1><span class="pill reps" id="buildBadge" style="margin-left:2px"></span><span class="sub" id="weekTag"></span><span class="spacer"></span>
+   <button class="hbtn" id="progBtn" onclick="openProgress()" aria-label="Progress"></button>
+   <button class="hbtn" id="editBtn" onclick="openEdit()" aria-label="Edit plan"></button>
+   <button class="hbtn" id="dataBtn" onclick="openData()" aria-label="Data"></button>
+   <button class="hbtn" id="themeBtn" onclick="toggleTheme()" aria-label="Theme"></button></div>
+  <div class="toggle" id="dayToggle"></div>
+  <div class="weekgoal" id="weekGoal" title="Tap to change your weekly target"></div>
+  <div class="progress"><i id="bar"></i></div>
+  <div class="pmeta"><span id="pcount">0 / 0 sets</span><span class="saved" id="savedTag">Saved</span><span id="plabel"></span></div>
+  <div class="banner" id="storeWarn"><b>Opened as a local file.</b> Chrome blocks proper saving here, so this session is kept in the address bar &mdash; it survives a refresh but not closing the tab. Serve it over http:// to fix it.</div>
+ </header>
+ <main id="app"><div class="loading">Loading…</div></main>
+</div>
+<div class="rest" id="rest"><span class="rt" id="restT">1:00</span><span class="rl" id="restL">Rest</span>
+ <button onclick="restAdd(30)">+30s</button><button onclick="restStop()">Done</button></div>
+<div class="pbtoast" id="pbToast">🎉 New PB!</div>
+<div class="foot"><div class="inner"><button onclick="openSheet()">Finish &amp; start new session</button></div></div>
+
+<div class="sheet-bg" id="sheetbg"><div class="sheet">
+ <h4>Finish this session?</h4>
+ <p>Today's top weight for each exercise is saved to its progress chart, then the boxes clear for next time.</p>
+ <div class="row"><button class="cancel" onclick="closeSheet()">Keep going</button><button class="confirm" onclick="doNewSession()">Save &amp; clear</button></div>
+</div></div>
+
+<div class="sheet-bg" id="sumbg"><div class="sheet">
+ <div class="msheet-top"><h4 id="sumTitle">Session done</h4><button class="close" onclick="closeSummary()">×</button></div>
+ <div id="sumBody"></div>
+ <div class="row" style="margin-top:14px"><button class="confirm" onclick="closeSummary()" style="flex:1">Done</button></div>
+</div></div>
+
+<div class="sheet-bg" id="chartbg"><div class="sheet">
+ <div class="msheet-top"><h4 id="chartTitle">Progress</h4><button class="close" onclick="closeChart()">×</button></div>
+ <div id="chartBody"></div></div></div>
+
+<div class="sheet-bg" id="cuebg"><div class="sheet">
+ <div class="msheet-top"><h4 id="cueTitle">Form</h4><button class="close" onclick="closeCue()">×</button></div>
+ <div id="cueBody"></div></div></div>
+
+<div class="sheet-bg" id="swapbg"><div class="sheet">
+ <div class="msheet-top"><h4 id="swapTitle">Swap</h4><button class="close" onclick="closeSwap()">×</button></div>
+ <p class="small">Equipment busy? Pick an alternative. Each keeps its own weight history so charts stay honest.</p>
+ <div class="optlist" id="swapList"></div></div></div>
+
+<div class="sheet-bg" id="platebg"><div class="sheet">
+ <div class="msheet-top"><h4 id="plateTitle">Plates</h4><button class="close" onclick="closePlates()">×</button></div>
+ <div id="plateBody"></div></div></div>
+
+<div class="sheet-bg" id="editbg"><div class="sheet">
+ <div class="msheet-top"><h4 id="editTitle">Edit session</h4><button class="close" onclick="closeEdit()">×</button></div>
+ <p class="small">Change sets and reps, reorder, remove, or add exercises. <b>Your logged history follows the exercise</b>, so nothing is lost when you rearrange a session.</p>
+ <div id="editBody"></div>
+ <div class="vol" id="volNote"></div>
+ <h5>Add an exercise</h5>
+ <div id="addBody" class="addlist"></div>
+ <div class="hr"></div>
+ <h5>Routines</h5>
+ <p class="small">Save this plan under a name, keep several, and switch between them. Your logged history stays with each exercise either way, so switching routines never loses a number.</p>
+ <div class="erow" style="align-items:stretch">
+  <div class="en" style="flex:1"><input id="routineName" placeholder="Routine name (e.g. Deload week)"></div>
+  <button class="mini" id="routineSaveBtn" style="width:auto;padding:0 12px;font-size:12px">Save current</button>
+ </div>
+ <div id="routineBody" style="margin-top:6px"></div>
+ <div class="hr"></div>
+ <h5>Presets</h5>
+ <p class="small">Switch to a built-in plan. The plan you're on now is saved as a routine first, so you can come straight back to it.</p>
+ <button class="dbtn" onclick="loadPreset('fullbody')">3-Day Full Body (A / B / C)</button>
+ <button class="dbtn" onclick="loadPreset('ppl')">Push / Pull / Legs (starter)</button>
+</div></div>
+
+<div class="sheet-bg" id="progbg"><div class="sheet">
+ <div class="msheet-top"><h4>Progress</h4><button class="close" onclick="closeProgress()">×</button></div>
+ <div id="progBody"></div></div></div>
+
+<div class="sheet-bg" id="databg"><div class="sheet">
+ <div class="msheet-top"><h4>Your data</h4><button class="close" onclick="closeData()">×</button></div>
+ <p id="storeStatus" class="small"></p>
+ <button class="dbtn" onclick="exportJSON()">Download full backup (.json)</button>
+ <button class="dbtn" onclick="exportCSV()">Export history to spreadsheet (.csv)</button>
+ <div class="exportout" id="exportOut"><textarea id="exportText" readonly></textarea>
+  <div class="row"><button class="cancel" id="copyBtn" onclick="copyExport(this)">Copy text</button></div>
+  <div class="note" id="exportNote"></div></div>
+ <div class="hr"></div><h5>Restore from a backup</h5>
+ <p class="small">Loads a <b>.json</b> backup and replaces what's in the app now.</p>
+ <label class="filebtn">Choose backup file<input type="file" accept="application/json,.json" id="importFile" hidden></label>
+ <div class="importprev" id="importPreview"></div>
+</div></div>

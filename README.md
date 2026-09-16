@@ -10,7 +10,9 @@ plan is data and can be changed entirely from inside the app.
 ## Layout
 
 ```
-app/gym-tracker.html     the app (no build step, no dependencies)
+src/                     the app's source: head/shell/tail HTML, style.css, js/NN-name.js
+build.py                 concatenates src/ -> app/gym-tracker.html (stdlib, byte-for-byte)
+app/gym-tracker.html     the built app, committed; what the phone installs
 app/sw.js                offline shell cache; optional, the app works without it
 termux/gym-setup.sh      installs the Android/Termux server + widgets
 serve.py                 server: static files + POST /api/save auto-backup (dev and Termux)
@@ -23,8 +25,9 @@ CLAUDE.md                context for Claude Code
 ## Running it locally
 
 ```bash
+python3 build.py   # after editing anything in src/
 ./serve.py         # http://localhost:8000/gym-tracker.html, backups -> ./gym-backups/
-node --test test/  # the suite
+node --test test/  # the suite (includes a check that the build is current)
 ```
 
 It must be served over http:// — opened directly as a file, Chrome gives it no
@@ -73,7 +76,8 @@ exactly as it always did, online-only.
 
 1. **History belongs to the exercise, not the day.** Rearranging the plan must never
    orphan logged weights.
-2. **Single file, no build step.** It has to be servable by `python3 -m http.server`
-   from a phone; `serve.py` only adds the backup endpoint on top.
+2. **Single file out, no toolchain.** Source lives in `src/`, but the shipped app is
+   one HTML file servable by `python3 -m http.server` from a phone; `build.py` is a
+   stdlib concatenation, not a bundler, and `serve.py` only adds the backup endpoint.
 3. **Never lose data silently.** Every storage mode is detected and reported.
 4. **Gym-floor usability first.** Large tap targets, minimal typing, one-handed.

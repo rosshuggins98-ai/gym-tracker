@@ -10,12 +10,18 @@ The app's job is to make logging fast and to make progress visible enough to kee
 him turning up. Motivation is a feature, not decoration.
 
 ## Hard constraints
-- **One file.** `app/gym-tracker.html` must stay self-contained and runnable by
+- **Edit `src/`, ship one file.** The app is authored as modules under `src/`
+  (`head.html`, `style.css`, `shell.html`, `js/NN-name.js`, `tail.html`) and
+  `python3 build.py` concatenates them — byte-for-byte, no rewriting, stdlib only —
+  into `app/gym-tracker.html`, which is **committed** and is what the phone
+  installs. Never edit `app/gym-tracker.html` directly: the build test fails if it
+  drifts from `src/`. Always run `build.py` before the tests and commit both.
+- **One file out.** `app/gym-tracker.html` must stay self-contained and runnable by
   `python3 -m http.server`. No npm, no bundler, no runtime CDN. The one narrow,
   deliberate exception is `app/sw.js` (offline shell cache) — a service worker has
   to be a same-origin file by browser security policy, a `blob:`/`data:` URL can't
-  be registered as one, so it can't be inlined into the HTML. It's still no build
-  step, no bundler, no CDN, and the app works fully without it if it's ever missing
+  be registered as one, so it can't be inlined into the HTML. It's still no
+  bundler, no CDN, and the app works fully without it if it's ever missing
   (registration is wrapped in a no-op `.catch()`). Don't add a third file without
   an equally load-bearing platform reason.
 - **Three storage modes.** Claude artifact storage, localStorage, and none (file://,
@@ -37,11 +43,14 @@ calls from `autoBackup()` after every finished session. It is embedded verbatim 
 `autoBackup()` must stay fire-and-forget: no UI, no error, if the endpoint is absent.
 
 ## File order
-CSS → HTML shell → `LIB` (exercise library + form cues) → `DEFAULT_PLAN` →
-`FULL_BODY_PLAN` / `PRESETS` → `MIGRATE`
-→ storage adapter → state helpers → PB helpers → render → rest timer → progress
-sheet → cues/swap/chart sheets → plan editor → export/import → body weight →
-session summary → auto-backup → actions (finish) → migration → boot.
+One script scope; later modules call earlier ones. `src/js/`:
+`10-lib` (exercise library + cues) → `20-plans` (`DEFAULT_PLAN`, `FULL_BODY_PLAN`,
+`PRESETS`, `MIGRATE`, `BUILD`) → `30-storage` → `40-state` (helpers, PB, prefill,
+supersets, rest) → `50-render` → `55-rest` → `60-progress` → `62-cues` → `64-swap` →
+`66-plates` → `68-chart` → `70-editor` → `72-routines` → `74-theme` → `76-data`
+(export/import) → `80-bodyweight` → `82-summary` → `84-autobackup` → `86-actions`
+(finish) → `90-migrate` → `99-boot`. New module: pick a free number, end the file
+with a newline.
 
 ## Key concepts
 - **History key**: `hkey(exId, alt)`. Unswapped, it's `exerciseId`. Swapped, it
@@ -77,7 +86,7 @@ session summary → auto-backup → actions (finish) → migration → boot.
 
 ## Testing
 ```bash
-node --test test/
+python3 build.py && node --test test/
 ```
 
 No npm, nothing to install: `test/harness.js` evaluates the app's `<script>` in a
@@ -94,6 +103,16 @@ change: log a set, swap an exercise, edit the plan, create a custom exercise,
 finish a session, open Progress, export a backup, re-import it.
 
 ## Good next tasks
-- Split into `src/` modules with a concat step that still emits one file (now two,
-  with `sw.js` — see Hard constraints)
-
+- "Next up" on the main screen for A/B/C rotation — the app has no notion of
+  which day comes next; with full body it's whichever of A/B/C was finished
+  longest ago (`prev[dayId]._date` already holds that), so it's a small addition
+- Day editor: add / rename / remove days. Presets are hard-wired to three days
+  and three accent vars (`--a1..--a3`); a 4-day upper/lower would need both
+- Swap to any library exercise, not only the listed `alts` — the swap sheet is
+  alt-list only, so Leg Press → Bulgarian means a plan edit, not a swap
+- Per-set history: `hist` keeps only the top set per session, so "vs last time"
+  in the summary leans on `prev` (one session deep). Storing the set list per
+  entry would make volume trends and set-by-set comparison possible
+- A tiny browser smoke test (the vm harness can't render); even a script that
+  opens the file in headless Chromium and checks for console errors would catch
+  what the stub DOM hides
