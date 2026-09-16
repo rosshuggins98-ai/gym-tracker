@@ -59,8 +59,8 @@ sheet → cues/swap/chart sheets → plan editor → export/import → boot.
   adding the entry is enough, no `MIGRATE` line needed.
 - **Presets vs routines**: `PRESETS` are the two built-in plans; `routines` are the
   user's saved snapshots. `loadPreset()` snapshots the outgoing plan into routines
-  first. `prev`/`cur` are keyed by day id, so a new preset's inline "last" hints are
-  empty until each day has been finished once — expected, not a bug.
+  first. `prev`/`cur` are keyed by day id; `lastSrc()` falls back across days and
+  then to history so a new preset's "last" hints aren't blank.
 
 ## Testing
 ```bash
@@ -84,9 +84,6 @@ finish a session, open Progress, export a backup, re-import it.
 - Supersets (linking sets across two exercises) — warm-up/failure/drop set types
   shipped 2026-09-11, supersets didn't. The full-body plan's curl/pushdown pair is
   the first concrete need: one rest timer for the pair, not one after each.
-- "Last" prefill falling back to the most recent `hist` entry for the exercise when
-  `prev[dayId]` is empty — switching plans currently blanks the inline hints for a
-  full rotation even though the numbers exist
 - A POST endpoint in the server so finished sessions write to disk automatically,
   removing the reliance on manual backup exports
 - Split into `src/` modules with a concat step that still emits one file (now two,

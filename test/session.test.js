@@ -72,3 +72,37 @@ test('backup round-trips through applyImport with migration applied',async()=>{
  deq(app.hist.squat.map(e=>e.top),[60]);
  assert.equal(app.notes.squat,'belt on');
 });
+
+test('last-time hints fall back: this day -> other day (most recent) -> history top -> nothing',async()=>{
+ const {app,set}=await load();
+ set('hist',{squat:[{date:'2026-09-01',top:60,reps:8},{date:'2026-09-08',top:62.5,reps:6}]});
+ set('swaps',{}); set('legacyLast',{});
+ /* 1. this day */
+ set('prev',{fbA:{squat:[{w:'65',r:'8'},{w:'65',r:'7'}]}});
+ assert.equal(app.lastW('fbA','squat',1),'65'); assert.equal(app.lastR('fbA','squat',1),'7');
+ /* 2. other day, most recent finish wins */
+ set('prev',{legs:{squat:[{w:'55',r:'8'}],_date:'2026-09-01'},push:{squat:[{w:'57.5',r:'8'}],_date:'2026-09-08'}});
+ assert.equal(app.lastW('fbA','squat',0),'57.5'); assert.equal(app.lastR('fbA','squat',0),'8');
+ assert.equal(app.lastW('fbA','squat',1),null,'per-set: no second set last time');
+ /* 3. history: weight only, reps left to the plan target */
+ set('prev',{legs:{squat:[{w:'',r:''}]}});
+ assert.equal(app.lastW('fbA','squat',0),62.5); assert.equal(app.lastW('fbA','squat',2),62.5);
+ assert.equal(app.lastR('fbA','squat',0),null);
+ /* swapped: history is looked up under the swap key */
+ set('swaps',{squat:'Goblet Squat'});
+ assert.equal(app.lastW('fbA','squat',0),null);
+ set('hist',{goblet:[{date:'2026-09-08',top:20,reps:12}]});   /* Goblet Squat is a real entry, so the swap merges into it */
+ assert.equal(app.lastW('fbA','squat',0),20);
+ /* 4. nothing anywhere */
+ set('hist',{}); set('swaps',{});
+ assert.equal(app.lastW('fbA','squat',0),null);
+});
+
+test('finishing stamps prev with the date so the other-day fallback can rank it',async()=>{
+ const {app,set,tick}=await load();
+ set('hist',{}); set('prev',{});
+ set('cur',{push:{bench:[{w:'50',r:'8',done:true}]}});
+ await app.doNewSession(); await tick();
+ assert.equal(app.prev.push._date,app.today());
+ assert.equal(app.lastW('fbA','bench',0),'50','a brand-new day sees bench from the PPL push day');
+});

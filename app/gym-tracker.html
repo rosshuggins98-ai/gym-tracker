@@ -458,7 +458,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-09-16a";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-09-16b";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -563,11 +563,33 @@ async function deleteCustom(id){
 
 let legacyLast={};   /* exId -> [weights] recovered from older versions */
 let legacyFound=0;
-function lastW(dId,exId,i){ const p=prev[dId]&&prev[dId][exId];
- if(p&&p[i]&&p[i].w) return p[i].w;
+/* "Last time" for a set. prev is keyed by day id, so an exercise that has
+   just moved to a different day (plan edit, preset switch) has no prev there
+   even though the numbers exist. Fallback order:
+     1. this day's last finished session (per set, weight + reps)
+     2. the same exercise on any other day's last session (per set) -- most
+        recent day wins, by the date stamped when the session was finished
+     3. the top set from history (weight only: reps at the top weight aren't
+        a sensible prefill for a 12-rep first set, so the tick still uses the
+        plan's target reps)
+     4. weights recovered from pre-v4 builds
+   Weight and reps consult the same source so a set never mixes two sessions. */
+function lastSrc(dId,exId){
+ const p=prev[dId]&&prev[dId][exId]; if(Array.isArray(p)&&p.some(x=>x&&x.w)) return {sets:p};
+ let best=null;
+ Object.keys(prev).forEach(od=>{ if(od===dId) return; const a=prev[od]&&prev[od][exId], dt=(prev[od]&&prev[od]._date)||'';
+  if(Array.isArray(a)&&a.some(x=>x&&x.w)&&(!best||dt>best.dt)) best={sets:a,dt}; });
+ if(best) return {sets:best.sets};
+ const h=hist[hkey(exId,swaps[exId]||null)];
+ if(h&&h.length) return {top:h[h.length-1].top};
+ return null;
+}
+function lastW(dId,exId,i){ const s=lastSrc(dId,exId);
+ if(s&&s.sets) return (s.sets[i]&&s.sets[i].w)?s.sets[i].w:null;
+ if(s&&s.top!==undefined) return s.top;
  const L=legacyLast[exId]; return (L&&L[i])?L[i]:null; }
-function lastR(dId,exId,i){ const p=prev[dId]&&prev[dId][exId];
- return (p&&p[i]&&p[i].r)?p[i].r:null; }
+function lastR(dId,exId,i){ const s=lastSrc(dId,exId);
+ return (s&&s.sets&&s.sets[i]&&s.sets[i].r)?s.sets[i].r:null; }
 /* Set types: undefined/'work' (default), 'warm', 'amrap', 'drop'. Warmups are
    real reps on the screen but must never count toward a top set, a PB, or (once
    volume is tracked) volume -- a light warmup logged in the weight box must not
@@ -1455,7 +1477,11 @@ async function doNewSession(){
     if(e.top>lastE.top||(e.top===lastE.top&&(e.reps||0)>(lastE.reps||0))){ lastE.top=e.top; lastE.reps=e.reps; }
     lastE.vol=vol;
    } else hist[k].push({date:td,top:e.top,reps:e.reps,vol}); } });
- if(cur[d.id]&&Object.keys(cur[d.id]).length){ prev[d.id]=JSON.parse(JSON.stringify(cur[d.id])); }
+ if(cur[d.id]&&Object.keys(cur[d.id]).length){ prev[d.id]=JSON.parse(JSON.stringify(cur[d.id]));
+  /* _date is read by lastSrc() to pick the most recent day when the same
+     exercise has a prev on more than one. It sits beside the exercise ids
+     (never a valid id itself); older prev blobs have none and lose ties. */
+  prev[d.id]._date=td; }
  cur[d.id]={}; delete warmDone[d.id];
  await Promise.all([Store.set('gt4_hist',hist),Store.set('gt4_prev',prev),Store.set('gt4_cur',cur),Store.set('gt4_warm',warmDone)]);
  DIRTY=false; mirrorHash(); closeSheet(); render(); window.scrollTo({top:0});

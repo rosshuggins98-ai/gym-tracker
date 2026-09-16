@@ -19,10 +19,11 @@ and `FULL_BODY_PLAN()` (3-day A/B/C, source of record `docs/full-body-plan.json`
 identical one is already saved.
 
 Two things are *not* keyed by exercise alone: `gt4_prev` and `gt4_cur` are keyed
-`dayId -> exId`, so switching to a plan with new day ids starts the inline "last"
-prefill empty until each day has been finished once (charts and PBs are unaffected),
-and `gt4_swaps` is keyed by `exId` only, so an exercise that appears on two days is
-swapped on both.
+`dayId -> exId`, and `gt4_swaps` is keyed by `exId` only, so an exercise that
+appears on two days is swapped on both. The inline "last" hint (`lastSrc()`) covers
+the prev gap: this day's prev, else the same exercise's prev on the most recently
+finished other day, else the top set from history (weight only), else pre-v4
+legacy weights. So a new preset shows real numbers from its first session.
 
 ## Storage keys
 
@@ -32,7 +33,7 @@ swapped on both.
 | `gt4_cur` | in-progress session `{dayId: {exId: [{w,r,done,t?}]}}` -- `t` is the set type: undefined ('work'), 'warm', 'amrap', or 'drop' |
 | `gt4_barweight` | plate calculator's bar weight, kg (default 20) |
 | `gt4_notes` | `{historyKey: text}`, per-exercise persistent notes (machine settings, bench angle, grip width) |
-| `gt4_prev` | last completed session, drives the "last" hint |
+| `gt4_prev` | last completed session per day `{dayId: {exId: [{w,r,done,t?}], _date}}`, drives the "last" hint; `_date` (from 2026-09-16) ranks days when `lastSrc()` falls back to another day |
 | `gt4_hist` | `{historyKey: [{date, top, reps, vol?}]}` -- `vol` (sets x reps x kg, working sets only) is present from 2026-09-11 onward; older entries lack it and count as 0 toward volume stats rather than being guessed at |
 | `gt4_weektarget` | sessions/week target shown on the main screen (default 3) |
 | `gt4_routines` | `[{id, label, savedISO, days}]`, named snapshots of `PLAN.days`, switchable from the plan editor |
