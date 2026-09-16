@@ -1,17 +1,27 @@
 #!/data/data/com.termux/files/usr/bin/bash
 # ============================================================
-#  Gym Tracker - Termux setup (v3: serve.py with auto-backup endpoint)
+#  Gym Tracker - Termux setup (v4: self-updating launcher)
 #  Run once:   bash ~/storage/downloads/gym-setup.sh
 #  Safe to re-run: it replaces the scripts with fixed versions.
+#
+#  After that you should never need to run it by hand again: serve.sh
+#  (the Gym widget) fetches this file from the repo on every tap and,
+#  when it has changed, re-runs it in GYM_SETUP_NOLAUNCH=1 mode to
+#  refresh the launcher scripts before starting the server.
 # ============================================================
 set -e
 TOOLS="$HOME/gymtools"
 WEB="$TOOLS/web"
 SHORTCUTS="$HOME/.shortcuts"
 BACKUPS="$HOME/gym-backups"
+GYM_SETUP_VERSION=4
 
-echo "Setting up Gym Tracker v3..."
+echo "Setting up Gym Tracker v$GYM_SETUP_VERSION..."
 mkdir -p "$TOOLS" "$WEB" "$SHORTCUTS" "$BACKUPS"
+# Keep a copy of the installer that produced the current scripts, so serve.sh
+# can tell whether the one in the repo is different. (-ef: skip when this IS
+# that copy, e.g. re-run by hand from ~/gymtools.)
+[ "$0" -ef "$TOOLS/gym-setup.sh" ] || cp -f "$0" "$TOOLS/gym-setup.sh"
 
 if [ ! -d "$HOME/storage" ]; then
   echo "Storage access not set up. Run: termux-setup-storage"
@@ -206,19 +216,22 @@ BACKUPS="$HOME/gym-backups"
 DL="$HOME/storage/downloads"
 LOG="$HOME/gym-log.txt"
 PIDF="$TOOLS/server.pid"
-PORT=8000
+PORT=${GYM_PORT:-8000}
 STAMP=$(date +%s)
 URL="http://localhost:$PORT/gym-tracker.html?v=$STAMP"
 
 toast(){ command -v termux-toast >/dev/null && termux-toast -g top "$1" || echo "$1"; }
 
-# 0. optional: pull the newest build from a URL (set it once in ~/gymtools/update-url)
-#    e.g. echo "https://raw.githubusercontent.com/you/gym-tracker/main/app/gym-tracker.html" > ~/gymtools/update-url
+# 0. pull the newest build from the repo (set the URL once in ~/gymtools/update-url)
+#    e.g. echo "https://raw.githubusercontent.com/rosshuggins98-ai/gym-tracker/main/app/gym-tracker.html" > ~/gymtools/update-url
+#    Every fetch carries ?<stamp>: raw.githubusercontent.com sits behind a CDN
+#    that caches for ~5 minutes, and a stale hit there is indistinguishable
+#    from "nothing new" -- the single most likely reason a push doesn't show.
 if [ -f "$TOOLS/update-url" ]; then
   URLSRC=$(cat "$TOOLS/update-url")
   if [ -n "$URLSRC" ]; then
     TMP="$TOOLS/.fetched.html"
-    if curl -fsSL --max-time 8 "$URLSRC" -o "$TMP" 2>/dev/null; then
+    if curl -fsSL --max-time 8 "$URLSRC?$STAMP" -o "$TMP" 2>/dev/null; then
       if [ -s "$TMP" ] && grep -q "const BUILD=" "$TMP"; then
         if ! cmp -s "$TMP" "$WEB/gym-tracker.html"; then
           cp -f "$TMP" "$WEB/gym-tracker.html"
@@ -226,32 +239,53 @@ if [ -f "$TOOLS/update-url" ]; then
         fi
       fi
       rm -f "$TMP"
-    fi
-    # serve.py sits at the repo root, one level above app/. Best-effort like
-    # sw.js; the sanity grep stops a 404 page or a truncated download from
-    # replacing a working server. Takes effect next start (step 5).
-    PYURL="${URLSRC%/app/*}/serve.py"
-    TMPPY="$TOOLS/.fetched-serve.py"
-    if curl -fsSL --max-time 8 "$PYURL" -o "$TMPPY" 2>/dev/null; then
-      if [ -s "$TMPPY" ] && grep -q "api/save" "$TMPPY" && ! cmp -s "$TMPPY" "$TOOLS/serve.py"; then
-        cp -f "$TMPPY" "$TOOLS/serve.py"
-      fi
-      rm -f "$TMPPY"
+    else
+      toast "Update check failed (offline?) - using installed build"
     fi
     # sw.js (offline shell cache) lives alongside the app file at the same URL,
-    # same directory. No BUILD stamp of its own -- it changes rarely, and isn't
-    # what's serving stale app data if it lags a run behind (the shell it
-    # caches still gets its own BUILD check above). Best-effort: a missing or
-    # unreachable sw.js just means no offline cache, not a broken install.
+    # same directory. Best-effort: a missing or unreachable sw.js just means no
+    # offline cache, not a broken install.
     SWURL="${URLSRC%/*}/sw.js"
     TMPSW="$TOOLS/.fetched-sw.js"
-    if curl -fsSL --max-time 8 "$SWURL" -o "$TMPSW" 2>/dev/null; then
-      if [ -s "$TMPSW" ] && ! cmp -s "$TMPSW" "$WEB/sw.js" 2>/dev/null; then
+    if curl -fsSL --max-time 8 "$SWURL?$STAMP" -o "$TMPSW" 2>/dev/null; then
+      if [ -s "$TMPSW" ] && grep -q "addEventListener('fetch'" "$TMPSW" && ! cmp -s "$TMPSW" "$WEB/sw.js" 2>/dev/null; then
         cp -f "$TMPSW" "$WEB/sw.js"
       fi
       rm -f "$TMPSW"
     fi
+    # The launcher scripts themselves (this file, serve.py, stop.sh, ...) all
+    # come from termux/gym-setup.sh in the repo. Fetch it; if it differs from
+    # the installer that produced the current scripts, re-run it in NOLAUNCH
+    # mode (writes the scripts, doesn't start anything) and then hand over to
+    # the freshly written serve.sh. GYM_RELAUNCHED stops a loop if the new
+    # installer somehow still doesn't match what it fetched.
+    if [ -z "$GYM_RELAUNCHED" ]; then
+      SETUPURL="${URLSRC%/app/*}/termux/gym-setup.sh"
+      TMPSU="$TOOLS/.fetched-setup.sh"
+      if curl -fsSL --max-time 8 "$SETUPURL?$STAMP" -o "$TMPSU" 2>/dev/null; then
+        if [ -s "$TMPSU" ] && grep -q "GYM_SETUP_VERSION=" "$TMPSU" && ! cmp -s "$TMPSU" "$TOOLS/gym-setup.sh" 2>/dev/null; then
+          NEWV=$(grep -o 'GYM_SETUP_VERSION=[0-9]*' "$TMPSU" | head -1 | cut -d= -f2)
+          toast "Updating launcher scripts (v$NEWV)"
+          if GYM_SETUP_NOLAUNCH=1 bash "$TMPSU" > "$TOOLS/setup.log" 2>&1; then
+            cp -f "$TMPSU" "$TOOLS/gym-setup.sh"
+            rm -f "$TMPSU"
+            # the running server is the old one (old serve.py, or the bare
+            # http.server from before there was a serve.py): stop it so step 5
+            # of the new launcher starts the new one
+            [ -f "$PIDF" ] && { kill "$(cat "$PIDF")" 2>/dev/null; rm -f "$PIDF"; }
+            pkill -f "python3 -m http.server $PORT" 2>/dev/null
+            pkill -f "gymtools/serve.py" 2>/dev/null
+            GYM_RELAUNCHED=1 exec bash "$TOOLS/serve.sh"
+          else
+            toast "Launcher update failed - see ~/gymtools/setup.log"
+          fi
+        fi
+        rm -f "$TMPSU"
+      fi
+    fi
   fi
+else
+  toast "No update-url set - app won't auto-update (see doctor.sh)"
 fi
 
 # 1. install a newer app file from Downloads, if there is one (manual override /
@@ -287,7 +321,7 @@ grep -q "^$TODAY" "$LOG" 2>/dev/null || echo "$TODAY $(date +%H:%M)" >> "$LOG"
 # 4. wake lock with 2h auto-release.
 #    Create ~/gymtools/no-wakelock to skip it (removes Termux's own notification).
 if [ ! -f "$TOOLS/no-wakelock" ]; then
-  termux-wake-lock
+  command -v termux-wake-lock >/dev/null && termux-wake-lock
   ( sleep 7200; termux-wake-unlock ) > /dev/null 2>&1 &
 fi
 
@@ -395,12 +429,27 @@ for f in "$DL"/gym-tracker*.html; do
   echo "  $(basename "$f"): $(grep -o 'const BUILD="[^"]*"' "$f" 2>/dev/null | head -1) $(wc -c < "$f") bytes"
 done
 echo ""
+echo "Update source:"
+if [ -f "$TOOLS/update-url" ]; then
+  U=$(cat "$TOOLS/update-url"); echo "  $U"
+  R=$(curl -fsSL --max-time 8 "$U?$(date +%s)" 2>/dev/null | grep -o 'const BUILD="[^"]*"' | head -1)
+  echo "  remote build: ${R:-UNREACHABLE (offline, wrong URL, or private repo)}"
+else
+  echo "  NOT SET. Fix with:"
+  echo "  echo 'https://raw.githubusercontent.com/rosshuggins98-ai/gym-tracker/main/app/gym-tracker.html' > ~/gymtools/update-url"
+fi
+echo "Installer: v$(grep -o 'GYM_SETUP_VERSION=[0-9]*' "$TOOLS/gym-setup.sh" 2>/dev/null | head -1 | cut -d= -f2) ($TOOLS/gym-setup.sh)"
+echo ""
 echo "Server: $(pgrep -f 'gymtools/serve.py' >/dev/null && echo "running (serve.py)" || (pgrep -f 'http.server 8000' >/dev/null && echo "running (bare http.server, no auto-backup)" || echo stopped))"
 echo "Auto-backups in $HOME/gym-backups: $(ls "$HOME"/gym-backups/gym-backup-*.json 2>/dev/null | wc -l) (latest: $(ls -t "$HOME"/gym-backups/gym-backup-*.json 2>/dev/null | head -1 | xargs -r basename))"
 [ -f "$TOOLS/server.log" ] && { echo "Last server log lines:"; tail -3 "$TOOLS/server.log"; }
 DOCEOF
 chmod +x "$TOOLS/doctor.sh"
 
+if [ -n "$GYM_SETUP_NOLAUNCH" ]; then
+  echo "Scripts refreshed (v$GYM_SETUP_VERSION); not launching (GYM_SETUP_NOLAUNCH set)."
+  exit 0
+fi
 echo "Testing stop/start cycle..."
 bash "$TOOLS/stop.sh" 2>/dev/null || true
 bash "$TOOLS/serve.sh"

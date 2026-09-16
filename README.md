@@ -50,16 +50,30 @@ Two options.
 support) to the phone's Downloads and tap the Gym widget. The server script installs
 whichever of the two it finds automatically.
 
-**Automatic (better):** host the files anywhere reachable — GitHub raw, your own
-server, Netlify — and tell the phone where to look, once:
+**Automatic (better):** tell the phone where the repo is, once, in Termux:
 
 ```bash
-echo "https://raw.githubusercontent.com/USER/REPO/main/app/gym-tracker.html" \
+echo "https://raw.githubusercontent.com/rosshuggins98-ai/gym-tracker/main/app/gym-tracker.html" \
   > ~/gymtools/update-url
 ```
 
-From then on, every widget tap fetches the newest build before opening — `sw.js`
-too, from the same directory as the URL above, and `serve.py` from one level up. Push a commit, tap the widget, you're
+From then on, every tap of the Gym widget does, in order:
+
+1. fetch `app/gym-tracker.html` and `app/sw.js` from that URL (cache-busted, so
+   GitHub's ~5-minute CDN cache can't hand back the previous build) and install
+   them if they differ;
+2. fetch `termux/gym-setup.sh`; if it differs from the installer that produced the
+   current launcher scripts, re-run it silently (`GYM_SETUP_NOLAUNCH=1`) so
+   `serve.sh`, `serve.py`, `stop.sh`, `doctor.sh` are refreshed too, stop the old
+   server, and hand over to the new `serve.sh`;
+3. start `serve.py` if it isn't running, and open the app.
+
+So the whole loop is *push → tap the widget*. If something doesn't show up, run
+`bash ~/gymtools/doctor.sh`: it prints the installed build, the build at the
+update URL (or why it can't reach it), the installer version and the server state.
+
+Phones set up before 2026-09-16 have a launcher without step 2, so re-run
+`gym-setup.sh` by hand once more; after that it self-updates. Push a commit, tap the widget, you're
 on the new version.
 
 ## Working offline
@@ -68,7 +82,9 @@ Once the app has loaded successfully at least once over http://, `app/sw.js`
 registers a service worker that caches the shell, so the app opens (and your
 already-logged data is fully readable and editable) even with the Termux server
 stopped or unreachable — the biggest practical annoyance of the plain single-file
-version. It's optional: if `sw.js` is missing or fails to register (older phone
+version. It's network-first: with the server up you always get the file on disk
+(so a just-installed build shows immediately), the cache only answers when the
+server can't be reached. It's optional: if `sw.js` is missing or fails to register (older phone
 setup, or a non-`localhost` origin, which isn't a secure context), the app runs
 exactly as it always did, online-only.
 

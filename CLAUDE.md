@@ -42,6 +42,17 @@ calls from `autoBackup()` after every finished session. It is embedded verbatim 
 `serve.py`, then paste it into the heredoc (or regenerate) before committing.
 `autoBackup()` must stay fire-and-forget: no UI, no error, if the endpoint is absent.
 
+The Termux launcher (`serve.sh`, written by `gym-setup.sh`) self-updates: on every
+tap it fetches `termux/gym-setup.sh` from the repo and re-runs it in
+`GYM_SETUP_NOLAUNCH=1` mode when it has changed, so pushing a change to any
+launcher script is enough. `test/launcher.test.js` runs that whole path against a
+local server — keep it passing when touching `gym-setup.sh`. All remote fetches
+carry a `?stamp` because raw.githubusercontent.com caches for ~5 minutes.
+
+`app/sw.js` is network-first with the query string stripped from cache keys. Don't
+go back to cache-first: the launcher URL has a fresh `?v=` stamp per tap, and
+cache-first would either never match (offline broken) or show the previous build.
+
 ## File order
 One script scope; later modules call earlier ones. `src/js/`:
 `10-lib` (exercise library + cues) → `20-plans` (`DEFAULT_PLAN`, `FULL_BODY_PLAN`,
