@@ -62,6 +62,13 @@
  .ex{background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:12px;overflow:hidden}
  .ex.complete{border-color:var(--done)}
  .ex.swapped{border-color:var(--accent)}
+ /* A superset pair reads as one block: the first card loses its bottom
+    corners and gap, the second its top corners, joined by a dashed seam. */
+ .ex.ssfirst{border-bottom-left-radius:0;border-bottom-right-radius:0;margin-bottom:0;border-bottom:1px dashed var(--accent)}
+ .ex.sssecond{border-top-left-radius:0;border-top-right-radius:0;border-top:0}
+ .pill.ss{color:var(--accent);background:var(--accent-soft)}
+ .ssbar{display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;
+  color:var(--accent);padding:6px 14px 0}
  .ex-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:14px 12px 12px 14px}
  .ex-head .name{font-size:16px;font-weight:700;line-height:1.25;margin-bottom:6px}
  .exnote{font-size:11.5px;color:var(--muted);font-weight:600;margin:-3px 0 7px;cursor:pointer;
@@ -179,6 +186,7 @@
  .mini{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--text);
   font-family:inherit;font-weight:800;font-size:15px;cursor:pointer;flex-shrink:0;padding:0;line-height:1}
  .mini.del{color:var(--warn);border-color:var(--warn)}
+ .mini.ssb.on{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
  .mini svg{width:14px;height:14px;stroke:var(--text);stroke-width:2.5;fill:none;display:block;margin:0 auto}
  .vol{background:var(--card2);border-radius:12px;padding:12px 13px;font-size:12.5px;color:var(--muted);line-height:1.5;margin:12px 0}
  .vol b{color:var(--text)}
@@ -425,7 +433,7 @@ function DEFAULT_PLAN(){ return {
    "all sets hit target -> add weight", i.e. double progression; the lower bound
    is where you land after the jump. Rest carries over per exercise. Pull-ups
    and dips are planned as their pulldown / fly equivalents (can't do either
-   yet); the JSON's supersets are just consecutive exercises here. */
+   yet). The curl/pushdown superset is it.super on the curl. */
 function FULL_BODY_PLAN(){ return {
  name:"3-Day Full Body",
  startedISO:new Date().toISOString().slice(0,10),
@@ -439,7 +447,7 @@ function FULL_BODY_PLAN(){ return {
    warm:"10 minutes: light cardio, then hip hinges, cat-cows, band pull-aparts, and two light build-up sets of deadlift.",
    items:[{ex:"deadlift",sets:3,reps:[6,6,6],rest:180},{ex:"incline",sets:3,reps:[10,10,10],rest:120},
           {ex:"cablerow",sets:3,reps:[10,10,10],rest:120},{ex:"legpress",sets:2,reps:[12,12],rest:90},
-          {ex:"lateral",sets:2,reps:[15,15],rest:60},{ex:"dbcurl",sets:2,reps:[12,12],rest:45},
+          {ex:"lateral",sets:2,reps:[15,15],rest:60},{ex:"dbcurl",sets:2,reps:[12,12],rest:45,super:true},
           {ex:"pushdown",sets:2,reps:[12,12],rest:45}]},
   {id:"fbC",name:"Workout C",tag:"Full body",av:"--a3",
    warm:"10 minutes: light cardio, then bodyweight squats, shoulder dislocates, and an empty-bar set of front squat and overhead press.",
@@ -458,7 +466,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-09-16b";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-09-16c";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -514,6 +522,20 @@ function escHTML(t){ return String(t||'').replace(/[<>&"']/g,c=>({'<':'&lt;','>'
 const REST_DEFAULT=60;
 function restFor(it){ const r=parseInt(it&&it.rest,10); return (r>0)?r:REST_DEFAULT; }
 function fmtRest(sec){ return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'); }
+/* Supersets: it.super on a plan item pairs it with the NEXT item in the day
+   (A1, B1, A2, B2 ...). Rest is taken after the second exercise's set only;
+   after the first, the rest bar just points at the partner. A chain (A.super
+   and B.super) is one long round: rest after the final exercise. The flag
+   lives on the plan item, so routines and presets carry it; a trailing
+   .super with nothing after it is ignored rather than cleaned up. */
+function ssRole(d,idx){
+ const it=d.items[idx]; if(!it) return null;
+ if(it.super&&d.items[idx+1]) return 'first';
+ const p=d.items[idx-1]; if(p&&p.super) return 'second';
+ return null;
+}
+function ssPartner(d,idx){ const r=ssRole(d,idx); return r==='first'?d.items[idx+1]:r==='second'?d.items[idx-1]:null; }
+function restAfter(d,idx){ return ssRole(d,idx)==='first'?0:restFor(d.items[idx]); }
 function repsFor(it){ const r=(it.reps||[]).slice(0,it.sets); while(r.length<it.sets) r.push(r.length?r[r.length-1]:10); return r; }
 function setCount(d){ return d.items.reduce((s,it)=>s+it.sets,0); }
 function addSet(it){ const r=repsFor(it); r.push(r.length?r[r.length-1]:10); it.reps=r; it.sets=r.length; savePlan(); }
@@ -714,16 +736,17 @@ function render(){
  }
  const head=document.createElement('div'); head.className='area';
  head.innerHTML='<b>'+d.tag+'</b><span class="rule"></span>'; app.appendChild(head);
- d.items.forEach(it=>app.appendChild(card(it,d)));
+ d.items.forEach((it,idx)=>app.appendChild(card(it,d,idx)));
  updateProgress();
 }
-function card(it,d){
+function card(it,d,idx){
  const exId=it.ex, alt=swaps[exId]||null, name=vName(exId,alt), reps=repsFor(it);
- const k0=hkey(exId,alt);
+ const k0=hkey(exId,alt), role=ssRole(d,idx), partner=ssPartner(d,idx);
  const noteText=noteFor(k0);
  const notePreview=noteText?'<div class="exnote">'+
   escHTML(noteText.split('\n')[0].slice(0,60))+(noteText.length>60||noteText.indexOf('\n')>=0?'…':'')+'</div>':'';
- const c=document.createElement('div'); c.className='ex'+(alt?' swapped':'');
+ const c=document.createElement('div'); c.className='ex'+(alt?' swapped':'')+(role?' ss'+role:'');
+ if(role==='first'){ const sb=document.createElement('div'); sb.className='ssbar'; sb.textContent='Superset'; c.appendChild(sb); }
  const h=document.createElement('div'); h.className='ex-head';
  h.innerHTML='<div><div class="name">'+name+'</div>'+notePreview+'<div class="meta"></div></div><div class="exbtns">'+
   '<button class="ibtn infob">'+I.info+'</button>'+
@@ -774,7 +797,7 @@ function card(it,d){
   });
   tk.addEventListener('click',()=>{ const y=slot(d.id,exId,i); y.done=!y.done; tk.classList.toggle('on',y.done);
    if(y.done&&!y.r&&tt!=='max'){ y.r=String(tt); rI.value=tt; }
-   if(y.done) restStart(restFor(it));
+   if(y.done){ const sec=restAfter(d,idx); if(sec) restStart(sec); else restCue(vName(partner.ex,swaps[partner.ex]||null)); }
    pills(c,it,d);
    if(y.done&&pbCheck(d.id,exId,k0)) celebratePB();
    done(c,it,d); updateProgress(); queueSave(); flush(); });
@@ -800,7 +823,10 @@ function pills(c,it,d){
  const rl=repsFor(it).map(r=>(r===null||r==='max')?'max':r).join(' · ');
  const b=pbOf(k);
  let h='<span class="pill reps">'+it.sets+' × '+rl+'</span>';
- if(restFor(it)!==REST_DEFAULT) h+='<span class="pill reps">rest '+fmtRest(restFor(it))+'</span>';
+ const idx=d.items.indexOf(it), role=ssRole(d,idx), partner=ssPartner(d,idx);
+ if(role==='first') h+='<span class="pill ss">then '+vName(partner.ex,swaps[partner.ex]||null)+', no rest</span>';
+ else if(role==='second') h+='<span class="pill ss">after '+vName(partner.ex,swaps[partner.ex]||null)+'</span>';
+ if(restFor(it)!==REST_DEFAULT&&role!=='first') h+='<span class="pill reps">rest '+fmtRest(restFor(it))+'</span>';
  if(alt)h+='<span class="pill swap">swapped</span>';
  if(b) h+='<span class="pill best">best '+b.w+'kg'+(b.reps?' × '+b.reps:'')+'</span>';
  else {
@@ -834,6 +860,14 @@ function restAdd(sec){ if(restEnd<Date.now())restEnd=Date.now(); restEnd+=sec*10
  const el=document.getElementById('rest'); el.classList.remove('done');
  document.getElementById('restL').textContent='Rest';
  if(!restIv)restIv=setInterval(restTick,250); restTick(); }
+/* Between the two halves of a superset there's no rest -- the bar briefly
+   points at what's next instead of counting down, then gets out of the way. */
+function restCue(nextName){
+ clearInterval(restIv); restIv=null; restEnd=0;
+ const el=document.getElementById('rest'); el.classList.add('show'); el.classList.add('done');
+ document.getElementById('restT').textContent='→'; document.getElementById('restL').textContent='No rest — '+nextName;
+ clearTimeout(restCue._t); restCue._t=setTimeout(()=>{ if(!restIv) restStop(); },6000);
+}
 function restStop(){ clearInterval(restIv); restIv=null;
  document.getElementById('rest').classList.remove('show'); }
 function restTick(){
@@ -1246,7 +1280,9 @@ function drawEdit(){
    '<input value="'+repsFor(it).join(', ')+'" data-i="'+idx+'">'+
    '<small>Reps per set, comma separated. Type <b>max</b> for to-failure.</small>'+
    '<input inputmode="numeric" data-rest="1" value="'+restFor(it)+'" style="width:72px">'+
-   '<small>Rest between sets, seconds.</small></div>'+
+   '<small>Rest between sets, seconds.</small>'+
+   (idx<d.items.length-1?'<button class="mini ssb'+(it.super?' on':'')+'" data-a="ss" style="width:auto;padding:0 10px;font-size:11px;margin-top:6px">'+
+    (it.super?'Superset with next ✓':'Superset with next')+'</button>':'')+'</div>'+
    '<button class="mini" data-a="up">'+I.up+'</button><button class="mini" data-a="dn">'+I.dn+'</button>'+
    '<button class="mini del" data-a="rm">×</button>';
   r.querySelectorAll('.sb').forEach(btn=>btn.addEventListener('click',()=>{
@@ -1265,6 +1301,7 @@ function drawEdit(){
    savePlan(); drawEdit(); });
   r.querySelectorAll('.mini').forEach(btn=>btn.addEventListener('click',()=>{
    const a=btn.dataset.a;
+   if(a==='ss'){ if(it.super) delete it.super; else it.super=true; }
    if(a==='rm') d.items.splice(idx,1);
    if(a==='up'&&idx>0) d.items.splice(idx-1,0,d.items.splice(idx,1)[0]);
    if(a==='dn'&&idx<d.items.length-1) d.items.splice(idx+1,0,d.items.splice(idx,1)[0]);

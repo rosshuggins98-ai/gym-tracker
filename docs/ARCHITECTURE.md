@@ -3,7 +3,7 @@
 ## Data model
 
 ```js
-PLAN = { name, startedISO, days: [ { id, name, tag, av, warm, items:[ {ex, sets, reps[], rest?} ] } ] }
+PLAN = { name, startedISO, days: [ { id, name, tag, av, warm, items:[ {ex, sets, reps[], rest?, super?} ] } ] }
 LIB  = { exerciseId: { n, g: group, alts: [...], c: [form cues], custom?: true } }
 ```
 
@@ -17,6 +17,11 @@ gets without migration. Two built-in presets exist, `DEFAULT_PLAN()` (push/pull/
 and `FULL_BODY_PLAN()` (3-day A/B/C, source of record `docs/full-body-plan.json`);
 `loadPreset()` snapshots the outgoing plan into `gt4_routines` first unless an
 identical one is already saved.
+
+`super: true` pairs an item with the *next* item in the day as a superset
+(`ssRole()`/`ssPartner()`): the cards render joined, no rest timer fires after the
+first half (the bar points at the partner instead, `restCue()`), and the second
+half's `rest` is the pair's rest (`restAfter()`). A chain of flags is one long round.
 
 Two things are *not* keyed by exercise alone: `gt4_prev` and `gt4_cur` are keyed
 `dayId -> exId`, and `gt4_swaps` is keyed by `exId` only, so an exercise that

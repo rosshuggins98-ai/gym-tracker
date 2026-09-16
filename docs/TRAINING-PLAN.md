@@ -25,8 +25,8 @@ Decisions made transcribing the JSON into the app:
 - Pull-ups → Lat Pulldown and dips → DB Fly, because neither bodyweight movement is
   doable yet. When they are, swap in-app: "Assisted Pull Ups" is a listed alternate
   on Lat Pulldown and its history merges via `hkey()`.
-- The curl/pushdown superset is two consecutive exercises; the app has no superset
-  support yet. Treat the 45s timer after each curl set as the pushdown cue.
+- The curl/pushdown superset is a real superset in the app (`super: true` on the
+  curl): curl set → straight into pushdown → 45s rest → repeat.
 - Deadlift, Front Squat and Chest-Supported Row were added to the library for this
   plan. Chest-Supported Row was previously only a swap alternate on the row
   exercises; `migrate()` moves any history logged under that alternate onto the new

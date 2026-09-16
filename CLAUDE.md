@@ -57,6 +57,9 @@ sheet → cues/swap/chart sheets → plan editor → export/import → boot.
   resolving that name to the new id. `migrate()` handles this generically — any
   `alt::<slug>` key whose slug matches a library name is merged into that id — so
   adding the entry is enough, no `MIGRATE` line needed.
+- **Supersets**: `it.super` on a plan item = "paired with the next item". Roles come
+  from `ssRole(d, idx)` — always pass the day and index, never infer from the item
+  alone, since the pairing is positional. Rest fires after the second half only.
 - **Presets vs routines**: `PRESETS` are the two built-in plans; `routines` are the
   user's saved snapshots. `loadPreset()` snapshots the outgoing plan into routines
   first. `prev`/`cur` are keyed by day id; `lastSrc()` falls back across days and
@@ -81,9 +84,6 @@ change: log a set, swap an exercise, edit the plan, create a custom exercise,
 finish a session, open Progress, export a backup, re-import it.
 
 ## Good next tasks
-- Supersets (linking sets across two exercises) — warm-up/failure/drop set types
-  shipped 2026-09-11, supersets didn't. The full-body plan's curl/pushdown pair is
-  the first concrete need: one rest timer for the pair, not one after each.
 - A POST endpoint in the server so finished sessions write to disk automatically,
   removing the reliance on manual backup exports
 - Split into `src/` modules with a concat step that still emits one file (now two,
