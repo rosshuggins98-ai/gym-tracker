@@ -267,6 +267,12 @@
  <div class="row"><button class="cancel" onclick="closeSheet()">Keep going</button><button class="confirm" onclick="doNewSession()">Save &amp; clear</button></div>
 </div></div>
 
+<div class="sheet-bg" id="sumbg"><div class="sheet">
+ <div class="msheet-top"><h4 id="sumTitle">Session done</h4><button class="close" onclick="closeSummary()">×</button></div>
+ <div id="sumBody"></div>
+ <div class="row" style="margin-top:14px"><button class="confirm" onclick="closeSummary()" style="flex:1">Done</button></div>
+</div></div>
+
 <div class="sheet-bg" id="chartbg"><div class="sheet">
  <div class="msheet-top"><h4 id="chartTitle">Progress</h4><button class="close" onclick="closeChart()">×</button></div>
  <div id="chartBody"></div></div></div>
@@ -466,7 +472,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-09-16d";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-09-16e";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -488,6 +494,8 @@ const Store=(function(){
 /* ============ STATE ============ */
 let PLAN=null, ACTIVE=null, THEME='dark', DIRTY=false;
 let cur={}, prev={}, hist={}, swaps={}, warmDone={}, notes={};
+let bodyweight=[];   /* [{date, kg}], one per day, sorted */
+let sessionStart={}; /* dayId -> ms of the first ticked set, for the summary's duration */
 let WEEKTARGET=3;   /* sessions/week; configurable via the weekgoal strip, default matches the plan */
 
 function day(id){ return PLAN.days.filter(d=>d.id===id)[0]||PLAN.days[0]; }
@@ -796,6 +804,7 @@ function card(it,d,idx){
    });
   });
   tk.addEventListener('click',()=>{ const y=slot(d.id,exId,i); y.done=!y.done; tk.classList.toggle('on',y.done);
+   if(y.done&&!sessionStart[d.id]){ sessionStart[d.id]=Date.now(); Store.set('gt4_start',sessionStart); }
    if(y.done&&!y.r&&tt!=='max'){ y.r=String(tt); rI.value=tt; }
    if(y.done){ const sec=restAfter(d,idx); if(sec) restStart(sec); else restCue(vName(partner.ex,swaps[partner.ex]||null)); }
    pills(c,it,d);
@@ -1037,7 +1046,9 @@ function openProgress(){
    h+='<div class="note">Volume moved this week per muscle group, using each exercise\'s library category. Flagged if nothing in that group has been logged in 7+ days.</div>';
   }
  }
+ h+='<div class="hr"></div>'+bodyweightBlock();
  document.getElementById('progBody').innerHTML=h;
+ wireBodyweight(openProgress);
  document.getElementById('progbg').classList.add('show');
 }
 function closeProgress(){ document.getElementById('progbg').classList.remove('show'); }
@@ -1443,7 +1454,7 @@ function openData(){
 function closeData(){ document.getElementById('databg').classList.remove('show'); }
 document.getElementById('databg').addEventListener('click',e=>{ if(e.target.id==='databg')closeData(); });
 function backup(){ return {app:"gym-tracker",version:4,build:BUILD,exported:new Date().toISOString(),
- plan:PLAN,cur,prev,swaps,history:hist,warm:warmDone,custom,barWeight:BARWEIGHT,notes,weekTarget:WEEKTARGET,routines}; }
+ plan:PLAN,cur,prev,swaps,history:hist,warm:warmDone,custom,barWeight:BARWEIGHT,notes,weekTarget:WEEKTARGET,routines,bodyweight}; }
 function dl(n,t,m){ try{ const b=new Blob([t],{type:m}),u=URL.createObjectURL(b),a=document.createElement('a');
  a.href=u;a.download=n;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);return true;}catch(e){return false;} }
 function showExport(t,n){ document.getElementById('exportText').value=t;
@@ -1451,22 +1462,27 @@ function showExport(t,n){ document.getElementById('exportText').value=t;
  document.getElementById('exportOut').style.display='block'; }
 function exportJSON(){ const t=JSON.stringify(backup(),null,2),n='gym-backup-'+today()+'.json'; dl(n,t,'application/json'); showExport(t,n); }
 function cell(v){ return '"'+String(v).replace(/"/g,'""')+'"'; }
-function exportCSV(){
- /* keyName() already handles both a merged-into-a-real-exercise key (e.g.
-    "bench") and a synthetic global alt key (e.g. "alt::machine-chest-press")
-    correctly -- reused here instead of re-deriving it, since the old
-    base/variant split this used to do here assumed the pre-2026-09-10 key
-    scheme and mislabeled every alt-only key as the literal string "alt". */
+/* keyName() already handles both a merged-into-a-real-exercise key (e.g.
+   "bench") and a synthetic global alt key (e.g. "alt::machine-chest-press")
+   correctly -- reused here instead of re-deriving it, since the old
+   base/variant split this used to do here assumed the pre-2026-09-10 key
+   scheme and mislabeled every alt-only key as the literal string "alt".
+   Body weight rides along as an "exercise" row so one sheet has everything. */
+function csvText(){
  const rows=[];
  Object.keys(hist).forEach(k=>{
   const nm=keyName(k), nt=noteFor(k);
   (hist[k]||[]).forEach(h=>rows.push([h.date,nm,h.top,h.reps||'',nt]));
  });
+ bodyweight.forEach(e=>rows.push([e.date,'Body weight',e.kg,'','']));
+ if(!rows.length) return null;
  rows.sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0);
- const t=[['Date','Exercise','Top weight (kg)','Reps at top weight','Note'].map(cell).join(',')]
+ return [['Date','Exercise','Top weight (kg)','Reps at top weight','Note'].map(cell).join(',')]
   .concat(rows.map(r=>r.map(cell).join(','))).join('\r\n');
- const n='gym-history-'+today()+'.csv';
- if(!rows.length){ showExport('No history yet — finish a session first.',n); return; }
+}
+function exportCSV(){
+ const t=csvText(), n='gym-history-'+today()+'.csv';
+ if(t===null){ showExport('No history yet — finish a session first.',n); return; }
  dl(n,t,'text/csv'); showExport(t,n);
 }
 function copyExport(btn){ const ta=document.getElementById('exportText'); ta.focus(); ta.select();
@@ -1492,13 +1508,100 @@ async function applyImport(){ const d=window.__imp; if(!d)return;
  if(typeof d.barWeight==='number'&&d.barWeight>=0) BARWEIGHT=d.barWeight;
  if(typeof d.weekTarget==='number'&&d.weekTarget>0) WEEKTARGET=d.weekTarget;
  notes=d.notes||{}; routines=d.routines||[];
- await Promise.all([Store.set('gt4_plan',PLAN),Store.set('gt4_cur',cur),Store.set('gt4_prev',prev),
+ bodyweight=Array.isArray(d.bodyweight)?d.bodyweight.filter(e=>e&&e.date&&e.kg>0):[];
+ await Promise.all([Store.set('gt4_plan',PLAN),Store.set('gt4_cur',cur),Store.set('gt4_prev',prev),Store.set('gt4_bodyweight',bodyweight),
   Store.set('gt4_hist',hist),Store.set('gt4_swaps',swaps),Store.set('gt4_warm',warmDone),Store.set('gt4_custom',custom),
   Store.set('gt4_barweight',BARWEIGHT),Store.set('gt4_notes',notes),Store.set('gt4_weektarget',WEEKTARGET),
   Store.set('gt4_routines',routines)]);
  window.__imp=null;
  document.getElementById('importPreview').innerHTML='<b>Restored ✓</b><div class="note">Your data is back.</div>';
  render(); }
+
+/* ============ BODY WEIGHT ============
+   One reading per day; logging again the same day replaces it. Kept apart
+   from exercise history (different thing, different chart) but exported in
+   the same backup and CSV. */
+async function logBodyweight(kg,date){
+ const v=Math.round(parseFloat(kg)*10)/10; if(isNaN(v)||v<=0) return false;
+ const dt=date||today();
+ bodyweight=bodyweight.filter(e=>e.date!==dt).concat([{date:dt,kg:v}]).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+ await Store.set('gt4_bodyweight',bodyweight); return true;
+}
+async function deleteBodyweight(date){
+ bodyweight=bodyweight.filter(e=>e.date!==date); await Store.set('gt4_bodyweight',bodyweight);
+}
+/* Change over roughly the last 30 days: latest reading vs the earliest one
+   inside the window (null with fewer than two readings in it). */
+function bodyweightTrend(){
+ if(bodyweight.length<2) return null;
+ const last=bodyweight[bodyweight.length-1];
+ const cutoff=new Date(new Date(last.date)-30*864e5).toISOString().slice(0,10);
+ const win=bodyweight.filter(e=>e.date>=cutoff);
+ if(win.length<2) return null;
+ return {from:win[0],to:last,delta:Math.round((last.kg-win[0].kg)*10)/10,days:Math.round((new Date(last.date)-new Date(win[0].date))/864e5)};
+}
+function bodyweightBlock(){
+ const last=bodyweight.length?bodyweight[bodyweight.length-1]:null, tr=bodyweightTrend();
+ let h='<h5>Body weight</h5>';
+ h+='<div class="erow" style="align-items:stretch"><div class="en" style="flex:1">'+
+  '<input id="bwIn" inputmode="decimal" placeholder="'+(last?last.kg:'e.g. 82.4')+'" style="margin-top:0"></div>'+
+  '<button class="mini" id="bwLog" style="width:auto;padding:0 12px;font-size:12px">Log today</button></div>';
+ if(!last){ h+='<div class="note">Nothing logged yet. A reading every week or so is plenty — the chart shows the direction, not the daily noise.</div>'; return h; }
+ const pts=bodyweight.slice(-20).map(e=>({label:shortDate(e.date),val:e.kg}));
+ if(pts.length>1) h+=buildChart(pts,null);
+ h+='<div class="stats"><div class="stat"><b>'+last.kg+'</b><span>Latest kg</span></div>'+
+  '<div class="stat"><b>'+(tr?(tr.delta>0?'+':'')+tr.delta:'—')+'</b><span>'+(tr?'kg / '+tr.days+' days':'Change')+'</span></div>'+
+  '<div class="stat"><b>'+bodyweight.length+'</b><span>Readings</span></div></div>'+
+  '<div class="note">Latest '+shortDate(last.date)+'. <a href="#" id="bwDel" style="color:var(--warn)">Delete latest</a></div>';
+ return h;
+}
+function wireBodyweight(rerender){
+ const inp=document.getElementById('bwIn'), btn=document.getElementById('bwLog'), del=document.getElementById('bwDel');
+ if(btn) btn.addEventListener('click',async()=>{ if(await logBodyweight(inp.value)) rerender(); });
+ if(inp) inp.addEventListener('keydown',async e=>{ if(e.key==='Enter'&&await logBodyweight(inp.value)) rerender(); });
+ if(del) del.addEventListener('click',async e=>{ e.preventDefault(); if(bodyweight.length){ await deleteBodyweight(bodyweight[bodyweight.length-1].date); rerender(); } });
+}
+
+/* ============ SESSION SUMMARY ============
+   Built by doNewSession() from the state *before* it writes history, so
+   PBs and "vs last time" compare against what was there, not what was just
+   saved. Pure data in; showSummary() only renders it. */
+function summarise(d){
+ const td=today(), c=cur[d.id]||{}, p=prev[d.id]||{};
+ let setsDone=0, setsPlanned=setCount(d), vol=0, prevVol=0; const pbs=[], tops=[];
+ d.items.forEach(it=>{
+  const a=c[it.ex]||[], k=hkey(it.ex,swaps[it.ex]||null), nm=vName(it.ex,swaps[it.ex]||null);
+  a.forEach(x=>{ if(x&&x.done) setsDone++; });
+  vol+=exVolume(a); if(Array.isArray(p[it.ex])) prevVol+=exVolume(p[it.ex]);
+  const e=topWithReps(d.id,it.ex);
+  if(e){ tops.push({nm,top:e.top,reps:e.reps});
+   const pb=pbCheck(d.id,it.ex,k); if(pb&&pb.kind!=='first') pbs.push({nm,kind:pb.kind,top:e.top,reps:e.reps}); }
+ });
+ const start=sessionStart[d.id]||null;
+ return {day:d.name+' — '+d.tag,date:td,setsDone,setsPlanned,vol:Math.round(vol),prevVol:Math.round(prevVol),pbs,tops,
+  mins:start?Math.max(1,Math.round((Date.now()-start)/60000)):null};
+}
+function showSummary(S){
+ const body=document.getElementById('sumBody'); if(!body) return;
+ document.getElementById('sumTitle').textContent=S.pbs.length?'Session done — '+S.pbs.length+' PB'+(S.pbs.length===1?'':'s')+' 🎉':'Session done';
+ const dv=S.prevVol?Math.round((S.vol-S.prevVol)/S.prevVol*100):null;
+ let h='<div class="note" style="margin-top:0">'+S.day+' · '+shortDate(S.date)+'</div>'+
+  '<div class="bigstat"><div class="s"><b>'+S.setsDone+'<small style="font-size:13px;color:var(--muted)">/'+S.setsPlanned+'</small></b><span>Sets</span></div>'+
+  '<div class="s"><b>'+S.vol+'</b><span>kg moved</span></div>'+
+  '<div class="s"><b>'+(S.mins!==null?S.mins:'—')+'</b><span>Minutes</span></div></div>';
+ if(dv!==null) h+='<div class="note">'+(dv>0?'+':'')+dv+'% volume vs last time on this day ('+S.prevVol+'kg).</div>';
+ if(S.pbs.length) h+='<h5>Personal bests</h5>'+S.pbs.map(x=>'<div class="pbrow"><span class="tag">'+(x.kind==='weight'?'Weight':'Reps')+'</span>'+
+  '<span class="nm">'+x.nm+'</span><span class="dt">'+x.top+'kg'+(x.reps?' × '+x.reps:'')+'</span></div>').join('');
+ if(S.tops.length) h+='<h5>Top sets</h5>'+S.tops.map(x=>'<div class="goal"><span class="nm">'+x.nm+'</span><span class="tg">'+x.top+'kg'+(x.reps?' × '+x.reps:'')+'</span></div>').join('');
+ else h+='<div class="empty">Nothing was logged this session.</div>';
+ h+='<div class="hr"></div>'+bodyweightBlock()+
+  '<div class="note" id="sumBackup">'+(typeof fetch==='function'&&/^https?:$/.test(location.protocol)?'Backing up…':'')+'</div>';
+ body.innerHTML=h;
+ wireBodyweight(()=>showSummary(S));
+ applyAccent(); document.getElementById('sumbg').classList.add('show');
+}
+function closeSummary(){ document.getElementById('sumbg').classList.remove('show'); }
+document.getElementById('sumbg').addEventListener('click',e=>{ if(e.target.id==='sumbg')closeSummary(); });
 
 /* ============ AUTO-BACKUP ============
    After every finished session, POST the full backup to serve.py's
@@ -1529,6 +1632,7 @@ function closeSheet(){ document.getElementById('sheetbg').classList.remove('show
 document.getElementById('sheetbg').addEventListener('click',e=>{ if(e.target.id==='sheetbg')closeSheet(); });
 async function doNewSession(){
  const d=day(ACTIVE), td=today();
+ const S=summarise(d);
  d.items.forEach(it=>{ const e=topWithReps(d.id,it.ex);
   if(e){ const k=hkey(it.ex,swaps[it.ex]||null); if(!hist[k])hist[k]=[];
    const vol=exVolume(cur[d.id]&&cur[d.id][it.ex]);
@@ -1542,10 +1646,12 @@ async function doNewSession(){
      exercise has a prev on more than one. It sits beside the exercise ids
      (never a valid id itself); older prev blobs have none and lose ties. */
   prev[d.id]._date=td; }
- cur[d.id]={}; delete warmDone[d.id];
- await Promise.all([Store.set('gt4_hist',hist),Store.set('gt4_prev',prev),Store.set('gt4_cur',cur),Store.set('gt4_warm',warmDone)]);
+ cur[d.id]={}; delete warmDone[d.id]; delete sessionStart[d.id];
+ await Promise.all([Store.set('gt4_hist',hist),Store.set('gt4_prev',prev),Store.set('gt4_cur',cur),Store.set('gt4_warm',warmDone),Store.set('gt4_start',sessionStart)]);
  DIRTY=false; mirrorHash(); closeSheet(); render(); window.scrollTo({top:0});
- autoBackup();
+ showSummary(S);
+ autoBackup().then(r=>{ const el=document.getElementById('sumBackup'); if(!el) return;
+  el.innerHTML=r?'Backed up to the phone ✓ ('+r.file+')':(typeof fetch==='function'&&/^https?:$/.test(location.protocol)?'Auto-backup unavailable — export from the Data panel now and then.':''); });
 }
 
 /* ============ MIGRATION ============ */
@@ -1642,6 +1748,8 @@ document.getElementById('progBtn').innerHTML=I.chart;
  notes=(await Store.get('gt4_notes'))||{};
  routines=(await Store.get('gt4_routines'))||[];
  lastAuto=(await Store.get('gt4_autobackup'))||null;
+ bodyweight=(await Store.get('gt4_bodyweight'))||[];
+ sessionStart=(await Store.get('gt4_start'))||{};
  ACTIVE=(a&&PLAN.days.some(d=>d.id===a))?a:PLAN.days[0].id;
  if(Store.mode()==='none'){
   const rec=readHash();

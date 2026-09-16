@@ -40,7 +40,8 @@ calls from `autoBackup()` after every finished session. It is embedded verbatim 
 CSS → HTML shell → `LIB` (exercise library + form cues) → `DEFAULT_PLAN` →
 `FULL_BODY_PLAN` / `PRESETS` → `MIGRATE`
 → storage adapter → state helpers → PB helpers → render → rest timer → progress
-sheet → cues/swap/chart sheets → plan editor → export/import → boot.
+sheet → cues/swap/chart sheets → plan editor → export/import → body weight →
+session summary → auto-backup → actions (finish) → migration → boot.
 
 ## Key concepts
 - **History key**: `hkey(exId, alt)`. Unswapped, it's `exerciseId`. Swapped, it
@@ -67,6 +68,8 @@ sheet → cues/swap/chart sheets → plan editor → export/import → boot.
 - **Supersets**: `it.super` on a plan item = "paired with the next item". Roles come
   from `ssRole(d, idx)` — always pass the day and index, never infer from the item
   alone, since the pairing is positional. Rest fires after the second half only.
+- **Session summary**: `summarise(d)` runs *before* `doNewSession` writes history,
+  so its PB list compares against the previous record. Keep that ordering.
 - **Presets vs routines**: `PRESETS` are the two built-in plans; `routines` are the
   user's saved snapshots. `loadPreset()` snapshots the outgoing plan into routines
   first. `prev`/`cur` are keyed by day id; `lastSrc()` falls back across days and
@@ -93,4 +96,4 @@ finish a session, open Progress, export a backup, re-import it.
 ## Good next tasks
 - Split into `src/` modules with a concat step that still emits one file (now two,
   with `sw.js` — see Hard constraints)
-- Body-weight tracking, session summary screen
+

@@ -46,6 +46,8 @@ legacy weights. So a new preset shows real numbers from its first session.
 | `gt4_custom` | user-created exercises |
 | `gt4_legacylast` | weights recovered from older versions |
 | `gt4_warm` | warmup ticked, per day per date |
+| `gt4_bodyweight` | `[{date, kg}]`, one reading per day, sorted; logged from Progress or the post-session summary; in backup and CSV (as an exercise row named "Body weight") |
+| `gt4_start` | `{dayId: ms}`, when the first set of the in-progress session was ticked; only feeds the summary's minutes, cleared on finish |
 | `gt4_autobackup` | `{date, file}` of the last successful POST to `/api/save` (see `serve.py`); shown in the Data panel |
 | `gt4_active`, `gt4_theme` | UI state |
 
