@@ -6,7 +6,7 @@ let routines=[];
 function newRoutineId(){ return 'r_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 async function saveRoutine(){
  const inp=document.getElementById('routineName'), nm=cleanName(inp.value); if(!nm) return;
- routines.push({id:newRoutineId(),label:nm,savedISO:today(),days:JSON.parse(JSON.stringify(PLAN.days))});
+ routines.push({id:newRoutineId(),label:nm,savedISO:today(),days:cleanDays(PLAN.days)});
  await Store.set('gt4_routines',routines);
  inp.value=''; drawRoutines();
 }

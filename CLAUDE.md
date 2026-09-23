@@ -59,7 +59,7 @@ One script scope; later modules call earlier ones. `src/js/`:
 `PRESETS`, `MIGRATE`, `BUILD`) → `30-storage` → `40-state` (helpers, PB, prefill,
 supersets, rest) → `50-render` → `55-rest` → `60-progress` → `62-cues` → `64-swap` →
 `66-plates` → `68-chart` → `70-editor` → `72-routines` → `74-theme` → `76-data`
-(export/import) → `80-bodyweight` → `82-summary` → `84-autobackup` → `86-actions`
+(export/import) → `78-onthefly` (today-only extras, skips) → `80-bodyweight` → `82-summary` → `84-autobackup` → `86-actions`
 (finish) → `90-migrate` → `99-boot`. New module: pick a free number, end the file
 with a newline.
 
@@ -91,6 +91,12 @@ with a newline.
   main first in its `alts`, and `migrate()` moves its `alt::slug` history across — the
   same generic path as promoting an alt in `LIB`. Swaps themselves are global per
   exercise id and persist until switched back.
+- **Today-only changes**: `it.extra` (added from the workout screen) and `it.skip`
+  (skipped today) are flags on plan items, so they ride along with the plan in storage
+  and backups. `doNewSession()` records history, then `endOfSession()` drops extras
+  and clears skips. Anything snapshotting a plan (routines, `loadPreset`) goes through
+  `cleanDays()`. Skipping deletes the item's `cur` slots on purpose: `topWithReps()`
+  counts any typed weight, ticked or not, so a prefilled slot would re-log last time.
 - **Supersets**: `it.super` on a plan item = "paired with the next item". Roles come
   from `ssRole(d, idx)` — always pass the day and index, never infer from the item
   alone, since the pairing is positional. Rest fires after the second half only.

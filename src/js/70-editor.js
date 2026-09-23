@@ -10,7 +10,7 @@ function drawEdit(){
  d.items.forEach((it,idx)=>{
   const r=document.createElement('div'); r.className='erow';
   const canRm=it.sets>1&&!lastSetUsed(d.id,it.ex,it.sets);
-  r.innerHTML='<div class="en"><b>'+exName(it.ex)+'</b>'+
+  r.innerHTML='<div class="en"><b>'+exName(it.ex)+(it.extra?' <small style="display:inline">· today only</small>':it.skip?' <small style="display:inline">· skipped today</small>':'')+'</b>'+
    '<div class="step"><button class="sb" data-a="minus"'+(canRm?'':' disabled')+'>&minus;</button>'+
    '<span class="sv">'+it.sets+' set'+(it.sets===1?'':'s')+'</span>'+
    '<button class="sb" data-a="plus">+</button></div>'+
@@ -108,8 +108,9 @@ function sameDays(a,b){ return JSON.stringify(a)===JSON.stringify(b); }
    simply stops being displayed; history is per exercise and unaffected. */
 async function loadPreset(key){
  const P=PRESETS[key]; if(!P) return;
- if(!routines.some(r=>sameDays(r.days,PLAN.days))){
-  routines.push({id:newRoutineId(),label:cleanName(PLAN.name||'Previous plan')||'Previous plan',savedISO:today(),days:JSON.parse(JSON.stringify(PLAN.days))});
+ const outgoing=cleanDays(PLAN.days);
+ if(!routines.some(r=>sameDays(r.days,outgoing))){
+  routines.push({id:newRoutineId(),label:cleanName(PLAN.name||'Previous plan')||'Previous plan',savedISO:today(),days:outgoing});
   await Store.set('gt4_routines',routines);
  }
  PLAN=P.make(); ACTIVE=PLAN.days[0].id;

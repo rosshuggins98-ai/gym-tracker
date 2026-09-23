@@ -52,7 +52,7 @@ function ssRole(d,idx){
 function ssPartner(d,idx){ const r=ssRole(d,idx); return r==='first'?d.items[idx+1]:r==='second'?d.items[idx-1]:null; }
 function restAfter(d,idx){ return ssRole(d,idx)==='first'?0:restFor(d.items[idx]); }
 function repsFor(it){ const r=(it.reps||[]).slice(0,it.sets); while(r.length<it.sets) r.push(r.length?r[r.length-1]:10); return r; }
-function setCount(d){ return d.items.reduce((s,it)=>s+it.sets,0); }
+function setCount(d){ return d.items.reduce((s,it)=>s+(it.skip?0:it.sets),0); }
 function addSet(it){ const r=repsFor(it); r.push(r.length?r[r.length-1]:10); it.reps=r; it.sets=r.length; savePlan(); }
 function lastSetUsed(dId,exId,n){ const a=cur[dId]&&cur[dId][exId]; const x=a&&a[n-1]; return !!(x&&(x.w||x.r||x.done)); }
 function removeSet(it,dId){ if(it.sets<=1) return false;

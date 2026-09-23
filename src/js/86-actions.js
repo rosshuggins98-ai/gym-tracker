@@ -6,7 +6,7 @@ document.getElementById('sheetbg').addEventListener('click',e=>{ if(e.target.id=
 async function doNewSession(){
  const d=day(ACTIVE), td=today();
  const S=summarise(d);
- d.items.forEach(it=>{ const e=topWithReps(d.id,it.ex);
+ d.items.forEach(it=>{ if(it.skip) return; const e=topWithReps(d.id,it.ex);
   if(e){ const k=hkey(it.ex,swaps[it.ex]||null); if(!hist[k])hist[k]=[];
    const vol=exVolume(cur[d.id]&&cur[d.id][it.ex]);
    const lastE=hist[k][hist[k].length-1];
@@ -19,6 +19,7 @@ async function doNewSession(){
      exercise has a prev on more than one. It sits beside the exercise ids
      (never a valid id itself); older prev blobs have none and lose ties. */
   prev[d.id]._date=td; }
+ endOfSession(d);
  cur[d.id]={}; delete warmDone[d.id]; delete sessionStart[d.id];
  await Promise.all([Store.set('gt4_hist',hist),Store.set('gt4_prev',prev),Store.set('gt4_cur',cur),Store.set('gt4_warm',warmDone),Store.set('gt4_start',sessionStart)]);
  DIRTY=false; mirrorHash(); closeSheet(); render(); window.scrollTo({top:0});

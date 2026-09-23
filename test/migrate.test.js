@@ -31,11 +31,11 @@ test('custom (c_) ids pass through untouched',async()=>{
 test('pre-2026-09-10 base::slug swap keys land on hkey()\'s key',async()=>{
  const {app}=await load();
  /* Incline swapped to "Bench Press" -> merges into bench; Bench swapped to
-    "Machine Chest Press" -> shared alt:: key */
- const out=app.migrate({'incline::bench-press':[{date:'2026-09-01',top:40}],'bench::machine-chest-press':[{date:'2026-09-02',top:30}],
-  'incline::machine-chest-press':[{date:'2026-09-03',top:35}]});
+    "Landmine Press" (listed on both shoulder presses) -> shared alt:: key */
+ const out=app.migrate({'incline::bench-press':[{date:'2026-09-01',top:40}],'ohp::landmine-press':[{date:'2026-09-02',top:30}],
+  'dbshoulder::landmine-press':[{date:'2026-09-03',top:35}]});
  deq(out.bench.map(e=>e.top),[40]);
- deq(out['alt::machine-chest-press'].map(e=>e.top),[30,35]);
+ deq(out['alt::landmine-press'].map(e=>e.top),[30,35]);
 });
 
 test('an unrecoverable base::slug key keeps its old key rather than vanishing',async()=>{
@@ -47,10 +47,13 @@ test('an unrecoverable base::slug key keeps its old key rather than vanishing',a
 test('alt:: history is promoted when the name becomes a library exercise',async()=>{
  const {app}=await load();
  const out=app.migrate({'alt::chest-supported-row':[{date:'2026-09-01',top:40}],csrow:[{date:'2026-09-12',top:45}],
-  'bbrow::chest-supported-row':[{date:'2026-08-20',top:35}],'alt::machine-chest-press':[{date:'2026-09-02',top:30}]});
+  'bbrow::chest-supported-row':[{date:'2026-08-20',top:35}],'alt::machine-chest-press':[{date:'2026-09-02',top:30}],
+  'alt::pec-deck':[{date:'2026-09-03',top:45}],'alt::landmine-press':[{date:'2026-09-04',top:20}]});
  deq(out.csrow.map(e=>e.top),[35,40,45]);
  assert.equal(out['alt::chest-supported-row'],undefined);
- deq(out['alt::machine-chest-press'].map(e=>e.top),[30]);
+ deq(out.mchest.map(e=>e.top),[30],'promoted 2026-09-23');
+ deq(out.pecdeck.map(e=>e.top),[45],'promoted 2026-09-23');
+ deq(out['alt::landmine-press'].map(e=>e.top),[20],'still only a swap name');
 });
 
 test('migrate is idempotent',async()=>{
@@ -67,8 +70,8 @@ test('hkey: alt naming a real exercise merges, otherwise a shared alt:: key',asy
  assert.equal(app.hkey('incline','bench press'),'bench');          /* case-insensitive */
  assert.equal(app.hkey('pullup','Lat Pulldown'),'latpulldown');
  assert.equal(app.hkey('bbrow','Chest-Supported Row'),'csrow');
- assert.equal(app.hkey('bench','Machine Chest Press'),'alt::machine-chest-press');
- assert.equal(app.hkey('incline','Machine Chest Press'),'alt::machine-chest-press'); /* same key from any slot */
+ assert.equal(app.hkey('ohp','Landmine Press'),'alt::landmine-press');
+ assert.equal(app.hkey('dbshoulder','Landmine Press'),'alt::landmine-press'); /* same key from any slot */
 });
 
 test('no library alt resolves back to its own exercise',async()=>{

@@ -5,23 +5,23 @@ const deq=(a,b,m)=>assert.deepEqual(plain(a),b,m);
 
 test('promoting a free-text alt makes it a library exercise that keeps its history',async()=>{
  const {app,set,tick}=await load();
- set('hist',{bench:[{date:'2026-09-01',top:40,reps:8}],'alt::machine-chest-press':[{date:'2026-09-20',top:20,reps:13}]});
- set('swaps',{bench:'Machine Chest Press'});
- set('notes',{'alt::machine-chest-press':'flat bench by the window'});
- set('cur',{push:{bench:[{w:'22',r:'10',done:true}]}});
- const id=await app.promoteSwap('bench'); await tick();
- assert.equal(id,'c_machine-chest-press');
- assert.equal(app.LIB[id].n,'Machine Chest Press'); assert.equal(app.LIB[id].g,'Chest');
- deq(app.LIB[id].alts,['Bench Press','Dumbbell Bench','Push-ups'],'the old main is first in line to swap back to');
- assert.equal(app.PLAN.days[0].items[0].ex,id);
- deq(app.hist[id],[{date:'2026-09-20',top:20,reps:13}]);
- assert.equal(app.hist['alt::machine-chest-press'],undefined);
- deq(app.hist.bench,[{date:'2026-09-01',top:40,reps:8}],'the old main\'s history is untouched');
- assert.equal(app.notes[id],'flat bench by the window');
+ set('hist',{ohp:[{date:'2026-09-01',top:30,reps:8}],'alt::landmine-press':[{date:'2026-09-20',top:20,reps:12}]});
+ set('swaps',{ohp:'Landmine Press'});
+ set('notes',{'alt::landmine-press':'corner rack, 10kg plate'});
+ set('cur',{push:{ohp:[{w:'22',r:'10',done:true}]}});
+ const id=await app.promoteSwap('ohp'); await tick();
+ assert.equal(id,'c_landmine-press');
+ assert.equal(app.LIB[id].n,'Landmine Press'); assert.equal(app.LIB[id].g,'Shoulders');
+ deq(app.LIB[id].alts,['Barbell Shoulder Press','DB Shoulder Press','Machine Shoulder Press'],'the old main is first in line to swap back to');
+ assert.equal(app.PLAN.days[0].items[1].ex,id);
+ deq(app.hist[id],[{date:'2026-09-20',top:20,reps:12}]);
+ assert.equal(app.hist['alt::landmine-press'],undefined);
+ deq(app.hist.ohp,[{date:'2026-09-01',top:30,reps:8}],'the old main\'s history is untouched');
+ assert.equal(app.notes[id],'corner rack, 10kg plate');
  assert.equal(app.cur.push[id][0].w,'22','today\'s sets follow the slot');
- assert.equal(app.cur.push.bench,undefined);
- assert.equal(app.swaps.bench,undefined);
- assert.equal(app.hkey('bench','Machine Chest Press'),id,'later swaps to the same name land on the same history');
+ assert.equal(app.cur.push.ohp,undefined);
+ assert.equal(app.swaps.ohp,undefined);
+ assert.equal(app.hkey('dbshoulder','Landmine Press'),id,'later swaps to the same name land on the same history');
 });
 
 test('promoting an alt that is already a library exercise reuses its id, on every day',async()=>{

@@ -33,10 +33,10 @@ test('finishing twice on the same day keeps the better top set, never a duplicat
 
 test('a swapped exercise is recorded under its swap key',async()=>{
  const {app,set,tick}=await load();
- set('hist',{}); set('swaps',{bench:'Machine Chest Press',incline:'Bench Press'});
- set('cur',{push:{bench:[{w:'30',r:'10',done:true}],incline:[{w:'45',r:'8',done:true}]}});
+ set('hist',{}); set('swaps',{ohp:'Landmine Press',incline:'Bench Press'});
+ set('cur',{push:{ohp:[{w:'30',r:'10',done:true}],incline:[{w:'45',r:'8',done:true}]}});
  await app.doNewSession(); await tick();
- assert.equal(app.hist['alt::machine-chest-press'][0].top,30);
+ assert.equal(app.hist['alt::landmine-press'][0].top,30);
  assert.equal(app.hist.bench[0].top,45,'Incline swapped to Bench Press lands in bench\'s history');
 });
 

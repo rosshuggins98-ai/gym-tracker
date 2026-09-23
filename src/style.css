@@ -164,12 +164,19 @@
   font-family:inherit;font-weight:800;font-size:17px;line-height:1;cursor:pointer;padding:0}
  .step .sb:disabled{opacity:.35}
  .step .sv{font-size:12px;font-weight:700;color:var(--muted);min-width:52px;text-align:center}
- .setfoot{display:flex;align-items:center;gap:8px;padding:2px 15px 13px}
+ .setfoot{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:2px 15px 13px}
  .setfoot button{border:1px solid var(--line);background:var(--card2);color:var(--muted);font-family:inherit;
   font-weight:700;font-size:12px;padding:8px 12px;border-radius:9px;cursor:pointer}
  .setfoot button:active{border-color:var(--accent);color:var(--accent)}
  .setfoot button:disabled{opacity:.35}
  .setfoot .hint{font-size:11px;color:var(--dim);font-weight:600;flex:1;line-height:1.4}
+ .addex{display:block;width:100%;margin:4px 0 12px;padding:15px;border:1.5px dashed var(--line);border-radius:16px;
+  background:none;color:var(--muted);font-family:inherit;font-weight:700;font-size:14px;cursor:pointer}
+ .addex:active{border-color:var(--accent);color:var(--accent)}
+ .ex.skipped{opacity:.6;border-style:dashed}
+ .qasearch{width:100%;margin-top:10px;background:var(--card2);border:1px solid var(--line);border-radius:11px;color:var(--text);
+  font-family:inherit;font-size:16px;padding:11px 12px}
+ .step .sb.on{border-color:var(--accent);color:var(--accent)}
  .mini{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--text);
   font-family:inherit;font-weight:800;font-size:15px;cursor:pointer;flex-shrink:0;padding:0;line-height:1}
  .mini.del{color:var(--warn);border-color:var(--warn)}

@@ -32,8 +32,18 @@ function render(){
  }
  const head=document.createElement('div'); head.className='area';
  head.innerHTML='<b>'+d.tag+'</b><span class="rule"></span>'; app.appendChild(head);
- d.items.forEach((it,idx)=>app.appendChild(card(it,d,idx)));
+ d.items.forEach((it,idx)=>app.appendChild(it.skip?skippedCard(it,d):card(it,d,idx)));
+ const add=document.createElement('button'); add.className='addex'; add.textContent='+ Add an exercise for today';
+ add.addEventListener('click',openQuickAdd); app.appendChild(add);
  updateProgress();
+}
+function skippedCard(it,d){
+ const c=document.createElement('div'); c.className='ex skipped';
+ c.innerHTML='<div class="ex-head"><div><div class="name">'+vName(it.ex,swaps[it.ex]||null)+'</div>'+
+  '<div class="meta"><span class="pill reps">skipped today · back next session</span></div></div>'+
+  '<div class="setfoot" style="padding:0"><button>Undo</button></div></div>';
+ c.querySelector('button').addEventListener('click',()=>{ unskip(it); render(); });
+ return c;
 }
 function card(it,d,idx){
  const exId=it.ex, alt=swaps[exId]||null, name=vName(exId,alt), reps=repsFor(it);
@@ -109,9 +119,15 @@ function card(it,d,idx){
  const canRm=it.sets>1&&!lastSetUsed(d.id,exId,it.sets);
  f.innerHTML='<button class="rms"'+(canRm?'':' disabled')+'>&minus; Set</button>'+
   '<button class="ads">+ Set</button>'+
-  '<span class="hint">'+(it.sets>1&&!canRm?'Clear the last set to remove it':'')+'</span>';
+  '<span class="hint">'+(it.sets>1&&!canRm?'Clear the last set to remove it':'')+'</span>'+
+  (it.extra?'<button class="keep">Keep in plan</button>'+(anyDone(d.id,exId)?'':'<button class="rmx">Remove</button>'):
+   (anyDone(d.id,exId)||role)?'':'<button class="skp">Skip today</button>');
  f.querySelector('.ads').addEventListener('click',()=>{ addSet(it); render(); });
  f.querySelector('.rms').addEventListener('click',()=>{ if(removeSet(it,d.id)) render(); });
+ const kp=f.querySelector('.keep'), rx=f.querySelector('.rmx'), sk=f.querySelector('.skp');
+ if(kp) kp.addEventListener('click',()=>{ keepExtra(it); render(); });
+ if(rx) rx.addEventListener('click',()=>{ if(removeExtra(d,it)) render(); });
+ if(sk) sk.addEventListener('click',()=>{ if(skipToday(d,it)) render(); });
  c.appendChild(f);
  pills(c,it,d); done(c,it,d); return c;
 }
@@ -124,6 +140,7 @@ function pills(c,it,d){
  if(role==='first') h+='<span class="pill ss">then '+vName(partner.ex,swaps[partner.ex]||null)+', no rest</span>';
  else if(role==='second') h+='<span class="pill ss">after '+vName(partner.ex,swaps[partner.ex]||null)+'</span>';
  if(restFor(it)!==REST_DEFAULT&&role!=='first') h+='<span class="pill reps">rest '+fmtRest(restFor(it))+'</span>';
+ if(it.extra)h+='<span class="pill ss">today only</span>';
  if(alt)h+='<span class="pill swap">swapped</span>';
  if(b) h+='<span class="pill best">best '+b.w+'kg'+(b.reps?' × '+b.reps:'')+'</span>';
  else {
@@ -140,7 +157,7 @@ function done(c,it,d){ c.classList.toggle('complete', repsFor(it).every((_,i)=>{
  const a=cur[d.id]&&cur[d.id][it.ex]; return a&&a[i]&&a[i].done; })); }
 function updateProgress(){
  const d=day(ACTIVE), total=setCount(d); let n=0;
- d.items.forEach(it=>repsFor(it).forEach((_,i)=>{ const a=cur[d.id]&&cur[d.id][it.ex]; if(a&&a[i]&&a[i].done)n++; }));
+ d.items.forEach(it=>{ if(!it.skip) repsFor(it).forEach((_,i)=>{ const a=cur[d.id]&&cur[d.id][it.ex]; if(a&&a[i]&&a[i].done)n++; }); });
  document.getElementById('bar').style.width=total?(n/total*100)+'%':'0%';
  document.getElementById('pcount').textContent=n+' / '+total+' sets';
 }
