@@ -133,16 +133,28 @@ function lastR(dId,exId,i){ const s=lastSrc(dId,exId);
    look like today's working weight. AMRAP/drop sets are working sets and count
    normally; a drop set is lighter by definition so it naturally never wins the
    max() below anyway. */
-function topOf(a){ let m=null; if(a)a.forEach(s=>{ if(s&&s.t==='warm')return;
+/* Only ticked sets are real. Unticked slots still hold last session's
+   prefill (or a weight typed ahead), and counting them re-logged old numbers
+   for exercises that were never done today. */
+function topOf(a){ let m=null; if(a)a.forEach(s=>{ if(!s||!s.done||s.t==='warm')return;
  const v=parseFloat(s&&s.w); if(!isNaN(v)&&(m===null||v>m))m=v;}); return m; }
 function bestOf(k){ let m=null; (hist[k]||[]).forEach(h=>{ if(m===null||h.top>m)m=h.top; }); return m; }
 function topWithReps(dId,exId){
  const a=cur[dId]&&cur[dId][exId]; if(!a) return null;
  let best=null;
- a.forEach(x=>{ if(x&&x.t==='warm')return; const w=parseFloat(x&&x.w); if(isNaN(w)) return;
-  if(!best||w>best.top) best={top:w,reps:parseInt(x.r,10)||null}; });
+ a.forEach(x=>{ if(!x||!x.done||x.t==='warm')return; const w=parseFloat(x.w); if(isNaN(w)) return;
+  const r=parseInt(x.r,10)||null;
+  if(!best||w>best.top||(w===best.top&&(r||0)>(best.reps||0))) best={top:w,reps:r}; });
  return best;
 }
+/* The ticked sets as numbers, for history: {w, r} plus t for anything but a
+   plain working set. Warm-ups are kept (it's a record of what was done) and
+   every reader skips them. */
+function doneSets(a){ const out=[];
+ (a||[]).forEach(x=>{ if(!x||!x.done) return; const w=parseFloat(x.w), r=parseInt(x.r,10);
+  if(isNaN(w)&&isNaN(r)) return;
+  const s={w:isNaN(w)?0:w,r:isNaN(r)?null:r}; if(x.t) s.t=x.t; out.push(s); });
+ return out; }
 /* Full PB picture for a history key: heaviest weight, best reps at that weight, best reps ever */
 function pbOf(k){
  const h=hist[k]||[]; if(!h.length) return null;

@@ -50,7 +50,7 @@ test('summarise: sets, volume, PBs against pre-save history, top sets, vs last t
  const d=app.PLAN.days[0];
  const S=app.summarise(d);
  assert.equal(S.setsDone,3); assert.equal(S.setsPlanned,app.setCount(d));
- assert.equal(S.vol,Math.round(52.5*6+52.5*5+30*8),'warm-up excluded, unticked working set still counts as logged volume');
+ assert.equal(S.vol,Math.round(52.5*6+30*8),'warm-up and the unticked set excluded');
  assert.equal(S.prevVol,800);
  deq(S.pbs,[{nm:'Bench Press',kind:'weight',top:52.5,reps:6}],'ohp is a first log, not a PB');
  deq(S.tops.map(t=>t.nm),['Bench Press','Barbell Shoulder Press']);

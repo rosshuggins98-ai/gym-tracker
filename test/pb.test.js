@@ -26,7 +26,7 @@ test('pbCheck: heavier is a weight PB, same weight more reps is a reps PB, other
 test('pbCheck: first ever log is reported as first, and empty input is null',async()=>{
  const {app,set}=await load();
  set('hist',{});
- set('cur',{push:{bench:[{w:'40',r:'8'}]}});
+ set('cur',{push:{bench:[{w:'40',r:'8',done:true}]}});
  deq(app.pbCheck('push','bench','bench'),{kind:'first'});
  set('cur',{push:{bench:[{w:'',r:''}]}});
  assert.equal(app.pbCheck('push','bench','bench'),null);
@@ -35,7 +35,7 @@ test('pbCheck: first ever log is reported as first, and empty input is null',asy
 test('warm-up sets never count toward the top set or a PB',async()=>{
  const {app,set}=await load();
  set('hist',{bench:[{date:'2026-09-01',top:50,reps:8}]});
- set('cur',{push:{bench:[{w:'60',r:'5',t:'warm'},{w:'50',r:'8'}]}});
+ set('cur',{push:{bench:[{w:'60',r:'5',t:'warm',done:true},{w:'50',r:'8',done:true}]}});
  assert.equal(app.topOf(app.cur.push.bench),50);
  assert.equal(app.pbCheck('push','bench','bench'),null);
  deq(app.topWithReps('push','bench'),{top:50,reps:8});
@@ -43,7 +43,7 @@ test('warm-up sets never count toward the top set or a PB',async()=>{
 
 test('drop and AMRAP sets are working sets',async()=>{
  const {app,set}=await load();
- set('cur',{push:{bench:[{w:'50',r:'8'},{w:'40',r:'12',t:'drop'},{w:'55',r:'3',t:'amrap'}]}});
+ set('cur',{push:{bench:[{w:'50',r:'8',done:true},{w:'40',r:'12',t:'drop',done:true},{w:'55',r:'3',t:'amrap',done:true}]}});
  assert.equal(app.topOf(app.cur.push.bench),55);
 });
 
@@ -52,4 +52,22 @@ test('recentPBs walks history in date order and reports both kinds',async()=>{
  set('hist',{squat:[{date:'2026-09-05',top:60,reps:8},{date:'2026-09-01',top:60,reps:6},{date:'2026-09-09',top:62.5,reps:5}]});
  const pbs=app.recentPBs(10);
  deq(pbs.map(p=>[p.date,p.kind]),[['2026-09-09','Weight'],['2026-09-05','Reps']]);
+});
+
+test('unticked sets never count, however they got their numbers',async()=>{
+ const {app,set}=await load();
+ set('hist',{bench:[{date:'2026-09-01',top:50,reps:8}]});
+ set('cur',{push:{bench:[{w:'50',r:'8',done:true},{w:'55',r:'',done:false}]}});
+ deq(app.topWithReps('push','bench'),{top:50,reps:8},'a weight typed ahead is not a lift');
+ assert.equal(app.pbCheck('push','bench','bench'),null);
+ set('cur',{push:{bench:[{w:'50',r:'8',done:false}]}});
+ assert.equal(app.topWithReps('push','bench'),null,'a prefill left untouched logs nothing');
+});
+
+test('a tie at the top weight goes to the set with more reps',async()=>{
+ const {app,set}=await load();
+ set('hist',{bench:[{date:'2026-09-01',top:50,reps:7}]});
+ set('cur',{push:{bench:[{w:'50',r:'6',done:true},{w:'50',r:'8',done:true},{w:'45',r:'10',done:true}]}});
+ deq(app.topWithReps('push','bench'),{top:50,reps:8});
+ deq(app.pbCheck('push','bench','bench'),{kind:'reps'});
 });

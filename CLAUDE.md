@@ -95,8 +95,14 @@ with a newline.
   (skipped today) are flags on plan items, so they ride along with the plan in storage
   and backups. `doNewSession()` records history, then `endOfSession()` drops extras
   and clears skips. Anything snapshotting a plan (routines, `loadPreset`) goes through
-  `cleanDays()`. Skipping deletes the item's `cur` slots on purpose: `topWithReps()`
-  counts any typed weight, ticked or not, so a prefilled slot would re-log last time.
+  `cleanDays()`. Skipping also deletes the item's `cur` slots, so its prefills don't
+  ride into `prev`.
+- **Only ticked sets count.** `topOf`, `topWithReps`, `setVol` and `doneSets` all skip
+  unticked slots, which still hold last session's prefill. Ties at the top weight go
+  to the set with more reps.
+- **History entries**: `{date, top, reps, vol, sets}`. `sets` (every ticked set as
+  `{w, r, t?}`, warm-ups included and flagged) exists from 2026-09-23 on; older
+  entries only have the top set, so every reader must fall back to `top`/`reps`.
 - **Supersets**: `it.super` on a plan item = "paired with the next item". Roles come
   from `ssRole(d, idx)` — always pass the day and index, never infer from the item
   alone, since the pairing is positional. Rest fires after the second half only.

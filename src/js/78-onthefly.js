@@ -6,9 +6,8 @@
                  item; doNewSession() drops it from the day once its history is
                  written. "Keep in plan" just deletes the flag.
      it.skip  -- planned but not today: hidden, out of the set count, and back
-                 next session. Only offered while no set is ticked, and it clears
-                 the item's prefilled slots, because topWithReps() counts any
-                 typed weight and would otherwise re-log last week's numbers.
+                 next session. Only offered while no set is ticked; it clears the
+                 item's prefilled slots so nothing stale rides into prev.
    cleanDays() strips both, for anything that snapshots a plan (routines). */
 function anyDone(dId,exId){ return ((cur[dId]&&cur[dId][exId])||[]).some(x=>x&&x.done); }
 function skipToday(d,it){

@@ -527,7 +527,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-09-23d";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-09-23e";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -681,16 +681,28 @@ function lastR(dId,exId,i){ const s=lastSrc(dId,exId);
    look like today's working weight. AMRAP/drop sets are working sets and count
    normally; a drop set is lighter by definition so it naturally never wins the
    max() below anyway. */
-function topOf(a){ let m=null; if(a)a.forEach(s=>{ if(s&&s.t==='warm')return;
+/* Only ticked sets are real. Unticked slots still hold last session's
+   prefill (or a weight typed ahead), and counting them re-logged old numbers
+   for exercises that were never done today. */
+function topOf(a){ let m=null; if(a)a.forEach(s=>{ if(!s||!s.done||s.t==='warm')return;
  const v=parseFloat(s&&s.w); if(!isNaN(v)&&(m===null||v>m))m=v;}); return m; }
 function bestOf(k){ let m=null; (hist[k]||[]).forEach(h=>{ if(m===null||h.top>m)m=h.top; }); return m; }
 function topWithReps(dId,exId){
  const a=cur[dId]&&cur[dId][exId]; if(!a) return null;
  let best=null;
- a.forEach(x=>{ if(x&&x.t==='warm')return; const w=parseFloat(x&&x.w); if(isNaN(w)) return;
-  if(!best||w>best.top) best={top:w,reps:parseInt(x.r,10)||null}; });
+ a.forEach(x=>{ if(!x||!x.done||x.t==='warm')return; const w=parseFloat(x.w); if(isNaN(w)) return;
+  const r=parseInt(x.r,10)||null;
+  if(!best||w>best.top||(w===best.top&&(r||0)>(best.reps||0))) best={top:w,reps:r}; });
  return best;
 }
+/* The ticked sets as numbers, for history: {w, r} plus t for anything but a
+   plain working set. Warm-ups are kept (it's a record of what was done) and
+   every reader skips them. */
+function doneSets(a){ const out=[];
+ (a||[]).forEach(x=>{ if(!x||!x.done) return; const w=parseFloat(x.w), r=parseInt(x.r,10);
+  if(isNaN(w)&&isNaN(r)) return;
+  const s={w:isNaN(w)?0:w,r:isNaN(r)?null:r}; if(x.t) s.t=x.t; out.push(s); });
+ return out; }
 /* Full PB picture for a history key: heaviest weight, best reps at that weight, best reps ever */
 function pbOf(k){
  const h=hist[k]||[]; if(!h.length) return null;
@@ -996,7 +1008,7 @@ function weekStreak(){
  return n;
 }
 /* --- Volume, 1RM estimate, trend --------------------------------------- */
-function setVol(x){ if(!x||x.t==='warm') return 0;
+function setVol(x){ if(!x||!x.done||x.t==='warm') return 0;
  const w=parseFloat(x.w), r=parseInt(x.r,10); return (!isNaN(w)&&!isNaN(r))?w*r:0; }
 function exVolume(a){ return (a||[]).reduce((s,x)=>s+setVol(x),0); }
 /* Volume from every in-progress (unfinished) session across all days -- not
@@ -1633,9 +1645,8 @@ async function applyImport(){ const d=window.__imp; if(!d)return;
                  item; doNewSession() drops it from the day once its history is
                  written. "Keep in plan" just deletes the flag.
      it.skip  -- planned but not today: hidden, out of the set count, and back
-                 next session. Only offered while no set is ticked, and it clears
-                 the item's prefilled slots, because topWithReps() counts any
-                 typed weight and would otherwise re-log last week's numbers.
+                 next session. Only offered while no set is ticked; it clears the
+                 item's prefilled slots so nothing stale rides into prev.
    cleanDays() strips both, for anything that snapshots a plan (routines). */
 function anyDone(dId,exId){ return ((cur[dId]&&cur[dId][exId])||[]).some(x=>x&&x.done); }
 function skipToday(d,it){
@@ -1824,12 +1835,12 @@ async function doNewSession(){
  const S=summarise(d);
  d.items.forEach(it=>{ if(it.skip) return; const e=topWithReps(d.id,it.ex);
   if(e){ const k=hkey(it.ex,swaps[it.ex]||null); if(!hist[k])hist[k]=[];
-   const vol=exVolume(cur[d.id]&&cur[d.id][it.ex]);
+   const a=cur[d.id]&&cur[d.id][it.ex], vol=exVolume(a), sets=doneSets(a);
    const lastE=hist[k][hist[k].length-1];
    if(lastE&&lastE.date===td){ /* same-day re-finish: keep the better one, don't duplicate the point */
     if(e.top>lastE.top||(e.top===lastE.top&&(e.reps||0)>(lastE.reps||0))){ lastE.top=e.top; lastE.reps=e.reps; }
-    lastE.vol=vol;
-   } else hist[k].push({date:td,top:e.top,reps:e.reps,vol}); } });
+    lastE.vol=vol; lastE.sets=sets;
+   } else hist[k].push({date:td,top:e.top,reps:e.reps,vol,sets}); } });
  if(cur[d.id]&&Object.keys(cur[d.id]).length){ prev[d.id]=JSON.parse(JSON.stringify(cur[d.id]));
   /* _date is read by lastSrc() to pick the most recent day when the same
      exercise has a prev on more than one. It sits beside the exercise ids

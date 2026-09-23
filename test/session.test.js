@@ -10,7 +10,8 @@ test('finishing a session writes top set + volume to history and clears the day'
  set('cur',{push:{bench:[{w:'20',r:'10',t:'warm',done:true},{w:'50',r:'8',done:true},{w:'52.5',r:'6',done:true}],
   ohp:[{w:'',r:''}]}});
  await app.doNewSession(); await tick();
- deq(app.hist.bench,[{date:td,top:52.5,reps:6,vol:50*8+52.5*6}]);
+ deq(app.hist.bench,[{date:td,top:52.5,reps:6,vol:50*8+52.5*6,
+  sets:[{w:20,r:10,t:'warm'},{w:50,r:8},{w:52.5,r:6}]}],'every ticked set is kept, warm-up flagged');
  assert.equal(app.hist.ohp,undefined,'an exercise with nothing logged leaves no entry');
  assert.equal(app.prev.push.bench[1].w,'50','prev keeps the full session for next time\'s prefill');
  /* the day is cleared, then re-rendered: every slot is back to not-done and
@@ -25,10 +26,10 @@ test('finishing twice on the same day keeps the better top set, never a duplicat
  set('hist',{bench:[{date:td,top:50,reps:8,vol:400}]});
  set('cur',{push:{bench:[{w:'50',r:'6',done:true}]}});
  await app.doNewSession(); await tick();
- deq(app.hist.bench,[{date:td,top:50,reps:8,vol:300}],'lower reps: top/reps kept, volume refreshed');
+ deq(app.hist.bench,[{date:td,top:50,reps:8,vol:300,sets:[{w:50,r:6}]}],'lower reps: top/reps kept, volume and sets refreshed');
  set('cur',{push:{bench:[{w:'50',r:'9',done:true}]}});
  await app.doNewSession(); await tick();
- deq(app.hist.bench,[{date:td,top:50,reps:9,vol:450}]);
+ deq(app.hist.bench,[{date:td,top:50,reps:9,vol:450,sets:[{w:50,r:9}]}]);
 });
 
 test('a swapped exercise is recorded under its swap key',async()=>{

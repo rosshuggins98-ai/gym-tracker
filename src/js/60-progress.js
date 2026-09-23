@@ -21,7 +21,7 @@ function weekStreak(){
  return n;
 }
 /* --- Volume, 1RM estimate, trend --------------------------------------- */
-function setVol(x){ if(!x||x.t==='warm') return 0;
+function setVol(x){ if(!x||!x.done||x.t==='warm') return 0;
  const w=parseFloat(x.w), r=parseInt(x.r,10); return (!isNaN(w)&&!isNaN(r))?w*r:0; }
 function exVolume(a){ return (a||[]).reduce((s,x)=>s+setVol(x),0); }
 /* Volume from every in-progress (unfinished) session across all days -- not

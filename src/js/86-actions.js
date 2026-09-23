@@ -8,12 +8,12 @@ async function doNewSession(){
  const S=summarise(d);
  d.items.forEach(it=>{ if(it.skip) return; const e=topWithReps(d.id,it.ex);
   if(e){ const k=hkey(it.ex,swaps[it.ex]||null); if(!hist[k])hist[k]=[];
-   const vol=exVolume(cur[d.id]&&cur[d.id][it.ex]);
+   const a=cur[d.id]&&cur[d.id][it.ex], vol=exVolume(a), sets=doneSets(a);
    const lastE=hist[k][hist[k].length-1];
    if(lastE&&lastE.date===td){ /* same-day re-finish: keep the better one, don't duplicate the point */
     if(e.top>lastE.top||(e.top===lastE.top&&(e.reps||0)>(lastE.reps||0))){ lastE.top=e.top; lastE.reps=e.reps; }
-    lastE.vol=vol;
-   } else hist[k].push({date:td,top:e.top,reps:e.reps,vol}); } });
+    lastE.vol=vol; lastE.sets=sets;
+   } else hist[k].push({date:td,top:e.top,reps:e.reps,vol,sets}); } });
  if(cur[d.id]&&Object.keys(cur[d.id]).length){ prev[d.id]=JSON.parse(JSON.stringify(cur[d.id]));
   /* _date is read by lastSrc() to pick the most recent day when the same
      exercise has a prev on more than one. It sits beside the exercise ids

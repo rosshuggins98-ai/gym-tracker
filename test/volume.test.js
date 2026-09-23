@@ -5,12 +5,13 @@ const deq=(a,b,m)=>assert.deepEqual(plain(a),b,m);
 
 test('setVol / exVolume: weight x reps for working sets, warm-ups and blanks are 0',async()=>{
  const {app}=await load();
- assert.equal(app.setVol({w:'50',r:'8'}),400);
- assert.equal(app.setVol({w:'50',r:'8',t:'warm'}),0);
- assert.equal(app.setVol({w:'',r:'8'}),0);
- assert.equal(app.setVol({w:'50',r:''}),0);
+ assert.equal(app.setVol({w:'50',r:'8',done:true}),400);
+ assert.equal(app.setVol({w:'50',r:'8'}),0,'unticked');
+ assert.equal(app.setVol({w:'50',r:'8',t:'warm',done:true}),0);
+ assert.equal(app.setVol({w:'',r:'8',done:true}),0);
+ assert.equal(app.setVol({w:'50',r:'',done:true}),0);
  assert.equal(app.setVol(null),0);
- assert.equal(app.exVolume([{w:'50',r:'8'},{w:'50',r:'8'},{w:'20',r:'10',t:'warm'}]),800);
+ assert.equal(app.exVolume([{w:'50',r:'8',done:true},{w:'50',r:'8',done:true},{w:'20',r:'10',t:'warm',done:true},{w:'50',r:'8'}]),800);
 });
 
 test('e1RM is Epley and tolerates missing reps',async()=>{
@@ -44,7 +45,7 @@ test('volumeByGroup: history this week by library group plus the live session',a
  set('hist',{bench:[{date:mon,top:50,reps:8,vol:800},{date:'2020-01-06',top:50,reps:8,vol:9999}],
   'alt::machine-chest-press':[{date:mon,top:30,vol:300}],   /* no group of its own: excluded */
   squat:[{date:mon,top:60,vol:1200}]});
- set('cur',{push:{ohp:[{w:'30',r:'8'},{w:'10',r:'10',t:'warm'}]}});
+ set('cur',{push:{ohp:[{w:'30',r:'8',done:true},{w:'10',r:'10',t:'warm',done:true}]}});
  set('swaps',{});
  deq(app.volumeByGroup(),{Chest:800,Legs:1200,Shoulders:240});
 });
@@ -53,7 +54,7 @@ test('weekVolume sums this week\'s history volume plus live sets, and ignores ol
  const {app,set}=await load();
  const mon=app.mondayISO();
  set('hist',{bench:[{date:mon,top:50,vol:800},{date:'2020-01-06',top:50,vol:5000}]});
- set('cur',{push:{bench:[{w:'50',r:'2'}]}});
+ set('cur',{push:{bench:[{w:'50',r:'2',done:true}]}});
  assert.equal(app.weekVolume(),900);
 });
 
