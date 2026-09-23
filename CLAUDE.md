@@ -96,7 +96,7 @@ with a newline.
   alone, since the pairing is positional. Rest fires after the second half only.
 - **Session summary**: `summarise(d)` runs *before* `doNewSession` writes history,
   so its PB list compares against the previous record. Keep that ordering.
-- **Presets vs routines**: `PRESETS` are the two built-in plans; `routines` are the
+- **Presets vs routines**: `PRESETS` are the three built-in plans; `routines` are the
   user's saved snapshots. `loadPreset()` snapshots the outgoing plan into routines
   first. `prev`/`cur` are keyed by day id; `lastSrc()` falls back across days and
   then to history so a new preset's "last" hints aren't blank.
