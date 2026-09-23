@@ -85,6 +85,12 @@ with a newline.
   resolving that name to the new id. `migrate()` handles this generically — any
   `alt::<slug>` key whose slug matches a library name is merged into that id — so
   adding the entry is enough, no `MIGRATE` line needed.
+- **Making a swap the planned exercise**: `promoteSwap(exId)` (the button under an
+  active swap) rewrites the plan item on every day to the alt. A name that matches a
+  library entry reuses that id; anything else becomes a custom exercise with the old
+  main first in its `alts`, and `migrate()` moves its `alt::slug` history across — the
+  same generic path as promoting an alt in `LIB`. Swaps themselves are global per
+  exercise id and persist until switched back.
 - **Supersets**: `it.super` on a plan item = "paired with the next item". Roles come
   from `ssRole(d, idx)` — always pass the day and index, never infer from the item
   alone, since the pairing is positional. Rest fires after the second half only.
