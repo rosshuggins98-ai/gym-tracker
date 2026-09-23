@@ -49,11 +49,13 @@ function FULL_BODY_PLAN(){ return {
 /* ============ PRESET — beginner full body, dumbbells + machines ============
    Same A/B/C shape as FULL_BODY_PLAN, with no barbell work: every lift is
    one that can be pushed close to failure without a spotter or a bail-out
-   drill. Each day covers a leg compound, a hinge or hamstring movement, a
-   push and a pull. C is the user's own 2026-09-23 session (see
-   docs/TRAINING-PLAN.md) with Leg Press added. Separate day ids from the
-   other full-body preset so switching between them doesn't show one's
-   in-progress sets on the other. */
+   drill. Each day has two leg exercises (one quad-led, one hamstring-led),
+   a push and a pull. C is the user's own 2026-09-23 session, unchanged.
+   Deliberately absent: hip thrust and calf raise (no kit for them at the
+   user's gym), face pulls (disliked), supersets (tried, disliked), and a
+   third leg exercise on any day. Separate day ids from the other full-body
+   preset so switching between them doesn't show one's in-progress sets on
+   the other. */
 function BEGINNER_PLAN(){ return {
  name:"Full Body Beginner",
  startedISO:new Date().toISOString().slice(0,10),
@@ -62,19 +64,17 @@ function BEGINNER_PLAN(){ return {
    warm:"10 minutes: light cardio, then bodyweight squats, arm circles, band pull-aparts, and a light set of goblet squat and dumbbell bench.",
    items:[{ex:"goblet",sets:3,reps:[10,10,10],rest:105},{ex:"dbbench",sets:3,reps:[10,10,10],rest:120},
           {ex:"latpulldown",sets:3,reps:[10,10,10],rest:105},{ex:"dbrdl",sets:3,reps:[10,10,10],rest:105},
-          {ex:"lateral",sets:2,reps:[15,15],rest:60},{ex:"dbcurl",sets:2,reps:[12,12],rest:45,super:true},
-          {ex:"pushdown",sets:2,reps:[12,12],rest:45}]},
+          {ex:"dbcurl",sets:2,reps:[12,12],rest:60},{ex:"pushdown",sets:2,reps:[12,12],rest:60}]},
   {id:"bgB",name:"Workout B",tag:"Full body",av:"--a2",
-   warm:"10 minutes: light cardio, then hip hinges, glute bridges, band pull-aparts, and a light build-up set on the leg press.",
+   warm:"10 minutes: light cardio, then hip hinges, arm circles, band pull-aparts, and a light build-up set on the leg press.",
    items:[{ex:"legpress",sets:3,reps:[12,12,12],rest:120},{ex:"incline",sets:3,reps:[10,10,10],rest:120},
-          {ex:"cablerow",sets:3,reps:[10,10,10],rest:105},{ex:"hipthrust",sets:3,reps:[12,12,12],rest:90},
-          {ex:"facepull",sets:2,reps:[15,15],rest:60},{ex:"calf",sets:2,reps:[15,15],rest:60}]},
+          {ex:"cablerow",sets:3,reps:[10,10,10],rest:105},{ex:"legcurl",sets:3,reps:[12,12,12],rest:90},
+          {ex:"lateral",sets:2,reps:[15,15],rest:60},{ex:"hammer",sets:2,reps:[12,12],rest:60}]},
   {id:"bgC",name:"Workout C",tag:"Full body",av:"--a3",
-   warm:"10 minutes: light cardio, then bodyweight squats, arm circles, band pull-aparts, and a light build-up set on the leg press.",
-   items:[{ex:"legpress",sets:3,reps:[12,12,12],rest:120},{ex:"dbbench",sets:3,reps:[10,10,10],rest:120},
-          {ex:"csrow",sets:3,reps:[10,10,10],rest:105},{ex:"dbshoulder",sets:3,reps:[10,10,10],rest:105},
-          {ex:"legext",sets:2,reps:[12,12],rest:75},{ex:"legcurl",sets:2,reps:[12,12],rest:75},
-          {ex:"pushdown",sets:2,reps:[15,15],rest:60}]}
+   warm:"10 minutes: light cardio, then bodyweight squats, arm circles, band pull-aparts, and a light set of dumbbell bench.",
+   items:[{ex:"dbbench",sets:3,reps:[10,10,10],rest:120},{ex:"csrow",sets:3,reps:[10,10,10],rest:105},
+          {ex:"legext",sets:3,reps:[12,12,12],rest:90},{ex:"legcurl",sets:3,reps:[12,12,12],rest:90},
+          {ex:"dbshoulder",sets:3,reps:[10,10,10],rest:105},{ex:"pushdown",sets:3,reps:[15,15,15],rest:60}]}
  ]};
 }
 const PRESETS={beginner:{label:"Full Body Beginner",make:BEGINNER_PLAN},ppl:{label:"Push / Pull / Legs",make:DEFAULT_PLAN},fullbody:{label:"3-Day Full Body",make:FULL_BODY_PLAN}};
@@ -87,5 +87,5 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-09-23b";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-09-23c";   /* shown next to the title and in the Data panel so you can confirm the version */
 

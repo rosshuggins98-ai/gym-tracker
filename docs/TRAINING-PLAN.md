@@ -14,15 +14,20 @@ hard, so the plan follows those preferences. In-app as `BEGINNER_PLAN()`.
 
 | Day | Exercises (sets × target reps, rest) |
 |---|---|
-| A | Goblet Squat 3×10 (1:45), Dumbbell Bench 3×10 (2:00), Lat Pulldown 3×10 (1:45), Dumbbell RDL 3×10 (1:45), Lateral Raise 2×15 (1:00), DB Curl 2×12 + Pushdown 2×12 superset (0:45) |
-| B | Leg Press 3×12 (2:00), DB Incline 3×10 (2:00), Cable Row 3×10 (1:45), Hip Thrust 3×12 (1:30), Face Pulls 2×15 (1:00), Calf Raise 2×15 (1:00) |
-| C | Leg Press 3×12 (2:00), Dumbbell Bench 3×10 (2:00), Chest-Supported Row 3×10 (1:45), DB Shoulder Press 3×10 (1:45), Leg Extension 2×12 (1:15), Leg Curl 2×12 (1:15), Pushdown 2×15 (1:00) |
+| A | Goblet Squat 3×10 (1:45), Dumbbell Bench 3×10 (2:00), Lat Pulldown 3×10 (1:45), Dumbbell RDL 3×10 (1:45), DB Curl 2×12 (1:00), Pushdown 2×12 (1:00) |
+| B | Leg Press 3×12 (2:00), DB Incline 3×10 (2:00), Cable Row 3×10 (1:45), Leg Curl 3×12 (1:30), Lateral Raise 2×15 (1:00), Hammer Curl 2×12 (1:00) |
+| C | Dumbbell Bench 3×10 (2:00), Chest-Supported Row 3×10 (1:45), Leg Extension 3×12 (1:30), Leg Curl 3×12 (1:30), DB Shoulder Press 3×10 (1:45), Pushdown 3×15 (1:00) |
 
-- Every day has a leg compound, a hinge or hamstring movement, a horizontal push and
-  a pull. 16–18 working sets, roughly 45–55 minutes.
-- C is the session built on 2026-09-23 (DB Bench, Chest-Supported Row, Leg Ext, Leg
-  Curl, DB Shoulder Press, Pushdown — 18 sets in 44 min, rated "really good"). Leg
-  Press was added because it had no leg compound; leg ext/curl went 3→2 sets to pay for it.
+- Every day has exactly two leg exercises — one quad-led, one hamstring-led — plus a
+  push and a pull. 16–18 working sets, roughly 45–50 minutes. The big leg compounds
+  (goblet squat, leg press) are on A and B; C's legs are the two machines.
+- C is the session built on 2026-09-23 exactly as done (DB Bench, Chest-Supported Row,
+  Leg Ext, Leg Curl, DB Shoulder Press, Pushdown — 18 sets in 44 min, rated "really
+  good").
+- Revised the same day on review of the first draft: no hip thrust or calf raise
+  (the gym has no kit for them), no face pulls (disliked), no supersets (tried in the
+  barbell plan, disliked), and never three leg exercises in one session (leg press + curl +
+  extension on the first draft's C was too much leg for a full-body day).
 - Dumbbell Bench and Dumbbell RDL got library entries for this. Both were swap
   alternates before; `migrate()` moves history logged under those swaps onto the new ids.
 

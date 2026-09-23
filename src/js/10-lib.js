@@ -54,7 +54,7 @@ const LIB={
   c:["Bar over the middle of your foot, shins close to it, hips higher than your knees and lower than your shoulders.","Take the slack out of the bar and brace hard before it leaves the floor. Push the floor away rather than pulling with your back.","Lock out by standing tall — don't lean back. Lower under control; don't drop it and don't bounce the next rep."]},
  rdl:{n:"RDLs",g:"Legs",alts:["Dumbbell RDL","Single-leg RDL","Good Mornings"],
   c:["Push your hips back rather than bending your knees — this is a hinge, not a squat.","Keep the bar close to your legs, almost dragging down the thighs.","Stop when you feel a strong hamstring stretch. Back stays flat the whole way; never round it."]},
- dbrdl:{n:"Dumbbell RDL",g:"Legs",alts:["RDLs","Hip Thrust","Single-leg RDL"],
+ dbrdl:{n:"Dumbbell RDL",g:"Legs",alts:["Leg Curls","Single-leg RDL","RDLs"],
   c:["Dumbbells in front of your thighs, soft knees. Push your hips back — it's a hinge, not a squat.","Keep the dumbbells brushing your legs on the way down, back flat the whole time.","Stop at a strong hamstring stretch (usually around mid-shin), then drive the hips forward to stand tall."]},
  legcurl:{n:"Leg Curls",g:"Legs",alts:["Single-leg RDL","Hip Thrust","Good Mornings"],
   c:["Keep your hips pressed into the pad throughout.","Squeeze at the top and lower slowly — resist the weight on the way back.","Don't let the weight stack slam down between reps."]},
