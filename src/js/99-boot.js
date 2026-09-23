@@ -29,6 +29,7 @@ document.getElementById('progBtn').innerHTML=I.chart;
  const bw=await Store.get('gt4_barweight'); if(typeof bw==='number'&&bw>=0) BARWEIGHT=bw;
  const wt=await Store.get('gt4_weektarget'); if(typeof wt==='number'&&wt>0) WEEKTARGET=wt;
  notes=(await Store.get('gt4_notes'))||{};
+ incs=(await Store.get('gt4_incs'))||{};
  routines=(await Store.get('gt4_routines'))||[];
  lastAuto=(await Store.get('gt4_autobackup'))||null;
  bodyweight=(await Store.get('gt4_bodyweight'))||[];

@@ -57,7 +57,7 @@ cache-first would either never match (offline broken) or show the previous build
 One script scope; later modules call earlier ones. `src/js/`:
 `10-lib` (exercise library + cues) → `20-plans` (`DEFAULT_PLAN`, `FULL_BODY_PLAN`,
 `PRESETS`, `MIGRATE`, `BUILD`) → `30-storage` → `40-state` (helpers, PB, prefill,
-supersets, rest) → `50-render` → `55-rest` → `60-progress` → `62-cues` → `64-swap` →
+supersets, rest) → `50-render` → `55-rest` → `58-coach` → `60-progress` → `62-cues` → `64-swap` →
 `66-plates` → `68-chart` → `70-editor` → `72-routines` → `74-theme` → `76-data`
 (export/import) → `78-onthefly` (today-only extras, skips) → `80-bodyweight` → `82-summary` → `84-autobackup` → `86-actions`
 (finish) → `90-migrate` → `99-boot`. New module: pick a free number, end the file
@@ -103,6 +103,15 @@ with a newline.
 - **History entries**: `{date, top, reps, vol, sets}`. `sets` (every ticked set as
   `{w, r, t?}`, warm-ups included and flagged) exists from 2026-09-23 on; older
   entries only have the top set, so every reader must fall back to `top`/`reps`.
+- **Coach** (`58-coach`): double progression from the last history entry for the
+  slot's key. Every planned set at the top weight hit its target → `up` one jump;
+  else `stay`; `stall` (drop ~10%) when none of the last 3 sessions beat the best
+  before them. Jumps come from `incFor(k)`: kit defaults (DB 2, pin machine 5, else
+  2.5, bodyweight 0 = reps only), overridden per key in `gt4_incs` (in backups; moved
+  by `promoteSwap`). Rep records (`repRecords`) are the heaviest weight for ≥N reps
+  and feed a third PB kind, `range`. Estimated 1RM is displayed only for ≤10 reps
+  (`e1RMShown`); `trendFor`/`stalled` still use raw Epley because they only compare
+  an exercise with itself.
 - **Supersets**: `it.super` on a plan item = "paired with the next item". Roles come
   from `ssRole(d, idx)` — always pass the day and index, never infer from the item
   alone, since the pairing is positional. Rest fires after the second half only.

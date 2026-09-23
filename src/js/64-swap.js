@@ -45,13 +45,14 @@ async function promoteSwap(exId){
  }
  hist=migrate(hist);
  if(oldKey!==id&&notes[oldKey]!==undefined){ if(!notes[id]) notes[id]=notes[oldKey]; delete notes[oldKey]; }
+ if(oldKey!==id&&incs[oldKey]!==undefined){ if(incs[id]===undefined) incs[id]=incs[oldKey]; delete incs[oldKey]; }
  PLAN.days.forEach(d=>{
   if(d.items.some(it=>it.ex===id)) return;
   d.items.forEach(it=>{ if(it.ex===exId) it.ex=id; });
   if(cur[d.id]&&cur[d.id][exId]){ cur[d.id][id]=cur[d.id][exId]; delete cur[d.id][exId]; }
  });
  delete swaps[exId];
- await Promise.all([Store.set('gt4_hist',hist),Store.set('gt4_notes',notes),Store.set('gt4_swaps',swaps),Store.set('gt4_cur',cur)]);
+ await Promise.all([Store.set('gt4_hist',hist),Store.set('gt4_notes',notes),Store.set('gt4_incs',incs),Store.set('gt4_swaps',swaps),Store.set('gt4_cur',cur)]);
  savePlan();
  return id;
 }

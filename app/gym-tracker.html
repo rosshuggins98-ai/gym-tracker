@@ -85,6 +85,9 @@
   transition:opacity .25s,transform .25s;box-shadow:0 8px 24px rgba(0,0,0,.3);white-space:nowrap}
  .pbtoast.show{opacity:1;transform:translateX(-50%) translateY(0)}
  .pill.pb svg{width:11px;height:11px;stroke:var(--done);stroke-width:3;fill:none}
+ .pill.coach{color:var(--text);background:var(--card2)}
+ .pill.coach.up{color:var(--done);background:var(--dones);cursor:pointer}
+ .pill.coach.stall{color:var(--warn);background:var(--warns);cursor:pointer}
  .pill.swap{color:var(--accent);background:var(--accent-soft)}
  .exbtns{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
  .ibtn{width:38px;height:31px;border-radius:9px;border:1px solid var(--line);background:var(--card2);cursor:pointer;
@@ -527,7 +530,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-09-23e";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-09-23f";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -719,6 +722,10 @@ function pbCheck(dId,exId,k){
  if(!b) return {kind:'first'};
  if(t.top>b.w) return {kind:'weight'};
  if(t.top===b.w&&t.reps&&b.reps&&t.reps>b.reps) return {kind:'reps'};
+ /* Lighter than the all-time best, but the heaviest yet for this many reps
+    -- only once there's an earlier set at that rep count to beat. */
+ const n=t.reps?REP_BUCKETS.filter(x=>x<=t.reps).pop():null, rr=n?repRecords(k)[n]:null;
+ if(rr&&t.top>rr.w) return {kind:'range',n};
  return null;
 }
 /* Every variant of an exercise (itself + its alternates), keyed and named,
@@ -928,9 +935,13 @@ function pills(c,it,d){
   const other=Object.keys(vm).filter(x=>x!==k).map(x=>({nm:vm[x],b:pbOf(x)})).filter(x=>x.b).sort((x,y)=>y.b.w-x.b.w)[0];
   if(other) h+='<span class="pill best">new here — '+other.nm+' best '+other.b.w+'kg</span>';
  }
+ const co=coach(k,it);
+ if(co) h+='<span class="pill coach '+co.kind+'">'+coachPill(co)+'</span>';
  const pb=pbCheck(d.id,exId,k);
- if(pb) h+='<span class="pill pb">'+I.tick+(pb.kind==='weight'?'PB weight':pb.kind==='reps'?'PB reps':'First log')+'</span>';
- c.querySelector('.meta').innerHTML=h;
+ if(pb) h+='<span class="pill pb">'+I.tick+(pb.kind==='weight'?'PB weight':pb.kind==='reps'?'PB reps':pb.kind==='range'?'PB for '+pb.n+'+ reps':'First log')+'</span>';
+ const m=c.querySelector('.meta'); m.innerHTML=h;
+ const cp=m.querySelector('.pill.coach');
+ if(cp&&co&&(co.kind==='up'||co.kind==='stall')) cp.addEventListener('click',()=>applyCoach(d,it,co.w));
 }
 function done(c,it,d){ c.classList.toggle('complete', repsFor(it).every((_,i)=>{
  const a=cur[d.id]&&cur[d.id][it.ex]; return a&&a[i]&&a[i].done; })); }
@@ -985,6 +996,109 @@ function celebratePB(){
  celebratePB._t=setTimeout(()=>el.classList.remove('show'),1800);
 }
 
+/* ============ COACH ============
+   Double progression, the plan's own rule: stay at a weight until every
+   planned set hits its target reps, then add one jump. Read from the last
+   history entry for the slot's key, so it follows the exercise across days.
+   Entries from before 2026-09-23 have no `sets`, only the top set, so for
+   those "hit" means the top set reached the highest target. */
+
+/* Weight jump per exercise. Dumbbells go up a pair at a time (2kg),
+   pin-loaded machines a plate on the stack (5kg), barbells, cables and
+   plate-loaded kit 2.5kg. 0 = bodyweight or assisted: reps-only coaching.
+   Overridden per history key from the chart sheet, stored in gt4_incs. */
+const INC_DB=['dbbench','incline','decline','dbfly','dbshoulder','lateral','frontraise','dbrow','pullover',
+ 'goblet','lunge','bulgarian','dbrdl','hammer','dbcurl','concentration','ohext'];
+const INC_MACHINE=['mchest','pecdeck','mshoulder','latpulldown','cablerow','legpress','legcurl','legext','calf'];
+const INC_NONE=['pushup','pullup','dips'];
+let incs={};
+function incDefault(k){
+ const id=LIB[k]?k:null, nm=(id?LIB[id].n:String(k).replace(/^alt::/,'').replace(/-/g,' ')).toLowerCase();
+ if(id&&INC_NONE.indexOf(id)>=0) return 0;
+ if(id&&INC_DB.indexOf(id)>=0) return 2;
+ if(id&&INC_MACHINE.indexOf(id)>=0) return 5;
+ if(/push.?ups?|pull.?ups?|chin.?ups?|\bdips?\b|bodyweight/.test(nm)) return 0;
+ if(/dumbbell|\bdb\b|goblet/.test(nm)) return 2;
+ if(/machine|pec deck|leg press|hack squat/.test(nm)) return 5;
+ return 2.5; }
+function incFor(k){ const v=incs[k]; return (typeof v==='number'&&v>=0)?v:incDefault(k); }
+async function setInc(k,v){ const n=parseFloat(v);
+ if(isNaN(n)||n<0||n>50||n===incDefault(k)) delete incs[k]; else incs[k]=n;
+ await Store.set('gt4_incs',incs); }
+
+/* An entry's working sets: the full list when it has one, else its top set. */
+function workSets(e){
+ if(e&&Array.isArray(e.sets)&&e.sets.length) return e.sets.filter(s=>s.t!=='warm');
+ return (e&&e.top!=null)?[{w:e.top,r:e.reps||null}]:[]; }
+/* Best set of an entry for comparing sessions. Relative only (Epley is
+   inflated at high reps, but consistently so for one exercise), and plain
+   reps for bodyweight work. */
+function entryScore(e){ let m=0;
+ workSets(e).forEach(s=>{ const v=s.w>0?e1RM(s.w,s.r):(s.r||0); if(v>m) m=v; }); return m; }
+/* No session in the last three beat the best before them. Needs four. */
+function stalled(k){ const h=hist[k]||[]; if(h.length<4) return false;
+ const sc=h.map(entryScore);
+ return Math.max.apply(null,sc.slice(-3))<=Math.max.apply(null,sc.slice(0,-3)); }
+const r25=w=>Math.round(w*4)/4;
+/* What to do next time. it (the plan item) supplies the targets; without one
+   the top set's reps are the only bar. Returns null when there's no history.
+     up    - every target hit: add a jump
+     stay  - same weight, beat last time's reps
+     stall - three sessions without beating the old best: drop ~10% and
+             build back up to the targets (a reset usually passes the old
+             best within a few weeks)
+     reps  - bodyweight: every target hit, so add a rep (no weight to add) */
+function coach(k,it){
+ const h=hist[k]||[]; if(!h.length) return null;
+ const last=h[h.length-1], ws=workSets(last); if(!ws.length) return null;
+ const inc=incFor(k), targets=it?repsFor(it):null;
+ const top=Math.max.apply(null,ws.map(s=>s.w)), atTop=ws.filter(s=>s.w===top), reps=atTop.map(s=>s.r);
+ const need=t=>typeof t==='number'?t:0;
+ let hit;
+ if(Array.isArray(last.sets)&&last.sets.length&&targets)
+  hit=atTop.length>=targets.length&&targets.every((t,i)=>(atTop[i].r||0)>=need(t));
+ else hit=last.reps!=null&&last.reps>=Math.max.apply(null,(targets||[last.reps]).map(need));
+ const base={from:top,reps,targets};
+ if(hit) return Object.assign(base,inc>0?{kind:'up',w:r25(top+inc)}:{kind:'reps',w:top});
+ if(inc>0&&stalled(k)){
+  let w=Math.floor(top*0.9/inc)*inc; if(w>=top) w=top-inc;
+  if(w>0) return Object.assign(base,{kind:'stall',w:r25(w)});
+ }
+ return Object.assign(base,{kind:'stay',w:top});
+}
+function coachPill(c){
+ if(!c) return '';
+ const r=c.reps.map(x=>x==null?'?':x).join('·');
+ if(c.kind==='up') return '▲ Go '+c.w+'kg';
+ if(c.kind==='stall') return 'Stalled · reset to '+c.w+'kg';
+ if(c.kind==='reps') return '▲ Add a rep per set';
+ return (c.w>0?'Stay '+c.w+'kg · ':'')+'beat '+r;
+}
+function coachText(c){
+ if(!c) return '';
+ const last=(c.w>0||c.from>0?c.from+'kg × ':'')+c.reps.map(x=>x==null?'?':x).join(', ');
+ const tg=c.targets?c.targets.map(t=>typeof t==='number'?t:'max').join(', '):null;
+ if(c.kind==='up') return 'Last time: '+last+' — every target hit. Go up to <b>'+c.w+'kg</b>. Expect fewer reps at first; stay there until every set reaches its target again.';
+ if(c.kind==='reps') return 'Last time: '+last+' — every target hit. Aim for one more rep on each set.';
+ if(c.kind==='stall') return 'No progress in your last 3 sessions. Drop to <b>'+c.w+'kg</b> and build back up to '+(tg||'your target')+' — a reset like this usually passes the old best within a few weeks. Or swap to an alternative for a while.';
+ return 'Last time: '+last+'. Stay at '+(c.w>0?c.w+'kg':'bodyweight')+' and beat those reps'+(tg?' — go up once every set hits '+tg:'')+'.';
+}
+/* Tap the coach pill: put its weight in every unticked working set. */
+function applyCoach(d,it,w){
+ repsFor(it).forEach((_,i)=>{ const y=slot(d.id,it.ex,i); if(!y.done&&y.t!=='warm') y.w=String(w); });
+ queueSave(); flush(); render(); }
+
+/* Rep records: the heaviest weight lifted for at least N reps, from every
+   working set on record. More honest than an estimated 1RM at 12-20 reps,
+   and each bucket is its own PB to chase. */
+const REP_BUCKETS=[5,8,10,12,15,20];
+function repRecords(k){ const best={};
+ (hist[k]||[]).forEach(e=>workSets(e).forEach(s=>{ if(!s.r) return;
+  REP_BUCKETS.forEach(n=>{ if(s.r>=n&&(!best[n]||s.w>best[n].w)) best[n]={w:s.w,date:e.date}; }); }));
+ return best; }
+/* Estimated 1RM is only shown from sets of 10 reps or fewer: past that
+   Epley overestimates badly (20kg × 20 reads as a 33kg max). */
+function e1RMShown(w,r){ return (r&&r<=10)?Math.round(e1RM(w,r)*10)/10:null; }
 /* ============ PROGRESS ============ */
 function allSessionDates(){
  const d={}; Object.values(hist).forEach(a=>(a||[]).forEach(e=>{ if(e.date)d[e.date]=1; }));
@@ -1078,13 +1192,14 @@ function recentPBs(limit){
  return out.slice(0,limit||6);
 }
 function keyName(k){ const p=k.split('::'); return p[1]?p[1].replace(/-/g,' '):exName(p[0]); }
+/* One row per tracked exercise in the plan (an exercise on two days is one
+   row), with the coach's call for next time. */
 function nextTargets(){
- const rows=[];
+ const rows=[], seen={};
  PLAN.days.forEach(d=>d.items.forEach(it=>{
-  const k=hkey(it.ex,swaps[it.ex]||null), b=pbOf(k);
-  if(!b) return;
-  const bump=b.w>=40?2.5:(b.w>=15?2:1);
-  rows.push({nm:keyName(k),cur:b.w,reps:b.reps,next:Math.round((b.w+bump)*2)/2,trend:trendFor(k)});
+  const k=hkey(it.ex,swaps[it.ex]||null), co=coach(k,it);
+  if(!co||seen[k]) return; seen[k]=1;
+  rows.push({nm:keyName(k),co,trend:trendFor(k)});
  }));
  return rows;
 }
@@ -1113,10 +1228,12 @@ function openProgress(){
   }
   const tg=nextTargets();
   if(tg.length){
+   const st=tg.filter(t=>t.co.kind==='stall').length;
    h+='<h5>What to beat next</h5>'+tg.map(t=>'<div class="goal"><span class="nm">'+t.nm+(t.trend?TREND_ICON[t.trend]:'')+'</span>'+
-    '<span class="dt" style="margin-right:8px">'+t.cur+'kg'+(t.reps?' × '+t.reps:'')+'</span>'+
-    '<span class="tg">→ '+t.next+'kg</span></div>').join('');
-   h+='<div class="note">Match your last reps at the current weight with clean form, then take the jump. Arrow is the trend in estimated 1RM over your last 4 sessions.</div>';
+    '<span class="tg">'+coachPill(t.co)+'</span></div>').join('');
+   h+='<div class="note">Stay at a weight until every set hits its target reps, then go up one jump.'+
+    (st?' <b>'+st+' stalled</b> — no progress in 3 sessions, so a lighter reset is suggested.':'')+
+    ' Arrow is the trend over your last 4 sessions.</div>';
   }
   const vbg=volumeByGroup(), glt=groupLastTrained(), groups=allGroups();
   if(groups.length){
@@ -1211,13 +1328,14 @@ async function promoteSwap(exId){
  }
  hist=migrate(hist);
  if(oldKey!==id&&notes[oldKey]!==undefined){ if(!notes[id]) notes[id]=notes[oldKey]; delete notes[oldKey]; }
+ if(oldKey!==id&&incs[oldKey]!==undefined){ if(incs[id]===undefined) incs[id]=incs[oldKey]; delete incs[oldKey]; }
  PLAN.days.forEach(d=>{
   if(d.items.some(it=>it.ex===id)) return;
   d.items.forEach(it=>{ if(it.ex===exId) it.ex=id; });
   if(cur[d.id]&&cur[d.id][exId]){ cur[d.id][id]=cur[d.id][exId]; delete cur[d.id][exId]; }
  });
  delete swaps[exId];
- await Promise.all([Store.set('gt4_hist',hist),Store.set('gt4_notes',notes),Store.set('gt4_swaps',swaps),Store.set('gt4_cur',cur)]);
+ await Promise.all([Store.set('gt4_hist',hist),Store.set('gt4_notes',notes),Store.set('gt4_incs',incs),Store.set('gt4_swaps',swaps),Store.set('gt4_cur',cur)]);
  savePlan();
  return id;
 }
@@ -1324,24 +1442,26 @@ function openChart(exId,dId){
  const body=document.getElementById('chartBody');
  if(!pts.length){ body.innerHTML='<div class="empty">No weights logged for this yet.<br>Log a weight and finish a session — your top set charts here.</div>'; }
  else{ const best=Math.max.apply(null,pts.map(p=>p.val)), last=pts[pts.length-1];
-  const lastH=h[h.length-1], est1rm=pts2.length?pts2[pts2.length-1].val:null;
-  const repNote=(lastH&&lastH.reps)?(' × '+lastH.reps):'';
+  const lastH=h[h.length-1], liveR=live!==null?(topWithReps(dId,exId)||{}).reps:null;
+  const est1rm=live!==null?e1RMShown(live,liveR):(lastH?e1RMShown(lastH.top,lastH.reps):null);
   let target='';
-  if(lastH&&!last.today){
-   const bump=lastH.top>=40?2.5:(lastH.top>=15?2:1);
-   target='<div class="note"><b>Next time:</b> you logged '+lastH.top+'kg'+repNote+
-    ' last session. Match it with good form, then try '+(Math.round((lastH.top+bump)*2)/2)+'kg on your top set.</div>';
-  }
+  /* targets from this day's item if there is one, else wherever it's planned */
+  const pool=(dId?day(dId).items:[]).concat(...PLAN.days.map(x=>x.items)), planIt=pool.find(x=>x.ex===exId)||null;
+  const co=coach(k,planIt);
+  if(co) target='<div class="note"><b>Next time:</b> '+coachText(co)+'</div>';
   const trend=trendFor(k);
   const trendTxt=trend==='up'?' Trending up over your last sessions.':trend==='down'?' Trending down over your last sessions.':trend==='flat'?' Holding flat over your last sessions.':'';
   body.innerHTML=buildChart(pts,pts.length>1?pts2:null)+'<div class="stats"><div class="stat"><b>'+best+'</b><span>Best kg</span></div>'+
    '<div class="stat"><b>'+last.val+'</b><span>'+(last.today?'Today':'Latest')+' kg</span></div>'+
    '<div class="stat"><b>'+(est1rm!==null?est1rm:'—')+'</b><span>Est. 1RM</span></div></div>'+
+   (est1rm===null&&lastH&&lastH.reps>10?'<div class="note">Est. 1RM is only worked out from sets of 10 reps or fewer — above that the formula overestimates badly. Rep records below are the honest measure.</div>':'')+
    '<div class="note">'+h.length+' session'+(h.length===1?'':'s')+' logged.'+trendTxt+'</div>'+target+
-   variantBlock(exId,k)+
+   repRecordBlock(k)+incBlock(k)+variantBlock(exId,k)+
    '<h5 style="margin:18px 0 8px">Sessions</h5><div id="histRows">'+histRows(h)+'</div>'+
    (h.length?'<div class="note">Edit a weight or reps directly, or delete a mis-logged entry — saves immediately.</div>':'');
   wireHistRows(k,exId,dId);
+  const ii=document.getElementById('incInput');
+  if(ii) ii.addEventListener('change',async()=>{ await setInc(k,ii.value); openChart(exId,dId); render(); });
  }
  applyAccent(); document.getElementById('chartbg').classList.add('show');
 }
@@ -1378,6 +1498,18 @@ function wireHistRows(k,exId,dId){
    openChart(exId,dId);
   });
  });
+}
+function repRecordBlock(k){
+ const rr=repRecords(k), ns=REP_BUCKETS.filter(n=>rr[n]);
+ if(!ns.length) return '';
+ return '<h5 style="margin:18px 0 8px">Rep records</h5>'+ns.map(n=>'<div class="goal"><span class="nm">'+n+'+ reps</span>'+
+  '<span class="tg">'+rr[n].w+'kg</span><span class="dt" style="margin-left:8px">'+shortDate(rr[n].date)+'</span></div>').join('')+
+  '<div class="note">Heaviest weight you\'ve done for at least that many reps. Beating any row is a PB.</div>';
+}
+function incBlock(k){
+ return '<div class="erow" style="margin-top:14px"><div class="en"><b>Weight jump</b>'+
+  '<small>How much to add when every set hits its target'+(incFor(k)===0?' — 0 means bodyweight, reps only':'')+'.</small></div>'+
+  '<input id="incInput" inputmode="decimal" value="'+incFor(k)+'" style="width:64px"><span class="small" style="margin-left:6px">kg</span></div>';
 }
 function variantBlock(exId,activeKey){
  const vm=variantMap(exId), keys=Object.keys(vm);
@@ -1574,7 +1706,7 @@ function openData(){
 function closeData(){ document.getElementById('databg').classList.remove('show'); }
 document.getElementById('databg').addEventListener('click',e=>{ if(e.target.id==='databg')closeData(); });
 function backup(){ return {app:"gym-tracker",version:4,build:BUILD,exported:new Date().toISOString(),
- plan:PLAN,cur,prev,swaps,history:hist,warm:warmDone,custom,barWeight:BARWEIGHT,notes,weekTarget:WEEKTARGET,routines,bodyweight}; }
+ plan:PLAN,cur,prev,swaps,history:hist,warm:warmDone,custom,barWeight:BARWEIGHT,notes,weekTarget:WEEKTARGET,routines,bodyweight,incs}; }
 function dl(n,t,m){ try{ const b=new Blob([t],{type:m}),u=URL.createObjectURL(b),a=document.createElement('a');
  a.href=u;a.download=n;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);return true;}catch(e){return false;} }
 function showExport(t,n){ document.getElementById('exportText').value=t;
@@ -1627,12 +1759,12 @@ async function applyImport(){ const d=window.__imp; if(!d)return;
  custom=d.custom||{}; Object.keys(custom).forEach(id=>LIB[id]=custom[id]);
  if(typeof d.barWeight==='number'&&d.barWeight>=0) BARWEIGHT=d.barWeight;
  if(typeof d.weekTarget==='number'&&d.weekTarget>0) WEEKTARGET=d.weekTarget;
- notes=d.notes||{}; routines=d.routines||[];
+ notes=d.notes||{}; routines=d.routines||[]; incs=(d.incs&&typeof d.incs==='object')?d.incs:{};
  bodyweight=Array.isArray(d.bodyweight)?d.bodyweight.filter(e=>e&&e.date&&e.kg>0):[];
  await Promise.all([Store.set('gt4_plan',PLAN),Store.set('gt4_cur',cur),Store.set('gt4_prev',prev),Store.set('gt4_bodyweight',bodyweight),
   Store.set('gt4_hist',hist),Store.set('gt4_swaps',swaps),Store.set('gt4_warm',warmDone),Store.set('gt4_custom',custom),
   Store.set('gt4_barweight',BARWEIGHT),Store.set('gt4_notes',notes),Store.set('gt4_weektarget',WEEKTARGET),
-  Store.set('gt4_routines',routines)]);
+  Store.set('gt4_routines',routines),Store.set('gt4_incs',incs)]);
  window.__imp=null;
  document.getElementById('importPreview').innerHTML='<b>Restored ✓</b><div class="note">Your data is back.</div>';
  render(); }
@@ -1775,7 +1907,7 @@ function summarise(d){
   vol+=exVolume(a); if(Array.isArray(p[it.ex])) prevVol+=exVolume(p[it.ex]);
   const e=topWithReps(d.id,it.ex);
   if(e){ tops.push({nm,top:e.top,reps:e.reps});
-   const pb=pbCheck(d.id,it.ex,k); if(pb&&pb.kind!=='first') pbs.push({nm,kind:pb.kind,top:e.top,reps:e.reps}); }
+   const pb=pbCheck(d.id,it.ex,k); if(pb&&pb.kind!=='first') pbs.push({nm,kind:pb.kind,n:pb.n,top:e.top,reps:e.reps}); }
  });
  const start=sessionStart[d.id]||null;
  return {day:d.name+' — '+d.tag,date:td,setsDone,setsPlanned,vol:Math.round(vol),prevVol:Math.round(prevVol),pbs,tops,
@@ -1790,7 +1922,7 @@ function showSummary(S){
   '<div class="s"><b>'+S.vol+'</b><span>kg moved</span></div>'+
   '<div class="s"><b>'+(S.mins!==null?S.mins:'—')+'</b><span>Minutes</span></div></div>';
  if(dv!==null) h+='<div class="note">'+(dv>0?'+':'')+dv+'% volume vs last time on this day ('+S.prevVol+'kg).</div>';
- if(S.pbs.length) h+='<h5>Personal bests</h5>'+S.pbs.map(x=>'<div class="pbrow"><span class="tag">'+(x.kind==='weight'?'Weight':'Reps')+'</span>'+
+ if(S.pbs.length) h+='<h5>Personal bests</h5>'+S.pbs.map(x=>'<div class="pbrow"><span class="tag">'+(x.kind==='weight'?'Weight':x.kind==='range'?x.n+'+ reps':'Reps')+'</span>'+
   '<span class="nm">'+x.nm+'</span><span class="dt">'+x.top+'kg'+(x.reps?' × '+x.reps:'')+'</span></div>').join('');
  if(S.tops.length) h+='<h5>Top sets</h5>'+S.tops.map(x=>'<div class="goal"><span class="nm">'+x.nm+'</span><span class="tg">'+x.top+'kg'+(x.reps?' × '+x.reps:'')+'</span></div>').join('');
  else h+='<div class="empty">Nothing was logged this session.</div>';
@@ -1947,6 +2079,7 @@ document.getElementById('progBtn').innerHTML=I.chart;
  const bw=await Store.get('gt4_barweight'); if(typeof bw==='number'&&bw>=0) BARWEIGHT=bw;
  const wt=await Store.get('gt4_weektarget'); if(typeof wt==='number'&&wt>0) WEEKTARGET=wt;
  notes=(await Store.get('gt4_notes'))||{};
+ incs=(await Store.get('gt4_incs'))||{};
  routines=(await Store.get('gt4_routines'))||[];
  lastAuto=(await Store.get('gt4_autobackup'))||null;
  bodyweight=(await Store.get('gt4_bodyweight'))||[];

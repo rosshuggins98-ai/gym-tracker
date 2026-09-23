@@ -11,7 +11,7 @@ function summarise(d){
   vol+=exVolume(a); if(Array.isArray(p[it.ex])) prevVol+=exVolume(p[it.ex]);
   const e=topWithReps(d.id,it.ex);
   if(e){ tops.push({nm,top:e.top,reps:e.reps});
-   const pb=pbCheck(d.id,it.ex,k); if(pb&&pb.kind!=='first') pbs.push({nm,kind:pb.kind,top:e.top,reps:e.reps}); }
+   const pb=pbCheck(d.id,it.ex,k); if(pb&&pb.kind!=='first') pbs.push({nm,kind:pb.kind,n:pb.n,top:e.top,reps:e.reps}); }
  });
  const start=sessionStart[d.id]||null;
  return {day:d.name+' — '+d.tag,date:td,setsDone,setsPlanned,vol:Math.round(vol),prevVol:Math.round(prevVol),pbs,tops,
@@ -26,7 +26,7 @@ function showSummary(S){
   '<div class="s"><b>'+S.vol+'</b><span>kg moved</span></div>'+
   '<div class="s"><b>'+(S.mins!==null?S.mins:'—')+'</b><span>Minutes</span></div></div>';
  if(dv!==null) h+='<div class="note">'+(dv>0?'+':'')+dv+'% volume vs last time on this day ('+S.prevVol+'kg).</div>';
- if(S.pbs.length) h+='<h5>Personal bests</h5>'+S.pbs.map(x=>'<div class="pbrow"><span class="tag">'+(x.kind==='weight'?'Weight':'Reps')+'</span>'+
+ if(S.pbs.length) h+='<h5>Personal bests</h5>'+S.pbs.map(x=>'<div class="pbrow"><span class="tag">'+(x.kind==='weight'?'Weight':x.kind==='range'?x.n+'+ reps':'Reps')+'</span>'+
   '<span class="nm">'+x.nm+'</span><span class="dt">'+x.top+'kg'+(x.reps?' × '+x.reps:'')+'</span></div>').join('');
  if(S.tops.length) h+='<h5>Top sets</h5>'+S.tops.map(x=>'<div class="goal"><span class="nm">'+x.nm+'</span><span class="tg">'+x.top+'kg'+(x.reps?' × '+x.reps:'')+'</span></div>').join('');
  else h+='<div class="empty">Nothing was logged this session.</div>';

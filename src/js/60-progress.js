@@ -91,13 +91,14 @@ function recentPBs(limit){
  return out.slice(0,limit||6);
 }
 function keyName(k){ const p=k.split('::'); return p[1]?p[1].replace(/-/g,' '):exName(p[0]); }
+/* One row per tracked exercise in the plan (an exercise on two days is one
+   row), with the coach's call for next time. */
 function nextTargets(){
- const rows=[];
+ const rows=[], seen={};
  PLAN.days.forEach(d=>d.items.forEach(it=>{
-  const k=hkey(it.ex,swaps[it.ex]||null), b=pbOf(k);
-  if(!b) return;
-  const bump=b.w>=40?2.5:(b.w>=15?2:1);
-  rows.push({nm:keyName(k),cur:b.w,reps:b.reps,next:Math.round((b.w+bump)*2)/2,trend:trendFor(k)});
+  const k=hkey(it.ex,swaps[it.ex]||null), co=coach(k,it);
+  if(!co||seen[k]) return; seen[k]=1;
+  rows.push({nm:keyName(k),co,trend:trendFor(k)});
  }));
  return rows;
 }
@@ -126,10 +127,12 @@ function openProgress(){
   }
   const tg=nextTargets();
   if(tg.length){
+   const st=tg.filter(t=>t.co.kind==='stall').length;
    h+='<h5>What to beat next</h5>'+tg.map(t=>'<div class="goal"><span class="nm">'+t.nm+(t.trend?TREND_ICON[t.trend]:'')+'</span>'+
-    '<span class="dt" style="margin-right:8px">'+t.cur+'kg'+(t.reps?' × '+t.reps:'')+'</span>'+
-    '<span class="tg">→ '+t.next+'kg</span></div>').join('');
-   h+='<div class="note">Match your last reps at the current weight with clean form, then take the jump. Arrow is the trend in estimated 1RM over your last 4 sessions.</div>';
+    '<span class="tg">'+coachPill(t.co)+'</span></div>').join('');
+   h+='<div class="note">Stay at a weight until every set hits its target reps, then go up one jump.'+
+    (st?' <b>'+st+' stalled</b> — no progress in 3 sessions, so a lighter reset is suggested.':'')+
+    ' Arrow is the trend over your last 4 sessions.</div>';
   }
   const vbg=volumeByGroup(), glt=groupLastTrained(), groups=allGroups();
   if(groups.length){

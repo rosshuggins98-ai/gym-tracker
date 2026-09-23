@@ -34,24 +34,26 @@ function openChart(exId,dId){
  const body=document.getElementById('chartBody');
  if(!pts.length){ body.innerHTML='<div class="empty">No weights logged for this yet.<br>Log a weight and finish a session — your top set charts here.</div>'; }
  else{ const best=Math.max.apply(null,pts.map(p=>p.val)), last=pts[pts.length-1];
-  const lastH=h[h.length-1], est1rm=pts2.length?pts2[pts2.length-1].val:null;
-  const repNote=(lastH&&lastH.reps)?(' × '+lastH.reps):'';
+  const lastH=h[h.length-1], liveR=live!==null?(topWithReps(dId,exId)||{}).reps:null;
+  const est1rm=live!==null?e1RMShown(live,liveR):(lastH?e1RMShown(lastH.top,lastH.reps):null);
   let target='';
-  if(lastH&&!last.today){
-   const bump=lastH.top>=40?2.5:(lastH.top>=15?2:1);
-   target='<div class="note"><b>Next time:</b> you logged '+lastH.top+'kg'+repNote+
-    ' last session. Match it with good form, then try '+(Math.round((lastH.top+bump)*2)/2)+'kg on your top set.</div>';
-  }
+  /* targets from this day's item if there is one, else wherever it's planned */
+  const pool=(dId?day(dId).items:[]).concat(...PLAN.days.map(x=>x.items)), planIt=pool.find(x=>x.ex===exId)||null;
+  const co=coach(k,planIt);
+  if(co) target='<div class="note"><b>Next time:</b> '+coachText(co)+'</div>';
   const trend=trendFor(k);
   const trendTxt=trend==='up'?' Trending up over your last sessions.':trend==='down'?' Trending down over your last sessions.':trend==='flat'?' Holding flat over your last sessions.':'';
   body.innerHTML=buildChart(pts,pts.length>1?pts2:null)+'<div class="stats"><div class="stat"><b>'+best+'</b><span>Best kg</span></div>'+
    '<div class="stat"><b>'+last.val+'</b><span>'+(last.today?'Today':'Latest')+' kg</span></div>'+
    '<div class="stat"><b>'+(est1rm!==null?est1rm:'—')+'</b><span>Est. 1RM</span></div></div>'+
+   (est1rm===null&&lastH&&lastH.reps>10?'<div class="note">Est. 1RM is only worked out from sets of 10 reps or fewer — above that the formula overestimates badly. Rep records below are the honest measure.</div>':'')+
    '<div class="note">'+h.length+' session'+(h.length===1?'':'s')+' logged.'+trendTxt+'</div>'+target+
-   variantBlock(exId,k)+
+   repRecordBlock(k)+incBlock(k)+variantBlock(exId,k)+
    '<h5 style="margin:18px 0 8px">Sessions</h5><div id="histRows">'+histRows(h)+'</div>'+
    (h.length?'<div class="note">Edit a weight or reps directly, or delete a mis-logged entry — saves immediately.</div>':'');
   wireHistRows(k,exId,dId);
+  const ii=document.getElementById('incInput');
+  if(ii) ii.addEventListener('change',async()=>{ await setInc(k,ii.value); openChart(exId,dId); render(); });
  }
  applyAccent(); document.getElementById('chartbg').classList.add('show');
 }
@@ -88,6 +90,18 @@ function wireHistRows(k,exId,dId){
    openChart(exId,dId);
   });
  });
+}
+function repRecordBlock(k){
+ const rr=repRecords(k), ns=REP_BUCKETS.filter(n=>rr[n]);
+ if(!ns.length) return '';
+ return '<h5 style="margin:18px 0 8px">Rep records</h5>'+ns.map(n=>'<div class="goal"><span class="nm">'+n+'+ reps</span>'+
+  '<span class="tg">'+rr[n].w+'kg</span><span class="dt" style="margin-left:8px">'+shortDate(rr[n].date)+'</span></div>').join('')+
+  '<div class="note">Heaviest weight you\'ve done for at least that many reps. Beating any row is a PB.</div>';
+}
+function incBlock(k){
+ return '<div class="erow" style="margin-top:14px"><div class="en"><b>Weight jump</b>'+
+  '<small>How much to add when every set hits its target'+(incFor(k)===0?' — 0 means bodyweight, reps only':'')+'.</small></div>'+
+  '<input id="incInput" inputmode="decimal" value="'+incFor(k)+'" style="width:64px"><span class="small" style="margin-left:6px">kg</span></div>';
 }
 function variantBlock(exId,activeKey){
  const vm=variantMap(exId), keys=Object.keys(vm);

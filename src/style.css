@@ -72,6 +72,9 @@
   transition:opacity .25s,transform .25s;box-shadow:0 8px 24px rgba(0,0,0,.3);white-space:nowrap}
  .pbtoast.show{opacity:1;transform:translateX(-50%) translateY(0)}
  .pill.pb svg{width:11px;height:11px;stroke:var(--done);stroke-width:3;fill:none}
+ .pill.coach{color:var(--text);background:var(--card2)}
+ .pill.coach.up{color:var(--done);background:var(--dones);cursor:pointer}
+ .pill.coach.stall{color:var(--warn);background:var(--warns);cursor:pointer}
  .pill.swap{color:var(--accent);background:var(--accent-soft)}
  .exbtns{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
  .ibtn{width:38px;height:31px;border-radius:9px;border:1px solid var(--line);background:var(--card2);cursor:pointer;

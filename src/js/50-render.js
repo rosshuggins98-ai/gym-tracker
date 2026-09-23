@@ -149,9 +149,13 @@ function pills(c,it,d){
   const other=Object.keys(vm).filter(x=>x!==k).map(x=>({nm:vm[x],b:pbOf(x)})).filter(x=>x.b).sort((x,y)=>y.b.w-x.b.w)[0];
   if(other) h+='<span class="pill best">new here — '+other.nm+' best '+other.b.w+'kg</span>';
  }
+ const co=coach(k,it);
+ if(co) h+='<span class="pill coach '+co.kind+'">'+coachPill(co)+'</span>';
  const pb=pbCheck(d.id,exId,k);
- if(pb) h+='<span class="pill pb">'+I.tick+(pb.kind==='weight'?'PB weight':pb.kind==='reps'?'PB reps':'First log')+'</span>';
- c.querySelector('.meta').innerHTML=h;
+ if(pb) h+='<span class="pill pb">'+I.tick+(pb.kind==='weight'?'PB weight':pb.kind==='reps'?'PB reps':pb.kind==='range'?'PB for '+pb.n+'+ reps':'First log')+'</span>';
+ const m=c.querySelector('.meta'); m.innerHTML=h;
+ const cp=m.querySelector('.pill.coach');
+ if(cp&&co&&(co.kind==='up'||co.kind==='stall')) cp.addEventListener('click',()=>applyCoach(d,it,co.w));
 }
 function done(c,it,d){ c.classList.toggle('complete', repsFor(it).every((_,i)=>{
  const a=cur[d.id]&&cur[d.id][it.ex]; return a&&a[i]&&a[i].done; })); }

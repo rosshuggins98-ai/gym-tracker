@@ -171,6 +171,10 @@ function pbCheck(dId,exId,k){
  if(!b) return {kind:'first'};
  if(t.top>b.w) return {kind:'weight'};
  if(t.top===b.w&&t.reps&&b.reps&&t.reps>b.reps) return {kind:'reps'};
+ /* Lighter than the all-time best, but the heaviest yet for this many reps
+    -- only once there's an earlier set at that rep count to beat. */
+ const n=t.reps?REP_BUCKETS.filter(x=>x<=t.reps).pop():null, rr=n?repRecords(k)[n]:null;
+ if(rr&&t.top>rr.w) return {kind:'range',n};
  return null;
 }
 /* Every variant of an exercise (itself + its alternates), keyed and named,
