@@ -5,23 +5,23 @@ const deq=(a,b,m)=>assert.deepEqual(plain(a),b,m);
 
 test('promoting a free-text alt makes it a library exercise that keeps its history',async()=>{
  const {app,set,tick}=await load();
- set('hist',{bench:[{date:'2026-09-01',top:40,reps:8}],'alt::dumbbell-bench':[{date:'2026-09-20',top:20,reps:13}]});
- set('swaps',{bench:'Dumbbell Bench'});
- set('notes',{'alt::dumbbell-bench':'flat bench by the window'});
+ set('hist',{bench:[{date:'2026-09-01',top:40,reps:8}],'alt::machine-chest-press':[{date:'2026-09-20',top:20,reps:13}]});
+ set('swaps',{bench:'Machine Chest Press'});
+ set('notes',{'alt::machine-chest-press':'flat bench by the window'});
  set('cur',{push:{bench:[{w:'22',r:'10',done:true}]}});
  const id=await app.promoteSwap('bench'); await tick();
- assert.equal(id,'c_dumbbell-bench');
- assert.equal(app.LIB[id].n,'Dumbbell Bench'); assert.equal(app.LIB[id].g,'Chest');
- deq(app.LIB[id].alts,['Bench Press','Machine Chest Press','Push-ups'],'the old main is first in line to swap back to');
+ assert.equal(id,'c_machine-chest-press');
+ assert.equal(app.LIB[id].n,'Machine Chest Press'); assert.equal(app.LIB[id].g,'Chest');
+ deq(app.LIB[id].alts,['Bench Press','Dumbbell Bench','Push-ups'],'the old main is first in line to swap back to');
  assert.equal(app.PLAN.days[0].items[0].ex,id);
  deq(app.hist[id],[{date:'2026-09-20',top:20,reps:13}]);
- assert.equal(app.hist['alt::dumbbell-bench'],undefined);
+ assert.equal(app.hist['alt::machine-chest-press'],undefined);
  deq(app.hist.bench,[{date:'2026-09-01',top:40,reps:8}],'the old main\'s history is untouched');
  assert.equal(app.notes[id],'flat bench by the window');
  assert.equal(app.cur.push[id][0].w,'22','today\'s sets follow the slot');
  assert.equal(app.cur.push.bench,undefined);
  assert.equal(app.swaps.bench,undefined);
- assert.equal(app.hkey('bench','Dumbbell Bench'),id,'later swaps to the same name land on the same history');
+ assert.equal(app.hkey('bench','Machine Chest Press'),id,'later swaps to the same name land on the same history');
 });
 
 test('promoting an alt that is already a library exercise reuses its id, on every day',async()=>{
@@ -44,4 +44,15 @@ test('promote is a no-op without an active swap',async()=>{
  set('swaps',{});
  assert.equal(await app.promoteSwap('bench'),null);
  assert.equal(app.PLAN.days[0].items[0].ex,'bench');
+});
+
+test('Dumbbell Bench and Dumbbell RDL are library exercises now, and swap history follows them',async()=>{
+ const {app,tick}=await load();
+ assert.equal(app.hkey('bench','Dumbbell Bench'),'dbbench');
+ assert.equal(app.hkey('rdl','Dumbbell RDL'),'dbrdl');
+ deq(app.migrate({'alt::dumbbell-bench':[{date:'2026-09-23',top:20,reps:13}]}),
+  {dbbench:[{date:'2026-09-23',top:20,reps:13}]},'the 20kg × 13 logged as a swap lands on the new id');
+ await app.loadPreset('beginner'); await tick();
+ assert.equal(app.PLAN.name,'Full Body Beginner');
+ deq(app.PLAN.days.map(d=>d.id),['bgA','bgB','bgC']);
 });

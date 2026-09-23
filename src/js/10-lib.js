@@ -4,6 +4,8 @@
 const LIB={
  bench:{n:"Bench Press",g:"Chest",alts:["Dumbbell Bench","Machine Chest Press","Push-ups"],
   c:["Set up with shoulder blades pulled back and down into the bench — this protects the shoulder and gives you a stable base.","Lower the bar to the lower chest, not the neck. Elbows roughly 45° from your body, not flared straight out.","Keep both feet planted and don't bounce the bar off your chest."]},
+ dbbench:{n:"Dumbbell Bench",g:"Chest",alts:["Machine Chest Press","Bench Press","Push-ups"],
+  c:["Kick the dumbbells up off your knees as you lie back, rather than lifting them from the floor.","Lower until the handles are level with your chest, elbows about 45° from your body, then press up and slightly in.","Each arm works on its own, so the weaker side shows up — let it set the pace, and add weight only when both hit the reps."]},
  incline:{n:"Dumbbell Incline",g:"Chest",alts:["Bench Press","Machine Chest Press","Incline Push-ups"],
   c:["Set the bench to about 30°. Steeper than that shifts the work to your shoulders instead of your upper chest.","Press up and slightly inward, stopping short of clanging the dumbbells together.","Control the lowering — that's where most of the muscle growth happens."]},
  decline:{n:"Dumbbell Decline",g:"Chest",alts:["Dumbbell Bench","Push-ups","Machine Chest Press"],
@@ -52,6 +54,8 @@ const LIB={
   c:["Bar over the middle of your foot, shins close to it, hips higher than your knees and lower than your shoulders.","Take the slack out of the bar and brace hard before it leaves the floor. Push the floor away rather than pulling with your back.","Lock out by standing tall — don't lean back. Lower under control; don't drop it and don't bounce the next rep."]},
  rdl:{n:"RDLs",g:"Legs",alts:["Dumbbell RDL","Single-leg RDL","Good Mornings"],
   c:["Push your hips back rather than bending your knees — this is a hinge, not a squat.","Keep the bar close to your legs, almost dragging down the thighs.","Stop when you feel a strong hamstring stretch. Back stays flat the whole way; never round it."]},
+ dbrdl:{n:"Dumbbell RDL",g:"Legs",alts:["RDLs","Hip Thrust","Single-leg RDL"],
+  c:["Dumbbells in front of your thighs, soft knees. Push your hips back — it's a hinge, not a squat.","Keep the dumbbells brushing your legs on the way down, back flat the whole time.","Stop at a strong hamstring stretch (usually around mid-shin), then drive the hips forward to stand tall."]},
  legcurl:{n:"Leg Curls",g:"Legs",alts:["Single-leg RDL","Hip Thrust","Good Mornings"],
   c:["Keep your hips pressed into the pad throughout.","Squeeze at the top and lower slowly — resist the weight on the way back.","Don't let the weight stack slam down between reps."]},
  legext:{n:"Leg Extensions",g:"Legs",alts:["Goblet Squat","Walking Lunges","Leg Press"],

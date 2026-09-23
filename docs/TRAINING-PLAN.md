@@ -6,6 +6,26 @@ burnout circuit. That took over an hour to get 75% through — a volume problem,
 fitness problem. Fifteen triceps sets alongside twelve chest pressing sets is well
 past the point of diminishing returns.
 
+## Preset: Full Body Beginner — dumbbells & machines (added 2026-09-23)
+Written because the barbell plan kept getting rebuilt on the gym floor: barbell
+lifts feel uncomfortable at this stage, and dumbbell/machine work gets pushed much
+harder. What matters most for a beginner's progress is turning up and working
+hard, so the plan follows those preferences. In-app as `BEGINNER_PLAN()`.
+
+| Day | Exercises (sets × target reps, rest) |
+|---|---|
+| A | Goblet Squat 3×10 (1:45), Dumbbell Bench 3×10 (2:00), Lat Pulldown 3×10 (1:45), Dumbbell RDL 3×10 (1:45), Lateral Raise 2×15 (1:00), DB Curl 2×12 + Pushdown 2×12 superset (0:45) |
+| B | Leg Press 3×12 (2:00), DB Incline 3×10 (2:00), Cable Row 3×10 (1:45), Hip Thrust 3×12 (1:30), Face Pulls 2×15 (1:00), Calf Raise 2×15 (1:00) |
+| C | Leg Press 3×12 (2:00), Dumbbell Bench 3×10 (2:00), Chest-Supported Row 3×10 (1:45), DB Shoulder Press 3×10 (1:45), Leg Extension 2×12 (1:15), Leg Curl 2×12 (1:15), Pushdown 2×15 (1:00) |
+
+- Every day has a leg compound, a hinge or hamstring movement, a horizontal push and
+  a pull. 16–18 working sets, roughly 45–55 minutes.
+- C is the session built on 2026-09-23 (DB Bench, Chest-Supported Row, Leg Ext, Leg
+  Curl, DB Shoulder Press, Pushdown — 18 sets in 44 min, rated "really good"). Leg
+  Press was added because it had no leg compound; leg ext/curl went 3→2 sets to pay for it.
+- Dumbbell Bench and Dumbbell RDL got library entries for this. Both were swap
+  alternates before; `migrate()` moves history logged under those swaps onto the new ids.
+
 ## Current: 3-day full body (A/B/C), from 2026-09-16
 Source of record is `docs/full-body-plan.json`; the in-app preset `FULL_BODY_PLAN()`
 is a transcription of it. Rotation is A, B, C, repeat. 15-17 working sets per session,
