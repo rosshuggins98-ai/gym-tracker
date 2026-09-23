@@ -140,17 +140,7 @@ The suite doesn't render anything, so still serve and click through after a UI
 change: log a set, swap an exercise, edit the plan, create a custom exercise,
 finish a session, open Progress, export a backup, re-import it.
 
-## Good next tasks
-- "Next up" on the main screen for A/B/C rotation — the app has no notion of
-  which day comes next; with full body it's whichever of A/B/C was finished
-  longest ago (`prev[dayId]._date` already holds that), so it's a small addition
-- Day editor: add / rename / remove days. Presets are hard-wired to three days
-  and three accent vars (`--a1..--a3`); a 4-day upper/lower would need both
-- Swap to any library exercise, not only the listed `alts` — the swap sheet is
-  alt-list only, so Leg Press → Bulgarian means a plan edit, not a swap
-- Per-set history: `hist` keeps only the top set per session, so "vs last time"
-  in the summary leans on `prev` (one session deep). Storing the set list per
-  entry would make volume trends and set-by-set comparison possible
-- A tiny browser smoke test (the vm harness can't render); even a script that
-  opens the file in headless Chromium and checks for console errors would catch
-  what the stub DOM hides
+## Backlog
+Everything agreed but not built yet lives in `docs/BACKLOG.md`. Read it at the start
+of a session when looking for the next thing to do, and move items to its "Done"
+section (with the commit hash) as they ship.
