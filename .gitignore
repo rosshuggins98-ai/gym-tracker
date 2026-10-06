@@ -3,3 +3,7 @@ gym-backups/
 .fetched.html
 .DS_Store
 __pycache__/
+
+# Personal backups exported from the phone -- private training data
+gym-backup-*.json
+gym-latest.json
