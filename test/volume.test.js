@@ -39,17 +39,6 @@ test('trendFor: up / flat / down over the last 4 sessions by estimated 1RM',asyn
  assert.equal(app.trendFor('none'),null);
 });
 
-test('volumeByGroup: history this week by library group plus the live session',async()=>{
- const {app,set}=await load();
- const mon=app.mondayISO();
- set('hist',{bench:[{date:mon,top:50,reps:8,vol:800},{date:'2020-01-06',top:50,reps:8,vol:9999}],
-  'alt::machine-chest-press':[{date:mon,top:30,vol:300}],   /* no group of its own: excluded */
-  squat:[{date:mon,top:60,vol:1200}]});
- set('cur',{push:{ohp:[{w:'30',r:'8',done:true},{w:'10',r:'10',t:'warm',done:true}]}});
- set('swaps',{});
- deq(app.volumeByGroup(),{Chest:800,Legs:1200,Shoulders:240});
-});
-
 test('weekVolume sums this week\'s history volume plus live sets, and ignores older entries',async()=>{
  const {app,set}=await load();
  const mon=app.mondayISO();
@@ -63,4 +52,11 @@ test('groupLastTrained comes from finished history only',async()=>{
  set('hist',{bench:[{date:'2026-09-01',top:50},{date:'2026-09-08',top:50}],'alt::pec-deck':[{date:'2026-09-15',top:50}]});
  set('cur',{legs:{squat:[{w:'60',r:'5'}]}});
  deq(app.groupLastTrained(),{Chest:'2026-09-08'});
+});
+
+test('weekVolume leaves out unfinished sets from days that are no longer in the plan',async()=>{
+ const {app,set}=await load();
+ set('hist',{});
+ set('cur',{push:{bench:[{w:'50',r:'2',done:true}]},oldday:{bench:[{w:'50',r:'13',done:true}]}});
+ assert.equal(app.weekVolume(),100);
 });

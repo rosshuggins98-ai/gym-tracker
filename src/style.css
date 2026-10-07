@@ -242,3 +242,23 @@
  .finwarn{display:none;background:var(--warns);border:1px solid var(--warn);border-radius:12px;padding:10px 12px;
   font-size:12.5px;line-height:1.5;margin:4px 0 12px}
  .finwarn b{color:var(--warn)} .finwarn div{margin-top:4px}
+ .checkin{background:var(--card);border:1px solid var(--accent);border-radius:16px;padding:12px 14px;margin:16px 0 6px}
+ .ck-head{display:flex;align-items:center;justify-content:space-between}
+ .ck-head b{font-size:14.5px;font-weight:800}
+ .ck-ok{border:1px solid var(--line);background:var(--card2);color:var(--text);font-family:inherit;font-weight:700;
+  font-size:12px;border-radius:9px;padding:6px 11px;cursor:pointer}
+ .ck-sub{font-size:11.5px;color:var(--muted);font-weight:600;margin:3px 0 6px}
+ .ck-line{font-size:12.5px;line-height:1.45;margin-top:7px;font-weight:600}
+ .ck-line.warn{color:var(--warn)} .ck-line.good{color:var(--done)}
+ .bal{display:grid;grid-template-columns:minmax(0,1.3fr) 2fr auto;gap:10px;align-items:center;padding:5px 0;font-size:12.5px}
+ .bal .nm{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .bal .bar{height:7px;background:var(--card2);border-radius:99px;overflow:hidden}
+ .bal .bar i{display:block;height:100%;background:var(--done);border-radius:99px}
+ .bal.low .bar i{background:var(--warn)}
+ .bal .n{font-weight:800;color:var(--muted);font-size:12px}
+ .todo{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:14px 2px 0;font-size:11.5px}
+ .todo .lbl{font-weight:700;color:var(--muted);margin-right:2px}
+ .todo .chip{font-weight:700;border-radius:7px;padding:4px 8px;background:var(--card2);color:var(--text)}
+ .todo .chip.top{background:var(--warns);color:var(--warn)}
+ .todo .chip.ok{background:var(--dones);color:var(--done)}
+ .todo .nudge{flex-basis:100%;color:var(--warn);font-weight:600}

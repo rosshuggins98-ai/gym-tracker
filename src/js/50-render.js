@@ -21,6 +21,8 @@ function render(){
  wg.onclick=async()=>{ const opts=[2,3,4,5,6]; WEEKTARGET=opts[(opts.indexOf(WEEKTARGET)+1)%opts.length];
   await Store.set('gt4_weektarget',WEEKTARGET); render(); };
  const app=document.getElementById('app'); app.innerHTML='';
+ const ck=checkinCard(); if(ck) app.appendChild(ck);
+ const td=todoStrip(d); if(td) app.appendChild(td);
  if(d.warm){
   const w=document.createElement('div'); w.className='warm'+(warmDone[d.id]===today()?' on':'');
   w.innerHTML='<div class="wt"><b>Warm up first</b><small>'+d.warm+'</small></div>'+

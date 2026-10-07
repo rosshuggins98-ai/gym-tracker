@@ -24,11 +24,14 @@ function weekStreak(){
 function setVol(x){ if(!x||!x.done||x.t==='warm') return 0;
  const w=parseFloat(x.w), r=parseInt(x.r,10); return (!isNaN(w)&&!isNaN(r))?w*r:0; }
 function exVolume(a){ return (a||[]).reduce((s,x)=>s+setVol(x),0); }
-/* Volume from every in-progress (unfinished) session across all days -- not
-   just the active tab, in case a day was switched away from mid-workout. */
+/* Volume from every in-progress (unfinished) session across the plan's days
+   -- not just the active tab, in case a day was switched away from
+   mid-workout. Days from a previous plan are left out: their unfinished sets
+   sit in cur indefinitely (the PPL days did after the switch to full body). */
+function liveDays(){ return Object.keys(cur).filter(id=>PLAN.days.some(d=>d.id===id)); }
 function liveVolume(){
- return Object.values(cur).reduce((s,dayObj)=>
-  s+Object.values(dayObj||{}).reduce((s2,a)=>s2+exVolume(a),0),0);
+ return liveDays().reduce((s,id)=>
+  s+Object.values(cur[id]||{}).reduce((s2,a)=>s2+exVolume(a),0),0);
 }
 /* A key merged into a real library exercise (no swap, or swapped to a name
    that matched one) resolves to a muscle group; a synthetic alt:: key has no
@@ -39,17 +42,6 @@ function weekVolume(){
  Object.values(hist).forEach(a=>(a||[]).forEach(e=>{ if(e.date>=mon) v+=(e.vol||0); }));
  return Math.round(v+liveVolume());
 }
-function volumeByGroup(){
- const mon=mondayISO(), byG={};
- Object.keys(hist).forEach(k=>{ const g=groupOf(k); if(!g) return;
-  (hist[k]||[]).forEach(e=>{ if(e.date>=mon) byG[g]=(byG[g]||0)+(e.vol||0); }); });
- Object.keys(cur).forEach(dId=>Object.keys(cur[dId]||{}).forEach(exId=>{
-  const alt=swaps[exId]||null, g=groupOf(hkey(exId,alt))||(LIB[exId]&&LIB[exId].g);
-  if(g) byG[g]=(byG[g]||0)+exVolume(cur[dId][exId]);
- }));
- Object.keys(byG).forEach(g=>byG[g]=Math.round(byG[g]));
- return byG;
-}
 /* Most recent trained date per muscle group, from history only -- a group
    only entered live today doesn't count as "trained" until the session is
    finished, same as everywhere else PB/top-set logic works. */
@@ -58,9 +50,6 @@ function groupLastTrained(){
  Object.keys(hist).forEach(k=>{ const g=groupOf(k); if(!g) return;
   (hist[k]||[]).forEach(e=>{ if(!last[g]||e.date>last[g]) last[g]=e.date; }); });
  return last;
-}
-function allGroups(){
- const s={}; Object.values(LIB).forEach(x=>s[x.g]=1); return Object.keys(s).sort();
 }
 /* Epley estimated 1RM: w * (1 + reps/30). Falls back to the raw weight when
    reps weren't recorded (older/legacy entries), rather than showing nothing. */
@@ -134,17 +123,14 @@ function openProgress(){
     (st?' <b>'+st+' stalled</b> — no progress in 3 sessions, so a lighter reset is suggested.':'')+
     ' Arrow is the trend over your last 4 sessions.</div>';
   }
-  const vbg=volumeByGroup(), glt=groupLastTrained(), groups=allGroups();
-  if(groups.length){
-   h+='<h5>This week by muscle group</h5>'+groups.map(g=>{
-    const v=vbg[g]||0, last=glt[g];
-    const daysSince=last?Math.floor((new Date(today())-new Date(last))/864e5):null;
-    const flagged=(daysSince===null||daysSince>=7);
-    const flag=flagged?' <span class="trend down">⚠ '+(daysSince===null?'never trained':daysSince+'d ago')+'</span>':'';
-    return '<div class="goal"><span class="nm">'+g+flag+'</span><span class="tg">'+v+'kg</span></div>';
-   }).join('');
-   h+='<div class="note">Volume moved this week per muscle group, using each exercise\'s library category. Flagged if nothing in that group has been logged in 7+ days.</div>';
+  const mon=mondayISO(), bal=weekBalance(mon,addDays(mon,7),true), glt=groupLastTrained();
+  if(bal.length){
+   h+='<h5>This week: sets per muscle group</h5>'+balanceRows(bal.map(r=>{
+    const last=glt[r.g], dd=last?Math.floor((new Date(today())-new Date(last))/864e5):null;
+    return Object.assign({},r,{g:r.g+((dd===null||dd>=7)?' <span class="trend down">⚠ '+(dd===null?'never':dd+'d ago')+'</span>':'')}); }));
+   h+='<div class="note">Working sets done this week (warm-ups not counted) against what your plan asks for when every day is done once. Flagged if nothing in that group has been logged in 7+ days.</div>';
   }
+  if(ds.some(x=>x<mon)) h+='<h5>Last week</h5>'+checkinBody(checkin());
  }
  h+='<div class="hr"></div>'+bodyweightBlock();
  document.getElementById('progBody').innerHTML=h;
