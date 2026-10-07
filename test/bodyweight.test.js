@@ -49,7 +49,7 @@ test('summarise: sets, volume, PBs against pre-save history, top sets, vs last t
  set('cur',{push:{bench:[{w:'20',r:'10',t:'warm',done:true},{w:'52.5',r:'6',done:true},{w:'52.5',r:'5',done:false}],ohp:[{w:'30',r:'8',done:true}],incline:[{w:'',r:''}]}});
  const d=app.PLAN.days[0];
  const S=app.summarise(d);
- assert.equal(S.setsDone,3); assert.equal(S.setsPlanned,app.setCount(d));
+ assert.equal(S.setsDone,2,'the warm-up is not a set done'); assert.equal(S.setsPlanned,app.setCount(d));
  assert.equal(S.vol,Math.round(52.5*6+30*8),'warm-up and the unticked set excluded');
  assert.equal(S.prevVol,800);
  deq(S.pbs,[{nm:'Bench Press',kind:'weight',top:52.5,reps:6}],'ohp is a first log, not a PB');

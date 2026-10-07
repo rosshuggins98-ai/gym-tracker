@@ -52,23 +52,59 @@ function ssRole(d,idx){
 function ssPartner(d,idx){ const r=ssRole(d,idx); return r==='first'?d.items[idx+1]:r==='second'?d.items[idx-1]:null; }
 function restAfter(d,idx){ return ssRole(d,idx)==='first'?0:restFor(d.items[idx]); }
 function repsFor(it){ const r=(it.reps||[]).slice(0,it.sets); while(r.length<it.sets) r.push(r.length?r[r.length-1]:10); return r; }
+/* Rep ranges. it.reps holds the TOP of the range per set (the number to hit
+   before adding weight); it.lo is the bottom, the floor every set must stay at
+   or above. Plans from before 2026-10-07 have no lo, so it defaults from the
+   top: the common ranges 6-8, 8-10, 8-12, 12-15, 15-20, else about 3/4. */
+const REP_LO={6:4,8:6,10:8,12:8,15:12,20:15};
+function topRep(it){ return Math.max.apply(null,[0].concat(repsFor(it).filter(t=>typeof t==='number'))); }
+function loFor(it){ const hi=topRep(it); if(!hi) return null;
+ const v=parseInt(it.lo,10); if(v>=1&&v<hi) return v;
+ return REP_LO[hi]||Math.max(1,Math.round(hi*0.75)); }
+/* "8–12" when every set shares one target, else null (pyramids keep their list). */
+function rangeLabel(it){ const r=repsFor(it), hi=topRep(it);
+ if(!hi||r.some(t=>t!==hi)) return null; const lo=loFor(it); return lo<hi?lo+'–'+hi:String(hi); }
+/* Warm-up rows. it.wu rows sit above set 1, are always typed 'warm', and are
+   not planned sets: setCount, the progress bar and the coach ignore them. So
+   cur[day][ex] holds wu warm-up slots first, then the working sets -- working
+   set i lives at index wuOf(it)+i. It's a plan property, not a today-only
+   flag, so prev lines up row for row next session. */
+const WU_MAX=3;
+function wuOf(it){ const n=parseInt(it&&it.wu,10); return n>0?Math.min(n,WU_MAX):0; }
 function setCount(d){ return d.items.reduce((s,it)=>s+(it.skip?0:it.sets),0); }
 function addSet(it){ const r=repsFor(it); r.push(r.length?r[r.length-1]:10); it.reps=r; it.sets=r.length; savePlan(); }
 function lastSetUsed(dId,exId,n){ const a=cur[dId]&&cur[dId][exId]; const x=a&&a[n-1]; return !!(x&&(x.w||x.r||x.done)); }
 function removeSet(it,dId){ if(it.sets<=1) return false;
- if(lastSetUsed(dId,it.ex,it.sets)) return false;
+ const wu=wuOf(it);
+ if(lastSetUsed(dId,it.ex,wu+it.sets)) return false;
  const r=repsFor(it); r.pop(); it.reps=r; it.sets=r.length;
- const a=cur[dId]&&cur[dId][it.ex]; if(a) a.length=Math.min(a.length,r.length);
+ const a=cur[dId]&&cur[dId][it.ex]; if(a) a.length=Math.min(a.length,wu+r.length);
  savePlan(); return true; }
-function slot(dId,exId,i){ if(!cur[dId])cur[dId]={}; if(!cur[dId][exId])cur[dId][exId]=[];
+function addWarmup(d,it){ const wu=wuOf(it); if(wu>=WU_MAX) return false;
+ const a=cur[d.id]&&cur[d.id][it.ex];
+ if(a&&a.length>wu) a.splice(wu,0,{w:'',r:'',done:false,t:'warm'});
+ it.wu=wu+1; queueSave(); savePlan(); return true; }
+/* Only the last warm-up row, and only while it's untouched. */
+function removeWarmup(d,it){ const wu=wuOf(it); if(!wu) return false;
+ const a=cur[d.id]&&cur[d.id][it.ex], x=a&&a[wu-1];
+ if(x&&x.done) return false;
+ if(a&&a.length>=wu) a.splice(wu-1,1);
+ if(wu>1) it.wu=wu-1; else delete it.wu;
+ queueSave(); savePlan(); return true; }
+/* t is 'warm' for a warm-up row, so a new slot is created as one. */
+function slot(dId,exId,i,t){ if(!cur[dId])cur[dId]={}; if(!cur[dId][exId])cur[dId][exId]=[];
  if(!cur[dId][exId][i]){
   /* Pre-fill from last session's same set so a matched set is one tap on the
      tick and nothing else. Only happens once, at creation -- never overwrites
      something already typed, since the slot object is reused after this. */
   const lw=lastW(dId,exId,i), lr=lastR(dId,exId,i);
   cur[dId][exId][i]={w:lw!==null?String(lw):'',r:lr!==null?String(lr):'',done:false};
+  if(t==='warm') cur[dId][exId][i].t='warm';
  }
  return cur[dId][exId][i]; }
+/* A ticked working set whose reps were never typed or stepped (s.rt) is the
+   prefill or the target, not a count -- flagged on screen and at finish. */
+function repsUnconfirmed(x){ return !!(x&&x.done&&x.t!=='warm'&&!x.rt); }
 /* Set type cycle, tapped via the set-number badge: work (default/undefined) ->
    warm-up -> failure/AMRAP -> drop -> back to work. */
 function nextSetType(t){ return t==='drop'?undefined:t==='amrap'?'drop':t==='warm'?'amrap':'warm'; }

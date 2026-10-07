@@ -22,6 +22,7 @@ document.getElementById('progBtn').innerHTML=I.chart;
  setTheme(th==='light'?'light':'dark');
  hist=h?migrate(h):await pullLegacy();
  if(!h) await Store.set('gt4_hist',hist);
+ if(!(await Store.get('gt4_dedupe1'))){ if(dropDupeDays(hist)) await Store.set('gt4_hist',hist); await Store.set('gt4_dedupe1',1); }
  const savedLast=await Store.get('gt4_legacylast');
  if(savedLast) legacyLast=savedLast;
  else { legacyLast=await pullLegacyWeights(); if(Object.keys(legacyLast).length) await Store.set('gt4_legacylast',legacyLast); }

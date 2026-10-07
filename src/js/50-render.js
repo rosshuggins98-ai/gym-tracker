@@ -68,62 +68,74 @@ function card(it,d,idx){
  const s=document.createElement('div'); s.className='sets';
  const ch=document.createElement('div'); ch.className='colhead';
  ch.innerHTML='<div>Set</div><div>Weight</div><div>Reps</div><div></div>'; s.appendChild(ch);
- reps.forEach((tg,i)=>{
-  const x=slot(d.id,exId,i), tt=(tg===null||tg==='max')?'max':tg;
-  const lw=lastW(d.id,exId,i), lt=lw!==null?'last <b>'+lw+'</b>':'';
-  const typLbl=typeLabel(x.t);
-  const row=document.createElement('div'); row.className='set'+(x.t==='warm'?' warm':'');
-  row.innerHTML='<div class="idx"><b>'+(i+1)+'</b><small>×'+tt+'</small>'+
-   (typLbl?'<small class="typ '+x.t+'">'+typLbl+'</small>':'')+'</div>'+
+ /* Weight buttons step by the exercise's own jump (2kg dumbbells, 5kg pin
+    stacks), so + lands on a weight that exists. Bodyweight work (jump 0)
+    still steps 2.5 for assisted or loaded variants. */
+ const stepW=incFor(k0)||2.5, wu=wuOf(it), rng=rangeLabel(it);
+ for(let ri=0;ri<wu+reps.length;ri++){ const isW=ri<wu, i=ri-wu, tg=isW?null:reps[i];
+  const x=slot(d.id,exId,ri,isW?'warm':undefined), tt=isW?'':(tg===null||tg==='max')?'max':tg;
+  const lw=lastW(d.id,exId,ri), lt=lw!==null?'last <b>'+lw+'</b>':'';
+  const typLbl=isW?'warm-up':typeLabel(x.t);
+  const row=document.createElement('div'); row.className='set'+(x.t==='warm'?' warm':'')+(repsUnconfirmed(x)?' unconf':'');
+  row.innerHTML='<div class="idx"><b>'+(isW?'W':(i+1))+'</b>'+(isW?'':'<small>×'+(rng&&tt!=='max'?rng:tt)+'</small>')+
+   (typLbl?'<small class="typ '+(isW?'warm':x.t)+'">'+typLbl+'</small>':'')+'</div>'+
    '<div class="field"><div class="fstep">'+
-    '<button class="stepbtn" data-f="w" data-d="-2.5">&minus;</button>'+
+    '<button class="stepbtn" data-f="w" data-d="-'+stepW+'">&minus;</button>'+
     '<input inputmode="decimal" placeholder="–" value="'+(x.w||'')+'" data-k="w">'+
-    '<button class="stepbtn" data-f="w" data-d="2.5">+</button></div>'+
+    '<button class="stepbtn" data-f="w" data-d="'+stepW+'">+</button></div>'+
     '<span class="last">'+lt+'</span></div>'+
    '<div class="field"><div class="fstep">'+
     '<button class="stepbtn" data-f="r" data-d="-1">&minus;</button>'+
-    '<input inputmode="numeric" placeholder="'+tt+'" value="'+(x.r||'')+'" data-k="r">'+
+    '<input inputmode="numeric" placeholder="'+(tt||'–')+'" value="'+(x.r||'')+'" data-k="r">'+
     '<button class="stepbtn" data-f="r" data-d="1">+</button></div>'+
-    '<span class="last"></span></div>'+
+    '<span class="last">'+(repsUnconfirmed(x)?'not typed':'')+'</span></div>'+
    '<button class="tick'+(x.done?' on':'')+'">'+I.tick+'</button>';
   const wI=row.querySelector('[data-k="w"]'),rI=row.querySelector('[data-k="r"]'),tk=row.querySelector('.tick');
-  wI.addEventListener('input',()=>{ slot(d.id,exId,i).w=wI.value; queueSave(); pills(c,it,d); });
+  const markTyped=y=>{ if(!y.rt){ y.rt=true; row.classList.remove('unconf'); row.querySelectorAll('.last')[1].textContent=''; } };
+  wI.addEventListener('input',()=>{ slot(d.id,exId,ri).w=wI.value; queueSave(); pills(c,it,d); });
   wI.addEventListener('blur',flush);
-  rI.addEventListener('input',()=>{ slot(d.id,exId,i).r=rI.value; queueSave(); });
+  rI.addEventListener('input',()=>{ const y=slot(d.id,exId,ri); y.r=rI.value; markTyped(y); queueSave(); });
   rI.addEventListener('blur',flush);
   row.querySelectorAll('.stepbtn').forEach(btn=>{
    btn.addEventListener('click',()=>{
-    const f=btn.dataset.f, delta=parseFloat(btn.dataset.d), y=slot(d.id,exId,i);
+    const f=btn.dataset.f, delta=parseFloat(btn.dataset.d), y=slot(d.id,exId,ri);
     let v=parseFloat(f==='w'?y.w:y.r); if(isNaN(v))v=0;
     v=Math.max(0,Math.round((v+delta)*100)/100);
     const sv=f==='w'?String(v):String(Math.round(v));
-    if(f==='w'){ y.w=sv; wI.value=sv; } else { y.r=sv; rI.value=sv; }
+    if(f==='w'){ y.w=sv; wI.value=sv; } else { y.r=sv; rI.value=sv; markTyped(y); }
     queueSave(); flush(); pills(c,it,d);
    });
   });
-  tk.addEventListener('click',()=>{ const y=slot(d.id,exId,i); y.done=!y.done; tk.classList.toggle('on',y.done);
+  tk.addEventListener('click',()=>{ const y=slot(d.id,exId,ri); y.done=!y.done; tk.classList.toggle('on',y.done);
    if(y.done&&!sessionStart[d.id]){ sessionStart[d.id]=Date.now(); Store.set('gt4_start',sessionStart); }
-   if(y.done&&!y.r&&tt!=='max'){ y.r=String(tt); rI.value=tt; }
+   if(y.done&&!y.r&&tt&&tt!=='max'){ y.r=String(tt); rI.value=tt; }
+   row.classList.toggle('unconf',repsUnconfirmed(y)); row.querySelectorAll('.last')[1].textContent=repsUnconfirmed(y)?'not typed':'';
    if(y.done){ const sec=restAfter(d,idx); if(sec) restStart(sec); else restCue(vName(partner.ex,swaps[partner.ex]||null)); }
    pills(c,it,d);
    if(y.done&&pbCheck(d.id,exId,k0)) celebratePB();
    done(c,it,d); updateProgress(); queueSave(); flush(); });
-  row.querySelector('.idx').addEventListener('click',()=>{
-   const y=slot(d.id,exId,i); y.t=nextSetType(y.t);
+  /* A warm-up row is always a warm-up; the badge cycle is for planned sets. */
+  if(!isW) row.querySelector('.idx').addEventListener('click',()=>{
+   const y=slot(d.id,exId,ri); y.t=nextSetType(y.t);
    queueSave(); flush(); render();
   });
   s.appendChild(row);
- });
+ }
  c.appendChild(s);
  const f=document.createElement('div'); f.className='setfoot';
- const canRm=it.sets>1&&!lastSetUsed(d.id,exId,it.sets);
+ const canRm=it.sets>1&&!lastSetUsed(d.id,exId,wu+it.sets);
+ const wa=cur[d.id]&&cur[d.id][exId], canRmW=wu>0&&!(wa&&wa[wu-1]&&wa[wu-1].done);
  f.innerHTML='<button class="rms"'+(canRm?'':' disabled')+'>&minus; Set</button>'+
   '<button class="ads">+ Set</button>'+
+  (wu<WU_MAX?'<button class="adw">+ Warm-up</button>':'')+(canRmW?'<button class="rmw">&minus; Warm-up</button>':'')+
   '<span class="hint">'+(it.sets>1&&!canRm?'Clear the last set to remove it':'')+'</span>'+
   (it.extra?'<button class="keep">Keep in plan</button>'+(anyDone(d.id,exId)?'':'<button class="rmx">Remove</button>'):
    (anyDone(d.id,exId)||role)?'':'<button class="skp">Skip today</button>');
  f.querySelector('.ads').addEventListener('click',()=>{ addSet(it); render(); });
  f.querySelector('.rms').addEventListener('click',()=>{ if(removeSet(it,d.id)) render(); });
+ const aw=f.querySelector('.adw'), rw=f.querySelector('.rmw');
+ if(aw) aw.addEventListener('click',()=>{ if(addWarmup(d,it)) render(); });
+ if(rw) rw.addEventListener('click',()=>{ if(removeWarmup(d,it)) render(); });
  const kp=f.querySelector('.keep'), rx=f.querySelector('.rmx'), sk=f.querySelector('.skp');
  if(kp) kp.addEventListener('click',()=>{ keepExtra(it); render(); });
  if(rx) rx.addEventListener('click',()=>{ if(removeExtra(d,it)) render(); });
@@ -135,7 +147,8 @@ function pills(c,it,d){
  const exId=it.ex, alt=swaps[exId]||null, k=hkey(exId,alt);
  const rl=repsFor(it).map(r=>(r===null||r==='max')?'max':r).join(' · ');
  const b=pbOf(k);
- let h='<span class="pill reps">'+it.sets+' × '+rl+'</span>';
+ const rg=rangeLabel(it);
+ let h='<span class="pill reps">'+it.sets+' × '+(rg||rl)+'</span>';
  const idx=d.items.indexOf(it), role=ssRole(d,idx), partner=ssPartner(d,idx);
  if(role==='first') h+='<span class="pill ss">then '+vName(partner.ex,swaps[partner.ex]||null)+', no rest</span>';
  else if(role==='second') h+='<span class="pill ss">after '+vName(partner.ex,swaps[partner.ex]||null)+'</span>';
@@ -153,15 +166,16 @@ function pills(c,it,d){
  if(co) h+='<span class="pill coach '+co.kind+'">'+coachPill(co)+'</span>';
  const pb=pbCheck(d.id,exId,k);
  if(pb) h+='<span class="pill pb">'+I.tick+(pb.kind==='weight'?'PB weight':pb.kind==='reps'?'PB reps':pb.kind==='range'?'PB for '+pb.n+'+ reps':'First log')+'</span>';
+ if(co&&co.why) h+='<div class="coachwhy">'+co.why+'</div>';
  const m=c.querySelector('.meta'); m.innerHTML=h;
  const cp=m.querySelector('.pill.coach');
- if(cp&&co&&(co.kind==='up'||co.kind==='stall')) cp.addEventListener('click',()=>applyCoach(d,it,co.w));
+ if(cp&&co&&(co.kind==='up'||co.kind==='stall'||co.kind==='down')) cp.addEventListener('click',()=>applyCoach(d,it,co.w));
 }
-function done(c,it,d){ c.classList.toggle('complete', repsFor(it).every((_,i)=>{
- const a=cur[d.id]&&cur[d.id][it.ex]; return a&&a[i]&&a[i].done; })); }
+function done(c,it,d){ const wu=wuOf(it); c.classList.toggle('complete', repsFor(it).every((_,i)=>{
+ const a=cur[d.id]&&cur[d.id][it.ex]; return a&&a[wu+i]&&a[wu+i].done; })); }
 function updateProgress(){
  const d=day(ACTIVE), total=setCount(d); let n=0;
- d.items.forEach(it=>{ if(!it.skip) repsFor(it).forEach((_,i)=>{ const a=cur[d.id]&&cur[d.id][it.ex]; if(a&&a[i]&&a[i].done)n++; }); });
+ d.items.forEach(it=>{ if(!it.skip){ const wu=wuOf(it); repsFor(it).forEach((_,i)=>{ const a=cur[d.id]&&cur[d.id][it.ex]; if(a&&a[wu+i]&&a[wu+i].done)n++; }); } });
  document.getElementById('bar').style.width=total?(n/total*100)+'%':'0%';
  document.getElementById('pcount').textContent=n+' / '+total+' sets';
 }

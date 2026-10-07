@@ -27,6 +27,8 @@ him turning up. Motivation is a feature, not decoration.
 - **Three storage modes.** Claude artifact storage, localStorage, and none (file://,
   falls back to mirroring state into the URL hash). Don't collapse this.
 - **Migration is load-bearing.** Several older key formats are migrated on boot.
+  `dropDupeDays()` (a session saved twice a day apart) runs once at boot behind
+  `gt4_dedupe1`, and on every import.
   Never remove `MIGRATE`, `pullLegacy`, or `pullLegacyWeights` without a replacement.
   `migrate()` also recovers pre-2026-09-10 `baseId::slug` swap keys onto today's
   `hkey()` scheme (see below) — keep that in step with `hkey()` if it changes again.
@@ -103,15 +105,35 @@ with a newline.
 - **History entries**: `{date, top, reps, vol, sets}`. `sets` (every ticked set as
   `{w, r, t?}`, warm-ups included and flagged) exists from 2026-09-23 on; older
   entries only have the top set, so every reader must fall back to `top`/`reps`.
-- **Coach** (`58-coach`): double progression from the last history entry for the
-  slot's key. Every planned set at the top weight hit its target → `up` one jump;
-  else `stay`; `stall` (drop ~10%) when none of the last 3 sessions beat the best
-  before them. Jumps come from `incFor(k)`: kit defaults (DB 2, pin machine 5, else
-  2.5, bodyweight 0 = reps only), overridden per key in `gt4_incs` (in backups; moved
-  by `promoteSwap`). Rep records (`repRecords`) are the heaviest weight for ≥N reps
-  and feed a third PB kind, `range`. Estimated 1RM is displayed only for ≤10 reps
+- **Rep ranges**: `it.reps` is the top of the range per set, `it.lo` the bottom.
+  `lo` is optional — `loFor(it)` defaults it from the top (10 → 8, 12 → 8,
+  15 → 12, else ~¾), which is the migration for every pre-2026-10-07 plan, so
+  never make it required.
+- **Coach** (`58-coach`): double progression, "top set + floor", from the last
+  history entry for the slot's key. `judged(e)` drops warm-ups plus a ramp-up
+  (leading sets >10% lighter than the top weight, marked or not); `setsNeeded()`
+  works out how many working sets were due (a warm-up in a planned row uses one up,
+  one in a warm-up row or an extra row doesn't). First of those at the top weight
+  ≥ the top of the range and none below `lo` → `up` one jump; under `lo` two
+  sessions running at the same weight → `down` to the weight before; `stall` (drop
+  ~10%) when none of the last 3 sessions beat the best before them, unless the
+  weight climbed at least a jump across those 3 (a reset under way); else `stay`.
+  Everything but a hit carries `why`, shown on the card. No plan item (exercise not
+  planned) → always `stay`. Jumps come from `incFor(k)`: kit defaults (DB 2, pin
+  machine 5, else 2.5, bodyweight 0 = reps only), overridden per key in `gt4_incs`
+  (in backups; moved by `promoteSwap`); the card's weight +/− buttons step by the
+  same jump. Rep records (`repRecords`) are the heaviest weight for ≥N reps and
+  feed a third PB kind, `range`. Estimated 1RM is displayed only for ≤10 reps
   (`e1RMShown`); `trendFor`/`stalled` still use raw Epley because they only compare
   an exercise with itself.
+- **Warm-up rows**: `it.wu` rows above set 1, always typed `'warm'`, not planned
+  sets. They're a plan property (kept by `endOfSession` and `cleanDays`), so
+  `prev` lines up row for row. Anything indexing working sets in `cur` must offset
+  by `wuOf(it)`: `done`, `updateProgress`, `applyCoach`, `removeSet`.
+- **Unconfirmed reps**: ticking a set with empty reps still fills the target (two
+  taps per set stays), but a slot only gets `rt` once its reps are typed or
+  stepped. Without it the row is flagged, and `finishChecks()` lists untyped sets
+  and exercises identical to their last entry on the finish sheet.
 - **Supersets**: `it.super` on a plan item = "paired with the next item". Roles come
   from `ssRole(d, idx)` — always pass the day and index, never infer from the item
   alone, since the pairing is positional. Rest fires after the second half only.

@@ -235,3 +235,10 @@
  .goal:first-of-type{border-top:0}
  .goal .nm{flex:1;font-weight:700}
  .goal .tg{font-weight:800;color:var(--accent);flex-shrink:0}
+ .coachwhy{flex-basis:100%;font-size:11.5px;color:var(--muted);font-weight:600;line-height:1.4;margin-top:1px}
+ .pill.coach.down{color:var(--warn);background:var(--warns);cursor:pointer}
+ .set.unconf input[data-k="r"]{border:1px dashed var(--warn)}
+ .set.unconf .field .last{color:var(--warn)}
+ .finwarn{display:none;background:var(--warns);border:1px solid var(--warn);border-radius:12px;padding:10px 12px;
+  font-size:12.5px;line-height:1.5;margin:4px 0 12px}
+ .finwarn b{color:var(--warn)} .finwarn div{margin-top:4px}

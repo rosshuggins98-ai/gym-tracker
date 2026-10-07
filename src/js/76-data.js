@@ -66,7 +66,7 @@ document.getElementById('importFile').addEventListener('change',function(e){
 function cancelImport(){ window.__imp=null; document.getElementById('importPreview').style.display='none'; }
 async function applyImport(){ const d=window.__imp; if(!d)return;
  if(d.plan&&d.plan.days){ PLAN=d.plan; ACTIVE=PLAN.days[0].id; }
- cur=d.cur||{}; prev=d.prev||{}; hist=migrate(d.history||{}); swaps=d.swaps||{}; warmDone=d.warm||{};
+ cur=d.cur||{}; prev=d.prev||{}; hist=migrate(d.history||{}); dropDupeDays(hist); swaps=d.swaps||{}; warmDone=d.warm||{};
  custom=d.custom||{}; Object.keys(custom).forEach(id=>LIB[id]=custom[id]);
  if(typeof d.barWeight==='number'&&d.barWeight>=0) BARWEIGHT=d.barWeight;
  if(typeof d.weekTarget==='number'&&d.weekTarget>0) WEEKTARGET=d.weekTarget;

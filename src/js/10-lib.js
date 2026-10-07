@@ -33,7 +33,7 @@ const LIB={
  bbrow:{n:"Barbell Row",g:"Back",alts:["Single-arm DB Row","Chest-Supported Row","T-Bar Row"],
   c:["Hinge to about 45° with a flat back — the spine stays neutral throughout, never rounded.","Pull the bar to your lower ribs or belly button, leading with your elbows.","Don't jerk with your lower back to move the weight. If you have to, it's too heavy."]},
  latpulldown:{n:"Lat Pulldown",g:"Back",alts:["Assisted Pull Ups","Band-Assisted Pull Ups","DB Pullover"],
-  c:["Pull the bar to your upper chest, not behind your neck.","Start each rep by driving your shoulders down, then bend the elbows.","Lean back slightly and hold that angle — don't rock back and forth."]},
+  c:["Pull the bar to your upper chest, not behind your neck.","Start each rep by driving your shoulders down, then pull your elbows down towards your back pockets — think elbows, not hands.","Feeling it in your forearms? Wrap your thumbs over the bar alongside your fingers and treat your hands as hooks, or use lifting straps.","Lean back slightly and hold that angle — don't rock back and forth. Drop the weight until you can feel your lats doing the work."]},
  cablerow:{n:"Cable Row",g:"Back",alts:["Single-arm DB Row","Chest-Supported Row","Inverted Row"],
   c:["Sit tall with a slight knee bend and keep your chest up.","Pull to your stomach, squeezing the shoulder blades together at the end.","Let the weight stretch your lats on the return, but don't let your back round."]},
  dbrow:{n:"Single-arm DB Row",g:"Back",alts:["Cable Row","Chest-Supported Row","Inverted Row"],

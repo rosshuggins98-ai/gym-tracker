@@ -3,9 +3,13 @@
 ## Data model
 
 ```js
-PLAN = { name, startedISO, days: [ { id, name, tag, av, warm, items:[ {ex, sets, reps[], rest?, super?} ] } ] }
+PLAN = { name, startedISO, days: [ { id, name, tag, av, warm, items:[ {ex, sets, reps[], lo?, wu?, rest?, super?} ] } ] }
 LIB  = { exerciseId: { n, g: group, alts: [...], c: [form cues], custom?: true } }
 ```
+
+`reps[]` is the top of the rep range per set and `lo` the bottom (absent: a default
+from the top, see `loFor()`); `wu` is the number of warm-up rows shown above set 1,
+which are not planned sets.
 
 The plan references exercises by id. **All logged data is keyed by exercise id**, so
 moving an exercise between days, reordering, removing, or re-adding preserves
@@ -35,11 +39,12 @@ legacy weights. So a new preset shows real numbers from its first session.
 | Key | Contents |
 |---|---|
 | `gt4_plan` | the editable plan |
-| `gt4_cur` | in-progress session `{dayId: {exId: [{w,r,done,t?}]}}` -- `t` is the set type: undefined ('work'), 'warm', 'amrap', or 'drop' |
+| `gt4_cur` | in-progress session `{dayId: {exId: [{w,r,done,t?,rt?}]}}` -- `t` is the set type: undefined ('work'), 'warm', 'amrap', or 'drop'; `rt` is true once the reps were typed or stepped (a ticked set without it is flagged as unconfirmed). An item with `wu` warm-up rows has them first, so working set i is at index `wu+i` |
 | `gt4_barweight` | plate calculator's bar weight, kg (default 20) |
 | `gt4_notes` | `{historyKey: text}`, per-exercise persistent notes (machine settings, bench angle, grip width) |
 | `gt4_prev` | last completed session per day `{dayId: {exId: [{w,r,done,t?}], _date}}`, drives the "last" hint; `_date` (from 2026-09-16) ranks days when `lastSrc()` falls back to another day |
-| `gt4_hist` | `{historyKey: [{date, top, reps, vol?}]}` -- `vol` (sets x reps x kg, working sets only) is present from 2026-09-11 onward; older entries lack it and count as 0 toward volume stats rather than being guessed at |
+| `gt4_hist` | `{historyKey: [{date, top, reps, vol?, sets?}]}` -- `vol` (sets x reps x kg, working sets only) is present from 2026-09-11 onward; older entries lack it and count as 0 toward volume stats rather than being guessed at. `sets` (every ticked set, `{w, r, t?}`) from 2026-09-23 |
+| `gt4_dedupe1` | set once the one-off duplicate-session clean-up (`dropDupeDays`) has run |
 | `gt4_weektarget` | sessions/week target shown on the main screen (default 3) |
 | `gt4_routines` | `[{id, label, savedISO, days}]`, named snapshots of `PLAN.days`, switchable from the plan editor |
 | `gt4_swaps` | `{exId: alternativeName}` |

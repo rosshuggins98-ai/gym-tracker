@@ -78,9 +78,22 @@ exercise, not by day (see ARCHITECTURE.md), so that gives the big compounds a se
 touch each week instead of starting a disconnected set of numbers.
 
 ## Progression
-Top-set weight is the tracked metric, with reps recorded alongside. When all sets hit
-target reps with good form, add the smallest available jump — 2.5kg on barbell work,
-1–2kg on isolation. The app suggests this on each chart and in Progress.
+Double progression over a rep range (e.g. 3 × 8–12), the "top set + floor" variant
+agreed on 2026-10-07: stay at a weight until the **first** set at it reaches the top
+of the range **and no set drops below the bottom**, then add one jump (2kg
+dumbbells, 5kg pin stacks, 2.5kg elsewhere). Chosen over "every set at the top"
+because the user's reps fall off across sets (13 → 10 → 5), so the strict rule
+would hold him at each weight for weeks. Under the floor right after a jump is
+expected; two sessions running under it means go back to the previous weight.
+The app shows the call, and the reason for a "stay", on each exercise card.
+
+The user trains at a gym (dumbbells in 2kg steps: 18, 20, 22, 24) and at home with
+an adjustable set in 2kg steps offset by half a kilo (20.5, 22.5). Both log to the
+same exercise; the jump is 2kg either way, so the suggested weight may be the home
+or the gym version of the next dumbbell.
+
+Warm-ups go in warm-up rows (**+ Warm-up** on the card) rather than as an extra
+planned set, so they don't count against the sets the coach expects.
 
 ## Trade-offs consciously accepted
 - PPL hits each muscle once a week; 3-day full-body hits each two to three times,

@@ -59,3 +59,15 @@ async function pullLegacyWeights(){
  return out;
 }
 
+/* One-off, 2026-10-07: drop an entry that repeats the one before it exactly
+   (top, reps, volume and sets) a day later -- the same session saved twice
+   (seen on 15/16 Sep). Volume must be recorded and non-zero, so an older
+   top-set-only entry that happens to match is left alone. Run once at boot
+   (flag gt4_dedupe1) and on every import, never on live logging. */
+function dropDupeDays(h){ let n=0;
+ Object.keys(h||{}).forEach(k=>{ const a=h[k]; if(!Array.isArray(a)) return;
+  for(let i=a.length-1;i>0;i--){ const e=a[i], p=a[i-1];
+   const gap=(new Date(e.date)-new Date(p.date))/864e5;
+   if(gap>=0&&gap<=1&&e.top===p.top&&e.reps===p.reps&&e.vol>0&&e.vol===p.vol&&
+      JSON.stringify(e.sets||null)===JSON.stringify(p.sets||null)){ a.splice(i,1); n++; } } });
+ return n; }

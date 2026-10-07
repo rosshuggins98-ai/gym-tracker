@@ -1,9 +1,13 @@
 /* ============ COACH ============
-   Double progression, the plan's own rule: stay at a weight until every
-   planned set hits its target reps, then add one jump. Read from the last
-   history entry for the slot's key, so it follows the exercise across days.
-   Entries from before 2026-09-23 have no `sets`, only the top set, so for
-   those "hit" means the top set reached the highest target. */
+   Double progression over a rep range (it.reps = top, loFor(it) = bottom),
+   "top set + floor" variant, agreed 2026-10-07 because the user's reps fall
+   off across sets (13, 10, 5): stay at a weight until the first set at it
+   reaches the top of the range AND no set drops below the bottom, then add
+   one jump. Read from the last history entry for the slot's key, so it
+   follows the exercise across days. Entries from before 2026-09-23 have no
+   `sets`, only the top set, so for those "hit" means the top set reached the
+   top of the range. Every call carries a `why` for anything but a hit, so
+   "stay" is never a mystery. */
 
 /* Weight jump per exercise. Dumbbells go up a pair at a time (2kg),
    pin-loaded machines a plate on the stack (5kg), barbells, cables and
@@ -37,41 +41,99 @@ function workSets(e){
    reps for bodyweight work. */
 function entryScore(e){ let m=0;
  workSets(e).forEach(s=>{ const v=s.w>0?e1RM(s.w,s.r):(s.r||0); if(v>m) m=v; }); return m; }
-/* No session in the last three beat the best before them. Needs four. */
+/* No session in the last three beat the best before them. Needs four. Not a
+   stall while the weight is climbing back by at least a jump across those
+   three -- that's a reset already under way (lat pulldown: 55 -> 40, 45, 50). */
 function stalled(k){ const h=hist[k]||[]; if(h.length<4) return false;
+ const win=h.slice(-3), inc=incFor(k);
+ if(inc>0&&win[2].top-win[0].top>=inc) return false;
  const sc=h.map(entryScore);
  return Math.max.apply(null,sc.slice(-3))<=Math.max.apply(null,sc.slice(0,-3)); }
 const r25=w=>Math.round(w*4)/4;
-/* What to do next time. it (the plan item) supplies the targets; without one
-   the top set's reps are the only bar. Returns null when there's no history.
-     up    - every target hit: add a jump
-     stay  - same weight, beat last time's reps
+/* The sets the coach judges in a per-set entry. Leading sets more than 10%
+   lighter than the top weight are a ramp-up -- warm-ups whether or not they
+   were marked (leg press 100, then 160 x 2). warm counts flagged + ramp.
+   null for an entry that only has its top set. */
+function judged(e){
+ if(!(e&&Array.isArray(e.sets)&&e.sets.length)) return null;
+ const flagged=e.sets.filter(s=>s.t==='warm').length, ws=e.sets.filter(s=>s.t!=='warm');
+ if(!ws.length) return null;
+ const top=Math.max.apply(null,ws.map(s=>s.w));
+ let ramp=0; while(top>0&&ramp<ws.length-1&&ws[ramp].w<top*0.9) ramp++;
+ return {top,sets:ws.slice(ramp),warm:flagged+ramp,logged:e.sets.length};
+}
+/* Working sets to expect at the top weight. A warm-up logged in one of the
+   planned rows (set 1 marked warm-up) uses up a planned set; one logged in an
+   extra row (a warm-up row, wu, or "+ Set" then marked) doesn't. */
+function setsNeeded(P,J,wu){ const W=Math.max(0,J.warm-wu), L=Math.max(0,J.logged-wu);
+ return Math.max(1,P-Math.max(0,W-Math.max(0,L-P))); }
+/* First set at the entry's top weight: {top, r}. */
+function firstAtTop(e){ const J=judged(e);
+ if(J){ const s=J.sets.filter(x=>x.w===J.top)[0]; return {top:J.top,r:s?(s.r||0):0}; }
+ return (e&&e.top!=null)?{top:e.top,r:e.reps||0}:null; }
+/* What to do next time. it (the plan item) supplies the range; without one
+   (an exercise that isn't planned) there's nothing to judge, so "stay".
+   Returns null when there's no history.
+     up    - top of the range reached, floor held: add a jump
+     stay  - same weight; why says what's missing
+     down  - two sessions running below the floor at this weight: go back
+             to the weight before (one session under is normal after a jump)
      stall - three sessions without beating the old best: drop ~10% and
-             build back up to the targets (a reset usually passes the old
-             best within a few weeks)
-     reps  - bodyweight: every target hit, so add a rep (no weight to add) */
+             build back up (a reset usually passes the old best within weeks)
+     reps  - bodyweight: range topped out, so add a rep (no weight to add) */
 function coach(k,it){
  const h=hist[k]||[]; if(!h.length) return null;
  const last=h[h.length-1], ws=workSets(last); if(!ws.length) return null;
  const inc=incFor(k), targets=it?repsFor(it):null;
- const top=Math.max.apply(null,ws.map(s=>s.w)), atTop=ws.filter(s=>s.w===top), reps=atTop.map(s=>s.r);
- const need=t=>typeof t==='number'?t:0;
- let hit;
- if(Array.isArray(last.sets)&&last.sets.length&&targets)
-  hit=atTop.length>=targets.length&&targets.every((t,i)=>(atTop[i].r||0)>=need(t));
- else hit=last.reps!=null&&last.reps>=Math.max.apply(null,(targets||[last.reps]).map(need));
+ const J=judged(last), top=J?J.top:Math.max.apply(null,ws.map(s=>s.w));
+ const atTop=(J?J.sets:ws).filter(s=>s.w===top), reps=atTop.map(s=>s.r);
  const base={from:top,reps,targets};
- if(hit) return Object.assign(base,inc>0?{kind:'up',w:r25(top+inc)}:{kind:'reps',w:top});
- if(inc>0&&stalled(k)){
-  let w=Math.floor(top*0.9/inc)*inc; if(w>=top) w=top-inc;
-  if(w>0) return Object.assign(base,{kind:'stall',w:r25(w)});
+ const stay=why=>Object.assign(base,{kind:'stay',w:top,why});
+ if(!targets) return stay('');
+ const hi=topRep(it), lo=loFor(it);
+ if(!hi) return stay('');   /* all sets "max": beat last time */
+ base.lo=lo; base.hi=hi;
+ let hit=false, why='';
+ if(J){
+  const need=Math.min(targets.length,setsNeeded(targets.length,J,wuOf(it))), use=atTop.slice(0,need);
+  const first=use.length?(use[0].r||0):0, low=use.filter(s=>(s.r||0)<lo);
+  if(use.length<need){
+   const lighter=J.sets.filter(s=>s.w<top)[0];
+   why='Only '+use.length+' of '+need+' sets at '+top+'kg'+(lighter?' (one was '+lighter.w+'kg)':'')+' — '+(need===2?'both':'all '+need)+' need to be at '+top+'kg.';
+   if(J.sets[0].w<top) why+=' If that lighter set was a warm-up, tap its number to mark it.';
+  }
+  else if(first<hi) why='First set: '+first+' reps. Go up when it reaches '+hi+(low.length?', with every set at '+lo+'+':'')+'.';
+  else if(low.length) why='A set dropped to '+low[0].r+' — every set needs '+lo+'+ before going up.';
+  else hit=true;
+ } else {
+  const r=last.reps||0;
+  if(r>=hi) hit=true; else why='Top set: '+(r||'?')+' reps. Go up when it reaches '+hi+'.';
  }
- return Object.assign(base,{kind:'stay',w:top});
+ if(hit) return Object.assign(base,inc>0?{kind:'up',w:r25(top+inc)}:{kind:'reps',w:top});
+ if(inc>0){
+  const f=firstAtTop(last);
+  if(f&&f.r<lo){
+   const p=h.length>1?firstAtTop(h[h.length-2]):null;
+   if(p&&p.top===top&&p.r<lo){
+    /* back to the weight before this one, else one jump down */
+    const before=h.slice(0,-1).map(e=>e.top).filter(w=>w<top).pop();
+    const w=before!=null?before:r25(top-inc);
+    if(w>0) return Object.assign(base,{kind:'down',w,why:'Under '+lo+' reps at '+top+'kg two sessions running — go back to '+w+'kg and build up to '+hi+'.'});
+   }
+   why='Under the '+lo+'-rep floor — normal straight after a jump. Stay and build up; if it\'s still under '+lo+' next time, drop back.';
+  }
+  if(stalled(k)){
+   let w=Math.floor(top*0.9/inc)*inc; if(w>=top) w=top-inc;
+   if(w>0) return Object.assign(base,{kind:'stall',w:r25(w),why:'No progress in your last 3 sessions.'});
+  }
+ }
+ return stay(why);
 }
 function coachPill(c){
  if(!c) return '';
  const r=c.reps.map(x=>x==null?'?':x).join('·');
  if(c.kind==='up') return '▲ Go '+c.w+'kg';
+ if(c.kind==='down') return '▼ Back to '+c.w+'kg';
  if(c.kind==='stall') return 'Stalled · reset to '+c.w+'kg';
  if(c.kind==='reps') return '▲ Add a rep per set';
  return (c.w>0?'Stay '+c.w+'kg · ':'')+'beat '+r;
@@ -79,15 +141,16 @@ function coachPill(c){
 function coachText(c){
  if(!c) return '';
  const last=(c.w>0||c.from>0?c.from+'kg × ':'')+c.reps.map(x=>x==null?'?':x).join(', ');
- const tg=c.targets?c.targets.map(t=>typeof t==='number'?t:'max').join(', '):null;
- if(c.kind==='up') return 'Last time: '+last+' — every target hit. Go up to <b>'+c.w+'kg</b>. Expect fewer reps at first; stay there until every set reaches its target again.';
- if(c.kind==='reps') return 'Last time: '+last+' — every target hit. Aim for one more rep on each set.';
- if(c.kind==='stall') return 'No progress in your last 3 sessions. Drop to <b>'+c.w+'kg</b> and build back up to '+(tg||'your target')+' — a reset like this usually passes the old best within a few weeks. Or swap to an alternative for a while.';
- return 'Last time: '+last+'. Stay at '+(c.w>0?c.w+'kg':'bodyweight')+' and beat those reps'+(tg?' — go up once every set hits '+tg:'')+'.';
+ const rg=c.hi?(c.lo&&c.lo<c.hi?c.lo+'–'+c.hi:String(c.hi)):null;
+ if(c.kind==='up') return 'Last time: '+last+' — top of the range reached. Go up to <b>'+c.w+'kg</b>. Expect fewer reps at first; that\'s the bottom of the range, and you build back up from there.';
+ if(c.kind==='reps') return 'Last time: '+last+' — top of the range reached. Aim for one more rep on each set.';
+ if(c.kind==='down') return 'Last time: '+last+'. '+c.why;
+ if(c.kind==='stall') return 'No progress in your last 3 sessions. Drop to <b>'+c.w+'kg</b> and build back up'+(rg?' through '+rg+' reps':'')+' — a reset like this usually passes the old best within a few weeks. Or swap to an alternative for a while.';
+ return 'Last time: '+last+'. Stay at '+(c.w>0?c.w+'kg':'bodyweight')+(c.why?'. '+c.why:' and beat those reps.');
 }
 /* Tap the coach pill: put its weight in every unticked working set. */
-function applyCoach(d,it,w){
- repsFor(it).forEach((_,i)=>{ const y=slot(d.id,it.ex,i); if(!y.done&&y.t!=='warm') y.w=String(w); });
+function applyCoach(d,it,w){ const wu=wuOf(it);
+ repsFor(it).forEach((_,i)=>{ const y=slot(d.id,it.ex,wu+i); if(!y.done&&y.t!=='warm') y.w=String(w); });
  queueSave(); flush(); render(); }
 
 /* Rep records: the heaviest weight lifted for at least N reps, from every

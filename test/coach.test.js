@@ -5,23 +5,89 @@ const deq=(a,b,m)=>assert.deepEqual(plain(a),b,m);
 const it3=(ex,r)=>({ex,sets:3,reps:[r,r,r]});
 const S=(w,...rs)=>rs.map(r=>({w,r}));
 
-test('coach: every target hit -> go up one jump; one short -> stay and beat the reps',async()=>{
+test('coach: first set at the top of the range, floor held -> go up one jump; else stay',async()=>{
  const {app,set}=await load();
  set('incs',{});
  set('hist',{dbbench:[{date:'2026-09-20',top:20,reps:10,sets:[{w:8,r:10,t:'warm'}].concat(S(20,10,10,10))}],
-  legext:[{date:'2026-09-20',top:65,reps:10,sets:S(65,12,11,10)}]});
+  legext:[{date:'2026-09-20',top:65,reps:11,sets:S(65,11,10,9)}]});
  const up=app.coach('dbbench',it3('dbbench',10));
  assert.equal(up.kind,'up'); assert.equal(up.w,22,'dumbbells jump 2kg; the warm-up is ignored');
  const stay=app.coach('legext',it3('legext',12));
- assert.equal(stay.kind,'stay'); assert.equal(stay.w,65); deq(stay.reps,[12,11,10]);
- assert.equal(app.coachPill(stay),'Stay 65kg · beat 12·11·10');
+ assert.equal(stay.kind,'stay'); assert.equal(stay.w,65); deq(stay.reps,[11,10,9]);
+ assert.equal(app.coachPill(stay),'Stay 65kg · beat 11·10·9');
+ assert.match(stay.why,/First set: 11 reps\. Go up when it reaches 12/);
  assert.equal(app.coachPill(up),'▲ Go 22kg');
+});
+
+test('rep ranges: bottom defaults from the top, it.lo overrides, labels only for uniform sets',async()=>{
+ const {app}=await load();
+ assert.equal(app.loFor(it3('x',10)),8); assert.equal(app.loFor(it3('x',12)),8);
+ assert.equal(app.loFor(it3('x',15)),12); assert.equal(app.loFor(it3('x',14)),11,'else about 3/4');
+ assert.equal(app.loFor(Object.assign(it3('x',12),{lo:10})),10);
+ assert.equal(app.loFor(Object.assign(it3('x',12),{lo:12})),8,'a bottom at or above the top is ignored');
+ assert.equal(app.rangeLabel(it3('x',12)),'8–12');
+ assert.equal(app.rangeLabel({ex:'x',sets:3,reps:[12,10,8]}),null);
+ assert.equal(app.loFor({ex:'x',sets:2,reps:['max','max']}),null);
+});
+
+test('coach: top set + floor -- reps falling off across sets still progress, collapsing ones do not',async()=>{
+ const {app,set}=await load();
+ const one=sets=>{ set('hist',{dbbench:[{date:'2026-09-20',top:22,reps:12,sets}]}); return app.coach('dbbench',it3('dbbench',12)); };
+ assert.equal(one(S(22,12,10,8)).kind,'up','12, 10, 8 on 8-12');
+ const c=one(S(22,13,10,5));
+ assert.equal(c.kind,'stay'); assert.match(c.why,/dropped to 5 .* 8\+/);
+ assert.equal(one(S(22,11,10,9)).kind,'stay');
+});
+
+test('coach: a lighter leading set is a ramp-up; warm-ups in extra rows cost no planned set',async()=>{
+ const {app,set}=await load();
+ const it=it3('legpress',12);
+ set('hist',{legpress:[{date:'2026-09-30',top:160,reps:13,sets:[{w:100,r:10}].concat(S(160,12,13))}]});
+ assert.equal(app.coach('legpress',it).kind,'up','100 is a ramp, so 2 of the 3 planned rows were working sets');
+ set('hist',{legpress:[{date:'2026-09-30',top:160,reps:12,sets:[{w:100,r:10,t:'warm'}].concat(S(160,12,12))}]});
+ assert.equal(app.coach('legpress',{ex:'legpress',sets:3,reps:[12,12,12],wu:1}).kind,'stay',
+  'a warm-up row is extra: all 3 planned sets are still due');
+ set('hist',{dbbench:[{date:'2026-09-27',top:22,reps:10,sets:[{w:20,r:10}].concat(S(22,10,8,9))}]});
+ const c=app.coach('dbbench',{ex:'dbbench',sets:4,reps:[10,10,10,10]});
+ assert.equal(c.kind,'stay','20 is within 10% of 22, so it counts as a working set');
+ assert.match(c.why,/Only 3 of 4 sets at 22kg \(one was 20kg\)/); assert.match(c.why,/tap its number/);
+ set('hist',{dbbench:[{date:'2026-09-27',top:22,reps:10,sets:[{w:20,r:10,t:'warm'}].concat(S(22,10,8,9))}]});
+ assert.equal(app.coach('dbbench',{ex:'dbbench',sets:4,reps:[10,10,10,10]}).kind,'up',
+  'marked as a warm-up in one of 4 planned rows: 3 working sets are what was planned');
+});
+
+test('coach: under the floor once is normal after a jump; twice running at that weight -> back down',async()=>{
+ const {app,set}=await load();
+ const it=it3('incline',10);
+ set('hist',{incline:[{date:'2026-09-21',top:18,reps:11,sets:S(18,11,10,9)},{date:'2026-10-04',top:20.5,reps:7,sets:S(20.5,7,5,6)}]});
+ const once=app.coach('incline',it);
+ assert.equal(once.kind,'stay'); assert.match(once.why,/Under the 8-rep floor/);
+ app.hist.incline.push({date:'2026-10-08',top:20.5,reps:7,sets:S(20.5,7,6,6)});
+ const twice=app.coach('incline',it);
+ assert.equal(twice.kind,'down'); assert.equal(twice.w,18,'back to the weight used before, not a computed one');
+ assert.equal(app.coachPill(twice),'▼ Back to 18kg');
+});
+
+test('coach: an exercise that is not in the plan has nothing to judge, so it never says go up',async()=>{
+ const {app,set}=await load();
+ set('hist',{mchest:[{date:'2026-08-28',top:45,reps:12}]});
+ assert.equal(app.coach('mchest',null).kind,'stay');
+});
+
+test('stall: not while the weight is climbing back after a reset',async()=>{
+ const {app,set}=await load();
+ set('hist',{latpulldown:[{date:'2026-09-09',top:55,reps:10},{date:'2026-09-21',top:40,reps:10,sets:S(40,10,10,10)},
+  {date:'2026-09-27',top:45,reps:12,sets:S(45,12,12,12)},{date:'2026-09-30',top:50,reps:10,sets:S(50,10).concat(S(45,11,8))}]});
+ assert.equal(app.stalled('latpulldown'),false);
 });
 
 test('coach: fewer sets than planned is not a hit, and only sets at the top weight count',async()=>{
  const {app,set}=await load();
  set('hist',{dbbench:[{date:'2026-09-20',top:22,reps:10,sets:S(22,10).concat(S(20,10,10))}]});
- assert.equal(app.coach('dbbench',it3('dbbench',10)).kind,'stay');
+ const c=app.coach('dbbench',it3('dbbench',10));
+ assert.equal(c.kind,'stay'); assert.match(c.why,/Only 1 of 3 sets at 22kg/);
+ set('hist',{lateral:[{date:'2026-10-04',top:6.5,reps:12,sets:S(6.5,15,15)}]});
+ assert.equal(app.coach('lateral',it3('lateral',15)).kind,'stay','2 sets done, 3 planned');
 });
 
 test('coach: entries from before per-set history fall back to the top set',async()=>{

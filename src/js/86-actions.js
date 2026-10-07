@@ -1,6 +1,25 @@
 /* ============ ACTIONS ============ */
 function switchDay(id){ if(id===ACTIVE)return; flush(); ACTIVE=id; Store.set('gt4_active',id); render(); window.scrollTo({top:0}); }
-function openSheet(){ applyAccent(); document.getElementById('sheetbg').classList.add('show'); }
+function openSheet(){ applyAccent();
+ const w=finishChecks(day(ACTIVE)), el=document.getElementById('finishWarn');
+ el.innerHTML=w.length?'<b>Worth a look before saving:</b>'+w.map(x=>'<div>'+x+'</div>').join(''):'';
+ el.style.display=w.length?'block':'none';
+ document.getElementById('sheetbg').classList.add('show'); }
+/* Things that usually mean a mis-log, listed on the finish sheet (never
+   blocking): an exercise whose ticked sets match its last history entry set
+   for set -- the 15/16 Sep duplicate, or last time's prefill ticked through --
+   and working sets ticked without the reps being typed. */
+function finishChecks(d){ const out=[]; let untyped=0;
+ d.items.forEach(it=>{ if(it.skip) return;
+  const a=(cur[d.id]&&cur[d.id][it.ex])||[], sets=doneSets(a), k=hkey(it.ex,swaps[it.ex]||null), nm=vName(it.ex,swaps[it.ex]||null);
+  a.forEach(x=>{ if(repsUnconfirmed(x)) untyped++; });
+  const h=hist[k], last=h&&h[h.length-1];
+  const sig=ss=>JSON.stringify((ss||[]).map(s=>[s.w,s.r,s.t||'']));
+  if(sets.length&&last&&last.date!==today()&&Array.isArray(last.sets)&&sig(last.sets)===sig(sets))
+   out.push(escHTML(nm)+' is identical to last time ('+shortDate(last.date)+'), set for set.');
+ });
+ if(untyped) out.push(untyped+' set'+(untyped===1?'':'s')+' ticked without typing the reps — saved as the target or last time\'s number.');
+ return out; }
 function closeSheet(){ document.getElementById('sheetbg').classList.remove('show'); }
 document.getElementById('sheetbg').addEventListener('click',e=>{ if(e.target.id==='sheetbg')closeSheet(); });
 async function doNewSession(){

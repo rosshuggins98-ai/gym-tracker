@@ -130,7 +130,7 @@ function openProgress(){
    const st=tg.filter(t=>t.co.kind==='stall').length;
    h+='<h5>What to beat next</h5>'+tg.map(t=>'<div class="goal"><span class="nm">'+t.nm+(t.trend?TREND_ICON[t.trend]:'')+'</span>'+
     '<span class="tg">'+coachPill(t.co)+'</span></div>').join('');
-   h+='<div class="note">Stay at a weight until every set hits its target reps, then go up one jump.'+
+   h+='<div class="note">Stay at a weight until your first set reaches the top of its rep range with no set below the bottom, then go up one jump.'+
     (st?' <b>'+st+' stalled</b> — no progress in 3 sessions, so a lighter reset is suggested.':'')+
     ' Arrow is the trend over your last 4 sessions.</div>';
   }

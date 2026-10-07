@@ -7,7 +7,7 @@ function summarise(d){
  let setsDone=0, setsPlanned=setCount(d), vol=0, prevVol=0; const pbs=[], tops=[];
  d.items.forEach(it=>{
   const a=c[it.ex]||[], k=hkey(it.ex,swaps[it.ex]||null), nm=vName(it.ex,swaps[it.ex]||null);
-  a.forEach(x=>{ if(x&&x.done) setsDone++; });
+  a.forEach(x=>{ if(x&&x.done&&x.t!=='warm') setsDone++; });
   vol+=exVolume(a); if(Array.isArray(p[it.ex])) prevVol+=exVolume(p[it.ex]);
   const e=topWithReps(d.id,it.ex);
   if(e){ tops.push({nm,top:e.top,reps:e.reps});
