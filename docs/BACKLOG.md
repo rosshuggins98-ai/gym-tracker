@@ -7,6 +7,23 @@ constraints in `CLAUDE.md` still apply to everything below.
 Most of this came out of a review of long-term tracking on 2026-09-23. Parts A and
 B of that review are done (see the end of this file). What's left builds on them.
 
+## Next up (agreed 2026-10-07, in this order)
+
+From a review of the user's real backup (13 Aug – 4 Oct). The coach rework and
+the weekly check-in from that review are done (see "Done").
+
+1. **Gym / home tag per session.** The user trains at a gym (dumbbells 18, 20,
+   22, 24) and at home with an adjustable set (20.5, 22.5). Both log to the same
+   exercise, so 22 → 22.5 looks like progress and back like a drop. One tap when
+   the session starts, stored on each history entry; the chart could colour points
+   by place, and the coach could suggest the next dumbbell that exists there.
+2. **One-tap effort rating** (easy / solid / hard) on the summary sheet — see
+   section E. More useful now: his reps fall off sharply across sets, and a
+   rating separates fatigue from a weight that's too heavy.
+3. **Since-you-started per exercise, then "Biggest gains" in Progress** — section C.
+   The check-in's "best lift" covers one week; this is the long view.
+4. **Monthly report and milestones** — section C.
+
 ## What the data can support now
 
 - History entries are `{date, top, reps, vol, sets}`. **`sets` only exists from
@@ -36,11 +53,8 @@ B of that review are done (see the end of this file). What's left builds on them
 
 ## D. Training balance
 
-- **Hard sets per muscle per week.** Count ticked working sets (not warm-ups) per
-  muscle group and compare against the usual 10–20 sets/week range. It replaces
-  the kg-volume-per-group view in Progress, which mostly measures which machines
-  are heavy. Needs `sets` (a fallback for older entries is the planned set
-  count).
+- ~~Hard sets per muscle per week~~ — done 2026-10-07 against the plan's own
+  weekly sets rather than a fixed 10–20 range (see "Done"). Still coarse groups.
 - **Finer muscle groups, with secondary muscles.** Quads, hamstrings, glutes,
   calves, chest, back, shoulders, biceps and triceps, with a weight per muscle
   on each library entry. For example, dumbbell bench = chest 1, triceps 0.5,
@@ -81,12 +95,15 @@ B of that review are done (see the end of this file). What's left builds on them
   last session on that day). It could compare set by set from history instead,
   which also works when the exercise was last done on a different day.
 - **Coach, stall check:** it treats "no session in the last 3 beat the best
-  before them" as a stall. Revisit once there's a few months of data: it may
-  need a minimum time span, or to ignore sessions that come straight after a
-  reset.
-- **Default weight jumps** in `58-coach.js` (`INC_DB`, `INC_MACHINE`) are
-  guesses about the user's gym. Worth checking with him which machines are pin
-  stacks and what the steps are.
+  before them" as a stall. Since 2026-10-07 it ignores a window where the weight
+  climbed by at least a jump (a reset under way). Revisit once there's a few
+  months of data: it may still need a minimum time span.
+- **Default weight jumps** in `58-coach.js`: confirmed 2026-10-07 that his gym's
+  dumbbells go up 2kg and the home set 2kg from x.5. Pin-stack vs plate-loaded
+  for each machine is still a guess.
+- **Plan A still has 4 bench sets** because a warm-up used to be logged as an
+  extra set. Once he uses the warm-up row, suggest dropping A's bench back to 3
+  (the coach currently wants 4 working sets there, so A and C disagree).
 
 ## Older ideas (moved from CLAUDE.md)
 
@@ -111,3 +128,11 @@ B of that review are done (see the end of this file). What's left builds on them
 - 2026-09-23 `de0c7ed`: **B.** Progression coach on each card (go up / stay /
   reset after a stall); weight jumps per exercise; rep records and rep-range
   PBs; estimated 1RM shown only for ≤10 reps.
+- 2026-10-07 `86850a5`: **Coach rework.** Rep ranges (`it.lo`), "top set +
+  floor" progression, ramp-up detection, a reason on every "stay", back-off after
+  two sessions under the floor, no stall while climbing back; warm-up rows;
+  weight steps by equipment; untyped-reps marker and finish-sheet checks
+  (identical to last time); one-off clean-up of the 15/16 Sep duplicate.
+- 2026-10-07 `3ba9554`: **Weekly view.** Sets per muscle group vs the plan,
+  "Still to do this week" strip, Monday check-in card (sessions, balance,
+  neglected lifts, resets, best lift), same in Progress.
