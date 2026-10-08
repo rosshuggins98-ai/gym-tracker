@@ -169,6 +169,13 @@
  .plrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:12.5px}
  .plrow .dt{width:48px;flex-shrink:0;color:var(--muted);font-weight:700}
  .plrow .ls{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .place.effort{flex-wrap:wrap;margin-top:14px}
+ .place.effort .note{flex-basis:100%;margin:2px 0 0}
+ .place.effort button{padding:6px 11px}
+ .place.effort button.off.on{background:var(--warn);border-color:var(--warn)}
+ i.eff{display:block;font-style:normal;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
+ .plrow i.eff{display:inline;margin-right:6px}
+ i.eff.hard{color:var(--accent)} i.eff.off{color:var(--warn)} i.eff.easy{color:var(--done)}
  .mini.hpl{width:auto;padding:0 8px;font-size:10.5px;font-weight:800}
  .mini.hpl.home{color:var(--accent);border-color:var(--accent)}
  .cx-lbl{fill:var(--text);font-size:11px;font-weight:700} .cx-ax{fill:var(--dim);font-size:10px;font-weight:600}

@@ -50,7 +50,7 @@ function sessionsByDate(){ const by={};
 function placeBlock(){ const ss=sessionsByDate(); if(!ss.length) return '';
  const show=placeAll?ss:ss.slice(0,8);
  return '<h5>Where you trained</h5>'+show.map(s=>'<div class="plrow"><span class="dt">'+shortDate(s.date)+'</span>'+
-  '<span class="ls">'+s.lifts.slice(0,3).join(', ')+'</span>'+
+  '<span class="ls">'+(effortOf(s.date)?'<i class="eff '+effortOf(s.date)+'">'+EFFORTS[effortOf(s.date)]+'</i>':'')+s.lifts.slice(0,3).join(', ')+'</span>'+
   '<button class="mini hpl'+(s.at==='home'?' home':'')+'" data-date="'+s.date+'">'+PLACES[s.at]+'</button></div>').join('')+
   (ss.length>show.length?'<button class="dbtn" id="plMore">Show all '+ss.length+' sessions</button>':'')+
   '<div class="note">Tap to switch a session between gym and home. The coach and your "last time" weights only compare sessions from the same place, so gym 22kg and home 22.5kg aren\'t read as progress.</div>'; }

@@ -59,7 +59,7 @@ cache-first would either never match (offline broken) or show the previous build
 One script scope; later modules call earlier ones. `src/js/`:
 `10-lib` (exercise library + cues) → `20-plans` (`DEFAULT_PLAN`, `FULL_BODY_PLAN`,
 `PRESETS`, `MIGRATE`, `BUILD`) → `30-storage` → `40-state` (helpers, PB, prefill,
-supersets, rest) → `50-render` → `55-rest` → `57-place` (gym / home) → `58-coach` → `60-progress` → `61-week` (sets per
+supersets, rest) → `50-render` → `55-rest` → `57-place` (gym / home) → `58-coach` → `59-effort` → `60-progress` → `61-week` (sets per
 muscle group, check-in, still-to-do strip, days done this week) → `62-cues` →
 `63-compare` (Progress "How you're doing": span vs the span before) → `64-swap` →
 `66-plates` → `68-chart` → `70-editor` → `72-routines` → `74-theme` → `76-data`
@@ -148,6 +148,10 @@ with a newline.
   skips a prev from the other place once this place has history. PBs, the
   check-in and Compare are still place-blind (Compare labels home sessions).
   Past sessions are re-tagged a whole date at a time (`tagDate`).
+- **Effort** (`59-effort`): Easy / Solid / Hard / Off day, one tap on the summary
+  sheet, kept per date in `efforts` (`gt4_effort`, `effort` in backups), not on
+  history entries. `coach()` drops off-day entries before judging (unless that
+  leaves none) and says so in `why`; the other ratings are only shown.
 - **Days done this week**: read from `prev[dayId]._date` (stamped on finish), not
   history -- history entries don't record which day they came from. The tabs show
   "✓ Done Tue" and mark the not-done day finished longest ago as "Up next".

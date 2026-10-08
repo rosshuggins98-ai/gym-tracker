@@ -85,13 +85,20 @@ function firstAtTop(e){ const J=judged(e);
    different dumbbells, not progress), or every session when the lift has
    never been done here -- then the weight is moved onto the nearest one
    this place's rack is known to have, for dumbbell lifts. */
+/* Sessions rated an off day (59-effort) are left out too, unless that
+   leaves nothing. */
 function coach(k,it){
- const all=hist[k]||[]; if(!all.length) return null;
+ const raw=hist[k]||[]; if(!raw.length) return null;
+ const on=raw.filter(e=>!offDay(e)), all=on.length?on:raw;
  const here=all.filter(e=>placeOf(e)===PLACE), c=coachOn(k,it,here.length?here:all);
- if(!c||here.length||incDefault(k)!==2||!(c.w>0)) return c;
- const w=snapW(rackAt(PLACE),c.w,c.kind==='up'?1:c.kind==='stay'?0:-1,c.from);
- if(w===c.w) return c;
- return Object.assign(c,{w,why:(c.why?c.why+' ':'')+'First time at '+PLACES[PLACE].toLowerCase()+' — '+w+'kg is the nearest weight you\'ve used there.'}); }
+ if(!c) return c;
+ const why=t=>{ c.why=(c.why?c.why+' ':'')+t; };
+ if(!here.length&&incDefault(k)===2&&c.w>0){
+  const w=snapW(rackAt(PLACE),c.w,c.kind==='up'?1:c.kind==='stay'?0:-1,c.from);
+  if(w!==c.w){ c.w=w; why('First time at '+PLACES[PLACE].toLowerCase()+' — '+w+'kg is the nearest weight you\'ve used there.'); } }
+ const last=raw[raw.length-1];
+ if(on.length&&offDay(last)) why('Last time ('+shortDate(last.date)+') was an off day, so this goes on the session before.');
+ return c; }
 function coachOn(k,it,h){
  const last=h[h.length-1], ws=workSets(last); if(!ws.length) return null;
  const inc=incFor(k), targets=it?repsFor(it):null;

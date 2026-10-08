@@ -64,7 +64,8 @@ function openChart(exId,dId){
 function histRows(h){
  if(!h.length) return '<div class="note">No sessions logged yet.</div>';
  return h.map((e,i)=>({e,i})).sort((a,b)=>a.e.date<b.e.date?1:-1)
-  .map(({e,i})=>'<div class="histrow" data-i="'+i+'"><span class="hdt">'+shortDate(e.date)+'</span>'+
+  .map(({e,i})=>'<div class="histrow" data-i="'+i+'"><span class="hdt">'+shortDate(e.date)+
+   (effortOf(e.date)?'<i class="eff '+effortOf(e.date)+'">'+EFFORTS[effortOf(e.date)]+'</i>':'')+'</span>'+
    '<input class="hw" inputmode="decimal" value="'+e.top+'"><span class="hx">kg ×</span>'+
    '<input class="hrp" inputmode="numeric" value="'+(e.reps!=null?e.reps:'')+'">'+
    '<button class="mini hpl'+(placeOf(e)==='home'?' home':'')+'">'+PLACES[placeOf(e)]+'</button>'+

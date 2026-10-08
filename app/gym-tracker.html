@@ -182,6 +182,13 @@
  .plrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:12.5px}
  .plrow .dt{width:48px;flex-shrink:0;color:var(--muted);font-weight:700}
  .plrow .ls{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .place.effort{flex-wrap:wrap;margin-top:14px}
+ .place.effort .note{flex-basis:100%;margin:2px 0 0}
+ .place.effort button{padding:6px 11px}
+ .place.effort button.off.on{background:var(--warn);border-color:var(--warn)}
+ i.eff{display:block;font-style:normal;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
+ .plrow i.eff{display:inline;margin-right:6px}
+ i.eff.hard{color:var(--accent)} i.eff.off{color:var(--warn)} i.eff.easy{color:var(--done)}
  .mini.hpl{width:auto;padding:0 8px;font-size:10.5px;font-weight:800}
  .mini.hpl.home{color:var(--accent);border-color:var(--accent)}
  .cx-lbl{fill:var(--text);font-size:11px;font-weight:700} .cx-ax{fill:var(--dim);font-size:10px;font-weight:600}
@@ -593,7 +600,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-10-08b";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-10-08c";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -1173,7 +1180,7 @@ function sessionsByDate(){ const by={};
 function placeBlock(){ const ss=sessionsByDate(); if(!ss.length) return '';
  const show=placeAll?ss:ss.slice(0,8);
  return '<h5>Where you trained</h5>'+show.map(s=>'<div class="plrow"><span class="dt">'+shortDate(s.date)+'</span>'+
-  '<span class="ls">'+s.lifts.slice(0,3).join(', ')+'</span>'+
+  '<span class="ls">'+(effortOf(s.date)?'<i class="eff '+effortOf(s.date)+'">'+EFFORTS[effortOf(s.date)]+'</i>':'')+s.lifts.slice(0,3).join(', ')+'</span>'+
   '<button class="mini hpl'+(s.at==='home'?' home':'')+'" data-date="'+s.date+'">'+PLACES[s.at]+'</button></div>').join('')+
   (ss.length>show.length?'<button class="dbtn" id="plMore">Show all '+ss.length+' sessions</button>':'')+
   '<div class="note">Tap to switch a session between gym and home. The coach and your "last time" weights only compare sessions from the same place, so gym 22kg and home 22.5kg aren\'t read as progress.</div>'; }
@@ -1269,13 +1276,20 @@ function firstAtTop(e){ const J=judged(e);
    different dumbbells, not progress), or every session when the lift has
    never been done here -- then the weight is moved onto the nearest one
    this place's rack is known to have, for dumbbell lifts. */
+/* Sessions rated an off day (59-effort) are left out too, unless that
+   leaves nothing. */
 function coach(k,it){
- const all=hist[k]||[]; if(!all.length) return null;
+ const raw=hist[k]||[]; if(!raw.length) return null;
+ const on=raw.filter(e=>!offDay(e)), all=on.length?on:raw;
  const here=all.filter(e=>placeOf(e)===PLACE), c=coachOn(k,it,here.length?here:all);
- if(!c||here.length||incDefault(k)!==2||!(c.w>0)) return c;
- const w=snapW(rackAt(PLACE),c.w,c.kind==='up'?1:c.kind==='stay'?0:-1,c.from);
- if(w===c.w) return c;
- return Object.assign(c,{w,why:(c.why?c.why+' ':'')+'First time at '+PLACES[PLACE].toLowerCase()+' — '+w+'kg is the nearest weight you\'ve used there.'}); }
+ if(!c) return c;
+ const why=t=>{ c.why=(c.why?c.why+' ':'')+t; };
+ if(!here.length&&incDefault(k)===2&&c.w>0){
+  const w=snapW(rackAt(PLACE),c.w,c.kind==='up'?1:c.kind==='stay'?0:-1,c.from);
+  if(w!==c.w){ c.w=w; why('First time at '+PLACES[PLACE].toLowerCase()+' — '+w+'kg is the nearest weight you\'ve used there.'); } }
+ const last=raw[raw.length-1];
+ if(on.length&&offDay(last)) why('Last time ('+shortDate(last.date)+') was an off day, so this goes on the session before.');
+ return c; }
 function coachOn(k,it,h){
  const last=h[h.length-1], ws=workSets(last); if(!ws.length) return null;
  const inc=incFor(k), targets=it?repsFor(it):null;
@@ -1358,6 +1372,29 @@ function repRecords(k){ const best={};
 /* Estimated 1RM is only shown from sets of 10 reps or fewer: past that
    Epley overestimates badly (20kg × 20 reads as a 33kg max). */
 function e1RMShown(w,r){ return (r&&r<=10)?Math.round(e1RM(w,r)*10)/10:null; }
+/* ============ EFFORT: HOW THE SESSION FELT ============
+   One tap on the summary sheet, stored per date (one session a day) in
+   gt4_effort and backups, not per exercise. "Off day" (tired, ill, slept
+   badly) is the one the coach acts on: those sessions are left out of what
+   it judges, so a bad day can't trigger a "drop back" or a stall -- plain
+   "hard" can mean the weight is heavy, which is normal after a jump. */
+const EFFORTS={easy:'Easy',solid:'Solid',hard:'Hard',off:'Off day'};
+let efforts={};
+function effortOf(date){ return EFFORTS[efforts[date]]?efforts[date]:null; }
+function offDay(e){ return !!e&&efforts[e.date]==='off'; }
+/* Tapping the chosen rating again clears it. */
+async function setEffort(date,v){
+ if(!EFFORTS[v]||efforts[date]===v) delete efforts[date]; else efforts[date]=v;
+ await Store.set('gt4_effort',efforts); }
+function effortRow(date){ const cur=effortOf(date);
+ return '<span class="lbl">How did it feel?</span>'+Object.keys(EFFORTS).map(v=>
+  '<button data-v="'+v+'" class="'+v+(v===cur?' on':'')+'">'+EFFORTS[v]+'</button>').join('')+
+  (cur==='off'?'<div class="note">Noted — the coach won\'t judge your lifts on this session.</div>':''); }
+/* The summary's row: re-renders itself, and re-runs the auto-backup so the
+   copy on the phone has the rating (the first one ran before it was tapped). */
+function wireEffort(date){ const el=document.getElementById('sumEffort'); if(!el) return;
+ el.querySelectorAll('button').forEach(b=>b.addEventListener('click',async()=>{
+  await setEffort(date,b.dataset.v); el.innerHTML=effortRow(date); wireEffort(date); render(); autoBackup(); })); }
 /* ============ PROGRESS ============ */
 function allSessionDates(){
  const d={}; Object.values(hist).forEach(a=>(a||[]).forEach(e=>{ if(e.date)d[e.date]=1; }));
@@ -1909,7 +1946,8 @@ function openChart(exId,dId){
 function histRows(h){
  if(!h.length) return '<div class="note">No sessions logged yet.</div>';
  return h.map((e,i)=>({e,i})).sort((a,b)=>a.e.date<b.e.date?1:-1)
-  .map(({e,i})=>'<div class="histrow" data-i="'+i+'"><span class="hdt">'+shortDate(e.date)+'</span>'+
+  .map(({e,i})=>'<div class="histrow" data-i="'+i+'"><span class="hdt">'+shortDate(e.date)+
+   (effortOf(e.date)?'<i class="eff '+effortOf(e.date)+'">'+EFFORTS[effortOf(e.date)]+'</i>':'')+'</span>'+
    '<input class="hw" inputmode="decimal" value="'+e.top+'"><span class="hx">kg ×</span>'+
    '<input class="hrp" inputmode="numeric" value="'+(e.reps!=null?e.reps:'')+'">'+
    '<button class="mini hpl'+(placeOf(e)==='home'?' home':'')+'">'+PLACES[placeOf(e)]+'</button>'+
@@ -2157,7 +2195,7 @@ function openData(){
 function closeData(){ document.getElementById('databg').classList.remove('show'); }
 document.getElementById('databg').addEventListener('click',e=>{ if(e.target.id==='databg')closeData(); });
 function backup(){ return {app:"gym-tracker",version:4,build:BUILD,exported:new Date().toISOString(),
- plan:PLAN,cur,prev,swaps,history:hist,warm:warmDone,custom,barWeight:BARWEIGHT,notes,weekTarget:WEEKTARGET,routines,bodyweight,incs,place:PLACE}; }
+ plan:PLAN,cur,prev,swaps,history:hist,warm:warmDone,custom,barWeight:BARWEIGHT,notes,weekTarget:WEEKTARGET,routines,bodyweight,incs,place:PLACE,effort:efforts}; }
 function dl(n,t,m){ try{ const b=new Blob([t],{type:m}),u=URL.createObjectURL(b),a=document.createElement('a');
  a.href=u;a.download=n;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);return true;}catch(e){return false;} }
 function showExport(t,n){ document.getElementById('exportText').value=t;
@@ -2211,12 +2249,13 @@ async function applyImport(){ const d=window.__imp; if(!d)return;
  if(typeof d.barWeight==='number'&&d.barWeight>=0) BARWEIGHT=d.barWeight;
  if(typeof d.weekTarget==='number'&&d.weekTarget>0) WEEKTARGET=d.weekTarget;
  if(PLACES[d.place]) PLACE=d.place;
+ efforts=(d.effort&&typeof d.effort==='object')?d.effort:{};
  notes=d.notes||{}; routines=d.routines||[]; incs=(d.incs&&typeof d.incs==='object')?d.incs:{};
  bodyweight=Array.isArray(d.bodyweight)?d.bodyweight.filter(e=>e&&e.date&&e.kg>0):[];
  await Promise.all([Store.set('gt4_plan',PLAN),Store.set('gt4_cur',cur),Store.set('gt4_prev',prev),Store.set('gt4_bodyweight',bodyweight),
   Store.set('gt4_hist',hist),Store.set('gt4_swaps',swaps),Store.set('gt4_warm',warmDone),Store.set('gt4_custom',custom),
   Store.set('gt4_barweight',BARWEIGHT),Store.set('gt4_notes',notes),Store.set('gt4_weektarget',WEEKTARGET),
-  Store.set('gt4_routines',routines),Store.set('gt4_incs',incs),Store.set('gt4_place',PLACE)]);
+  Store.set('gt4_routines',routines),Store.set('gt4_incs',incs),Store.set('gt4_place',PLACE),Store.set('gt4_effort',efforts)]);
  window.__imp=null;
  document.getElementById('importPreview').innerHTML='<b>Restored ✓</b><div class="note">Your data is back.</div>';
  render(); }
@@ -2378,10 +2417,11 @@ function showSummary(S){
   '<span class="nm">'+x.nm+'</span><span class="dt">'+x.top+'kg'+(x.reps?' × '+x.reps:'')+'</span></div>').join('');
  if(S.tops.length) h+='<h5>Top sets</h5>'+S.tops.map(x=>'<div class="goal"><span class="nm">'+x.nm+'</span><span class="tg">'+x.top+'kg'+(x.reps?' × '+x.reps:'')+'</span></div>').join('');
  else h+='<div class="empty">Nothing was logged this session.</div>';
+ h+='<div class="place effort" id="sumEffort">'+effortRow(S.date)+'</div>';
  h+='<div class="hr"></div>'+bodyweightBlock()+
   '<div class="note" id="sumBackup">'+(typeof fetch==='function'&&/^https?:$/.test(location.protocol)?'Backing up…':'')+'</div>';
  body.innerHTML=h;
- wireBodyweight(()=>showSummary(S));
+ wireBodyweight(()=>showSummary(S)); wireEffort(S.date);
  applyAccent(); document.getElementById('sumbg').classList.add('show');
 }
 function closeSummary(){ document.getElementById('sumbg').classList.remove('show'); }
@@ -2572,6 +2612,7 @@ document.getElementById('progBtn').innerHTML=I.chart;
  notes=(await Store.get('gt4_notes'))||{};
  incs=(await Store.get('gt4_incs'))||{};
  const pc=await Store.get('gt4_place'); if(PLACES[pc]) PLACE=pc;
+ efforts=(await Store.get('gt4_effort'))||{};
  routines=(await Store.get('gt4_routines'))||[];
  lastAuto=(await Store.get('gt4_autobackup'))||null;
  bodyweight=(await Store.get('gt4_bodyweight'))||[];

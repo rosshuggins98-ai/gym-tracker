@@ -30,10 +30,11 @@ function showSummary(S){
   '<span class="nm">'+x.nm+'</span><span class="dt">'+x.top+'kg'+(x.reps?' × '+x.reps:'')+'</span></div>').join('');
  if(S.tops.length) h+='<h5>Top sets</h5>'+S.tops.map(x=>'<div class="goal"><span class="nm">'+x.nm+'</span><span class="tg">'+x.top+'kg'+(x.reps?' × '+x.reps:'')+'</span></div>').join('');
  else h+='<div class="empty">Nothing was logged this session.</div>';
+ h+='<div class="place effort" id="sumEffort">'+effortRow(S.date)+'</div>';
  h+='<div class="hr"></div>'+bodyweightBlock()+
   '<div class="note" id="sumBackup">'+(typeof fetch==='function'&&/^https?:$/.test(location.protocol)?'Backing up…':'')+'</div>';
  body.innerHTML=h;
- wireBodyweight(()=>showSummary(S));
+ wireBodyweight(()=>showSummary(S)); wireEffort(S.date);
  applyAccent(); document.getElementById('sumbg').classList.add('show');
 }
 function closeSummary(){ document.getElementById('sumbg').classList.remove('show'); }

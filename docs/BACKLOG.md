@@ -15,9 +15,8 @@ the weekly check-in from that review are done (see "Done").
 1. ~~Gym / home tag per session~~ — done 2026-10-08 (see "Done"). Left over:
    PBs and the Compare view still mix the two places (Compare labels home
    sessions); a home dumbbell can still count as a weight PB.
-2. **One-tap effort rating** (easy / solid / hard) on the summary sheet — see
-   section E. More useful now: his reps fall off sharply across sets, and a
-   rating separates fatigue from a weight that's too heavy.
+2. ~~One-tap effort rating~~ — done 2026-10-08 (see "Done"), with a fourth
+   option, Off day, which is the one the coach acts on.
 3. ~~Since-you-started per exercise, then "Biggest gains" in Progress~~ — done
    2026-10-08 as Progress → "How you're doing" (see "Done"). Still open: the
    same then-vs-now line on the chart sheet.
@@ -142,3 +141,7 @@ the weekly check-in from that review are done (see "Done").
   finish sheet, `at` on history entries, coach and prefills read the same place,
   first time at a place snaps to its known dumbbells, ringed home dots on the
   chart, and "Where you trained" in Progress to tag past sessions.
+- 2026-10-08: **Effort rating.** Easy / Solid / Hard / Off day on the summary
+  sheet, per date; off-day sessions are left out of the coach's judgement (no
+  "drop back" or stall from a bad day). Shown on chart history rows and in
+  "Where you trained". The session note (section E) is still to do.
