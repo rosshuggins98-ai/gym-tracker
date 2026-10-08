@@ -7,12 +7,22 @@ function openSwap(exId){ swapT=exId; const L=LIB[exId]||{alts:[]}, alt=swaps[exI
  if(hasData){ const w=document.createElement('p'); w.className='small';
   w.innerHTML='<b>You have weights logged for this exercise today.</b> They will be recorded under whichever option is selected when you finish the session — so pick the one you actually did.';
   list.appendChild(w); }
- [{n:exName(exId),v:null,f:'Planned'}].concat((L.alts||[]).map(a=>({n:a,v:a,f:''}))).forEach(o=>{
-  const b=document.createElement('button'); b.className='opt'+(alt===o.v?' on':'');
+ /* At home the home stand-in is offered even when it isn't one of the alts
+    (Dumbbell Leg Curl for Leg Curls), and each option says whether the home
+    kit can do it. */
+ const home=PLACE==='home', opts=[{n:exName(exId),v:null,f:'Planned'}].concat((L.alts||[]).map(a=>({n:a,v:a,f:''})));
+ const ha=home?homeAuto(exId):null;
+ if(ha&&!opts.some(o=>o.v===ha)) opts.push({n:ha,v:ha,f:''});
+ if(home) opts.forEach(o=>{ if(!o.f||o.f==='Planned') o.f=(o.f?o.f+' · ':'')+(homeOk(o.n)?'home ✓':'gym only'); });
+ if(home){ const w=document.createElement('p'); w.className='small';
+  w.textContent='At home: your pick here only applies at home. Your gym swaps come back when you switch to Gym.';
+  list.appendChild(w); }
+ opts.forEach(o=>{
+  const b=document.createElement('button'); b.className='opt'+(alt===o.v?' on':'')+(home&&!homeOk(o.n)?' dim':'');
   const bs=bestOf(hkey(exId,o.v));
   b.innerHTML='<span>'+o.n+(bs!==null?'<small>best '+bs+'kg logged</small>':'<small>no history yet</small>')+'</span><span class="flag">'+(alt===o.v?'Using':o.f)+'</span>';
   b.addEventListener('click',()=>chooseSwap(o.v)); list.appendChild(b); });
- if(alt){ const mk=document.createElement('button'); mk.className='dbtn'; mk.style.marginTop='6px';
+ if(alt&&!home){ const mk=document.createElement('button'); mk.className='dbtn'; mk.style.marginTop='6px';
   mk.textContent='Make '+alt+' the planned exercise';
   mk.addEventListener('click',async()=>{ await promoteSwap(exId); closeSwap(); render(); });
   const why=document.createElement('p'); why.className='small';
@@ -21,8 +31,9 @@ function openSwap(exId){ swapT=exId; const L=LIB[exId]||{alts:[]}, alt=swaps[exI
  applyAccent(); document.getElementById('swapbg').classList.add('show');
 }
 async function chooseSwap(v){ const id=swapT; if(!id)return;
- if(v===null)delete swaps[id]; else swaps[id]=v;
- await Store.set('gt4_swaps',swaps); mirrorHash(); closeSwap(); render(); }
+ if(PLACE==='home'){ homePicks[id]=v===null?'':v; swaps=homeSwapMap(); await Store.set('gt4_homeswaps',homePicks); }
+ else { if(v===null)delete swaps[id]; else swaps[id]=v; await Store.set('gt4_swaps',swaps); }
+ mirrorHash(); closeSwap(); render(); }
 function closeSwap(){ document.getElementById('swapbg').classList.remove('show'); }
 document.getElementById('swapbg').addEventListener('click',e=>{ if(e.target.id==='swapbg')closeSwap(); });
 

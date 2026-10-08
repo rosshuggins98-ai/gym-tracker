@@ -14,7 +14,7 @@ function renderTabs(){
  t.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>switchDay(b.dataset.day)));
 }
 function render(){
- applyAccent(); renderTabs();
+ enterPlace(); applyAccent(); renderTabs();
  const d=day(ACTIVE);
  document.getElementById('plabel').textContent=setCount(d)+' sets planned';
  const wk=workoutsThisWeek(), streak=weekStreak();
@@ -25,7 +25,7 @@ function render(){
  wg.onclick=async()=>{ const opts=[2,3,4,5,6]; WEEKTARGET=opts[(opts.indexOf(WEEKTARGET)+1)%opts.length];
   await Store.set('gt4_weektarget',WEEKTARGET); render(); };
  const app=document.getElementById('app'); app.innerHTML='';
- app.appendChild(placeBar());
+ app.appendChild(placeBar(d));
  const ck=checkinCard(); if(ck) app.appendChild(ck);
  const td=todoStrip(d); if(td) app.appendChild(td);
  if(d.warm){
@@ -162,7 +162,8 @@ function pills(c,it,d){
  else if(role==='second') h+='<span class="pill ss">after '+vName(partner.ex,swaps[partner.ex]||null)+'</span>';
  if(restFor(it)!==REST_DEFAULT&&role!=='first') h+='<span class="pill reps">rest '+fmtRest(restFor(it))+'</span>';
  if(it.extra)h+='<span class="pill ss">today only</span>';
- if(alt)h+='<span class="pill swap">swapped</span>';
+ if(alt)h+='<span class="pill swap">'+(PLACE==='home'&&alt!==gymSwaps[exId]?'home swap':'swapped')+'</span>';
+ if(needsGym(exId))h+='<span class="pill ss">needs gym kit — swap or skip today</span>';
  if(b) h+='<span class="pill best">best '+b.w+'kg'+(b.reps?' × '+b.reps:'')+'</span>';
  else {
   /* no history for this variant yet - show a sibling's best so a swap still has a reference */

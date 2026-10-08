@@ -145,3 +145,9 @@ the weekly check-in from that review are done (see "Done").
   sheet, per date; off-day sessions are left out of the coach's judgement (no
   "drop back" or stall from a bad day). Shown on chart history rows and in
   "Where you trained". The session note (section E) is still to do.
+- 2026-10-08: **Home kit.** At home each planned exercise that needs gym kit is
+  swapped for a dumbbells-and-bench one (gym swap if it works at home, else a
+  preferred stand-in, else the first workable alt); picks made at home stay
+  home-only. New library entry: Dumbbell Leg Curl. Slots with no home option are
+  flagged "needs gym kit". Prefills only come from a prev logged as the same
+  exercise (`prev._keys`).

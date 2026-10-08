@@ -182,6 +182,8 @@
  .plrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:12.5px}
  .plrow .dt{width:48px;flex-shrink:0;color:var(--muted);font-weight:700}
  .plrow .ls{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .opt.dim{opacity:.55}
+ .place{flex-wrap:wrap}
  .place.effort{flex-wrap:wrap;margin-top:14px}
  .place.effort .note{flex-basis:100%;margin:2px 0 0}
  .place.effort button{padding:6px 11px}
@@ -483,6 +485,8 @@ const LIB={
   c:["Dumbbells in front of your thighs, soft knees. Push your hips back — it's a hinge, not a squat.","Keep the dumbbells brushing your legs on the way down, back flat the whole time.","Stop at a strong hamstring stretch (usually around mid-shin), then drive the hips forward to stand tall."]},
  legcurl:{n:"Leg Curls",g:"Legs",alts:["Single-leg RDL","Hip Thrust","Good Mornings"],
   c:["Keep your hips pressed into the pad throughout.","Squeeze at the top and lower slowly — resist the weight on the way back.","Don't let the weight stack slam down between reps."]},
+ dblegcurl:{n:"Dumbbell Leg Curl",g:"Legs",alts:["Leg Curls","Single-leg RDL","Dumbbell RDL"],
+  c:["Lie face down on the bench with your knees just off the end and a dumbbell held between your feet.","Curl your heels towards your glutes, keeping your hips pressed into the bench.","Start light and lower slowly. Grip the dumbbell firmly between your feet, as it can slip if you rush."]},
  legext:{n:"Leg Extensions",g:"Legs",alts:["Goblet Squat","Walking Lunges","Leg Press"],
   c:["Line the machine's pivot up with your knee before you start.","Pause briefly at the top with the quads squeezed.","Moderate weight — jerking heavy loads here is hard on the knees."]},
  hipthrust:{n:"Hip Thrust",g:"Legs",alts:["Glute Bridge","RDLs","Single-leg RDL"],
@@ -600,7 +604,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-10-08c";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-10-08d";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -768,11 +772,17 @@ let legacyFound=0;
         plan's target reps)
      4. weights recovered from pre-v4 builds
    Weight and reps consult the same source so a set never mixes two sessions.
-   A prev from the other place (gym vs home, its _at) is skipped once the
-   lift has history at this one, and that history's top set is used instead. */
+   A prev is only used for the exercise it was logged as (its _keys, stamped
+   on finish: at home the Leg Curls slot is a Dumbbell Leg Curl, and the
+   machine's 50kg is no prefill for it). A prev from before _keys is taken
+   as logged under the gym swaps. A prev from the other place (gym vs home, its
+   _at) is skipped once the lift has history at this one, and that history's
+   top set is used instead. */
 function lastSrc(dId,exId){
- const h=hist[hkey(exId,swaps[exId]||null)]||[], here=h.filter(e=>placeOf(e)===PLACE);
- const fits=od=>!here.length||placeOf({at:prev[od]&&prev[od]._at})===PLACE;
+ const k=hkey(exId,swaps[exId]||null), h=hist[k]||[], here=h.filter(e=>placeOf(e)===PLACE);
+ const fits=od=>{ const P=prev[od]||{};
+  if((P._keys?P._keys[exId]:hkey(exId,gymSwapMap()[exId]||null))!==k) return false;
+  return !here.length||placeOf({at:P._at})===PLACE; };
  const p=prev[dId]&&prev[dId][exId]; if(fits(dId)&&Array.isArray(p)&&p.some(x=>x&&x.w)) return {sets:p};
  let best=null;
  Object.keys(prev).forEach(od=>{ if(od===dId||!fits(od)) return; const a=prev[od]&&prev[od][exId], dt=(prev[od]&&prev[od]._date)||'';
@@ -867,7 +877,7 @@ function markSaved(){ const t=document.getElementById('savedTag'); t.classList.a
 let st=null;
 function queueSave(){ DIRTY=true; clearTimeout(st); st=setTimeout(async()=>{ if(await Store.set('gt4_cur',cur)){DIRTY=false;markSaved();} mirrorHash(); },300); }
 function flush(){ if(DIRTY){ Store.set('gt4_cur',cur); DIRTY=false; } mirrorHash(); }
-function stateBlob(){ return {v:4,a:ACTIVE,t:THEME,c:cur,p:prev,s:swaps,h:hist,w:warmDone,pl:PLAN}; }
+function stateBlob(){ return {v:4,a:ACTIVE,t:THEME,c:cur,p:prev,s:gymSwapMap(),h:hist,w:warmDone,pl:PLAN}; }
 function mirrorHash(){ if(Store.mode()!=='none')return;
  try{ const d='gt='+encodeURIComponent(JSON.stringify(stateBlob()));
   if(history&&history.replaceState)history.replaceState(null,'','#'+d); else location.hash=d; }catch(e){} }
@@ -910,7 +920,7 @@ function renderTabs(){
  t.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>switchDay(b.dataset.day)));
 }
 function render(){
- applyAccent(); renderTabs();
+ enterPlace(); applyAccent(); renderTabs();
  const d=day(ACTIVE);
  document.getElementById('plabel').textContent=setCount(d)+' sets planned';
  const wk=workoutsThisWeek(), streak=weekStreak();
@@ -921,7 +931,7 @@ function render(){
  wg.onclick=async()=>{ const opts=[2,3,4,5,6]; WEEKTARGET=opts[(opts.indexOf(WEEKTARGET)+1)%opts.length];
   await Store.set('gt4_weektarget',WEEKTARGET); render(); };
  const app=document.getElementById('app'); app.innerHTML='';
- app.appendChild(placeBar());
+ app.appendChild(placeBar(d));
  const ck=checkinCard(); if(ck) app.appendChild(ck);
  const td=todoStrip(d); if(td) app.appendChild(td);
  if(d.warm){
@@ -1058,7 +1068,8 @@ function pills(c,it,d){
  else if(role==='second') h+='<span class="pill ss">after '+vName(partner.ex,swaps[partner.ex]||null)+'</span>';
  if(restFor(it)!==REST_DEFAULT&&role!=='first') h+='<span class="pill reps">rest '+fmtRest(restFor(it))+'</span>';
  if(it.extra)h+='<span class="pill ss">today only</span>';
- if(alt)h+='<span class="pill swap">swapped</span>';
+ if(alt)h+='<span class="pill swap">'+(PLACE==='home'&&alt!==gymSwaps[exId]?'home swap':'swapped')+'</span>';
+ if(needsGym(exId))h+='<span class="pill ss">needs gym kit — swap or skip today</span>';
  if(b) h+='<span class="pill best">best '+b.w+'kg'+(b.reps?' × '+b.reps:'')+'</span>';
  else {
   /* no history for this variant yet - show a sibling's best so a swap still has a reference */
@@ -1139,10 +1150,12 @@ function celebratePB(){
 const PLACES={gym:'Gym',home:'Home'};
 let PLACE='gym';
 function placeOf(e){ return e&&e.at==='home'?'home':'gym'; }
-/* Switching place re-prefills the active day's untouched sets (not ticked,
+/* Switching place swaps the plan to the home kit or back (see below), and
+   re-prefills the active day's untouched sets (not ticked,
    reps not typed), so the "last" weights come from the right place. */
 async function setPlace(p){ if(!PLACES[p]||p===PLACE) return;
- PLACE=p; const c=cur[ACTIVE];
+ if(p==='home'){ PLACE=p; enterPlace(); } else { PLACE=p; swaps=gymSwaps; }
+ const c=cur[ACTIVE];
  if(c) Object.keys(c).forEach(exId=>{ (c[exId]||[]).forEach((x,i)=>{ if(x&&!x.done&&!x.rt) c[exId][i]=null; }); });
  await Store.set('gt4_place',PLACE); queueSave(); flush(); }
 /* Every entry on a date, across all lifts, to one place. */
@@ -1162,10 +1175,12 @@ function snapW(rack,w,dir,above){ if(!rack.length) return w;
  if(dir>0){ const u=rack.filter(x=>x>above); if(u.length) return u[0]; }
  if(dir<0){ const d=rack.filter(x=>x<=w); if(d.length) return d[d.length-1]; }
  return rack.reduce((b,x)=>Math.abs(x-w)<Math.abs(b-w)?x:b); }
-function placeBar(){
+function placeBar(d){
  const c=document.createElement('div'); c.className='place';
+ const n=PLACE==='home'&&d?d.items.filter(it=>swaps[it.ex]&&swaps[it.ex]!==gymSwaps[it.ex]).length:0;
  c.innerHTML='<span class="lbl">Training at</span>'+Object.keys(PLACES).map(p=>
-  '<button data-p="'+p+'"'+(p===PLACE?' class="on"':'')+'>'+PLACES[p]+'</button>').join('');
+  '<button data-p="'+p+'"'+(p===PLACE?' class="on"':'')+'>'+PLACES[p]+'</button>').join('')+
+  (PLACE==='home'?'<span class="lbl">'+(n?n+' swapped for dumbbells &amp; bench':'dumbbells &amp; bench')+'</span>':'');
  c.querySelectorAll('button').forEach(b=>b.addEventListener('click',async()=>{ await setPlace(b.dataset.p); render(); }));
  return c; }
 /* Progress: every past session with a Gym / Home toggle, newest first, so
@@ -1189,6 +1204,45 @@ function wirePlace(){ const box=document.getElementById('placeBox'); if(!box) re
  box.querySelectorAll('.plrow .hpl').forEach(b=>b.addEventListener('click',async()=>{
   await tagDate(b.dataset.date,b.classList.contains('home')?'gym':'home'); redo(); render(); }));
  const m=document.getElementById('plMore'); if(m) m.addEventListener('click',()=>{ placeAll=true; redo(); }); }
+/* --- Home kit: swap the plan to what the home equipment can do ----------
+   Home is an adjustable dumbbell set and an adjustable bench. At home every
+   planned exercise that needs gym kit is swapped for one that doesn't: the
+   gym swap if that already works at home (Overhead Extension for Pushdown),
+   else HOME_PREF, else the first of its alts that works. Picks made at home
+   are kept apart in homePicks (gt4_homeswaps, '' = keep the planned one), so
+   the gym swaps are untouched and come straight back at the gym.
+   While at home `swaps` is the computed map (homeSwapMap) and the gym map
+   waits in gymSwaps; at the gym `swaps` is the gym map itself, as always. */
+const HOME_IDS=['dbbench','incline','dbfly','pushup','dbshoulder','lateral','frontraise','dbrow','pullover','goblet',
+ 'lunge','bulgarian','dbrdl','dblegcurl','hammer','dbcurl','concentration','ohext','skull','calf'];
+/* Library and alt names that need only dumbbells, the bench or bodyweight. */
+const HOME_NAME=/dumbbell|\bdb\b|goblet|push-?ups|bulgarian|lunge|single-leg rdl|glute bridge|bench dips|rear delt fly/i;
+/* Better home stand-ins than the first workable alt, where there is one. */
+const HOME_PREF={legcurl:'Dumbbell Leg Curl',legext:'Bulgarian Split Squat',hipthrust:'Dumbbell RDL',
+ pecdeck:'Dumbbell Fly',facepull:'Rear Delt Fly',cablecurl:'Dumbbell Curl',bbcurl:'Dumbbell Curl',preacher:'Concentration Curl'};
+let homePicks={}, gymSwaps={};
+function homeOk(name){ const id=nameToId(name);
+ if(id&&HOME_IDS.indexOf(id)>=0) return true;
+ if(id&&LIB[id]&&!custom[id]) return false;
+ return HOME_NAME.test(String(name||'')); }
+/* The automatic home choice for a plan slot: an alt name, or null to keep
+   the planned exercise (it works at home, or nothing listed does). */
+function homeAuto(exId){
+ const g=gymSwaps[exId]; if(g&&homeOk(g)) return g;
+ if(homeOk(exName(exId))) return null;
+ const pref=HOME_PREF[exId]; if(pref) return pref;
+ return ((LIB[exId]&&LIB[exId].alts)||[]).find(homeOk)||null; }
+/* Marked (non-enumerable, so never saved) to tell it from the gym map. */
+function homeSwapMap(){ const m={}, seen={}; Object.defineProperty(m,'__home',{value:true});
+ PLAN.days.forEach(d=>d.items.forEach(it=>{ const id=it.ex; if(seen[id]) return; seen[id]=1;
+  const p=homePicks[id], v=p!==undefined?(p||null):homeAuto(id); if(v) m[id]=v; }));
+ return m; }
+/* The gym map wherever it currently lives -- for backups and the URL hash. */
+function gymSwapMap(){ return PLACE==='home'?gymSwaps:swaps; }
+/* Call after anything replaces `swaps` or the plan while at home. */
+function enterPlace(){ if(PLACE==='home'){ if(!swaps.__home) gymSwaps=swaps; swaps=homeSwapMap(); } }
+/* A slot at home still on gym kit, with no home option found. */
+function needsGym(exId){ return PLACE==='home'&&!swaps[exId]&&!homeOk(exName(exId)); }
 /* ============ COACH ============
    Double progression over a rep range (it.reps = top, loFor(it) = bottom),
    "top set + floor" variant, agreed 2026-10-07 because the user's reps fall
@@ -1204,7 +1258,7 @@ function wirePlace(){ const box=document.getElementById('placeBox'); if(!box) re
    pin-loaded machines a plate on the stack (5kg), barbells, cables and
    plate-loaded kit 2.5kg. 0 = bodyweight or assisted: reps-only coaching.
    Overridden per history key from the chart sheet, stored in gt4_incs. */
-const INC_DB=['dbbench','incline','decline','dbfly','dbshoulder','lateral','frontraise','dbrow','pullover',
+const INC_DB=['dbbench','dblegcurl','incline','decline','dbfly','dbshoulder','lateral','frontraise','dbrow','pullover',
  'goblet','lunge','bulgarian','dbrdl','hammer','dbcurl','concentration','ohext'];
 const INC_MACHINE=['mchest','pecdeck','mshoulder','latpulldown','cablerow','legpress','legcurl','legext','calf'];
 const INC_NONE=['pushup','pullup','dips'];
@@ -1764,12 +1818,22 @@ function openSwap(exId){ swapT=exId; const L=LIB[exId]||{alts:[]}, alt=swaps[exI
  if(hasData){ const w=document.createElement('p'); w.className='small';
   w.innerHTML='<b>You have weights logged for this exercise today.</b> They will be recorded under whichever option is selected when you finish the session — so pick the one you actually did.';
   list.appendChild(w); }
- [{n:exName(exId),v:null,f:'Planned'}].concat((L.alts||[]).map(a=>({n:a,v:a,f:''}))).forEach(o=>{
-  const b=document.createElement('button'); b.className='opt'+(alt===o.v?' on':'');
+ /* At home the home stand-in is offered even when it isn't one of the alts
+    (Dumbbell Leg Curl for Leg Curls), and each option says whether the home
+    kit can do it. */
+ const home=PLACE==='home', opts=[{n:exName(exId),v:null,f:'Planned'}].concat((L.alts||[]).map(a=>({n:a,v:a,f:''})));
+ const ha=home?homeAuto(exId):null;
+ if(ha&&!opts.some(o=>o.v===ha)) opts.push({n:ha,v:ha,f:''});
+ if(home) opts.forEach(o=>{ if(!o.f||o.f==='Planned') o.f=(o.f?o.f+' · ':'')+(homeOk(o.n)?'home ✓':'gym only'); });
+ if(home){ const w=document.createElement('p'); w.className='small';
+  w.textContent='At home: your pick here only applies at home. Your gym swaps come back when you switch to Gym.';
+  list.appendChild(w); }
+ opts.forEach(o=>{
+  const b=document.createElement('button'); b.className='opt'+(alt===o.v?' on':'')+(home&&!homeOk(o.n)?' dim':'');
   const bs=bestOf(hkey(exId,o.v));
   b.innerHTML='<span>'+o.n+(bs!==null?'<small>best '+bs+'kg logged</small>':'<small>no history yet</small>')+'</span><span class="flag">'+(alt===o.v?'Using':o.f)+'</span>';
   b.addEventListener('click',()=>chooseSwap(o.v)); list.appendChild(b); });
- if(alt){ const mk=document.createElement('button'); mk.className='dbtn'; mk.style.marginTop='6px';
+ if(alt&&!home){ const mk=document.createElement('button'); mk.className='dbtn'; mk.style.marginTop='6px';
   mk.textContent='Make '+alt+' the planned exercise';
   mk.addEventListener('click',async()=>{ await promoteSwap(exId); closeSwap(); render(); });
   const why=document.createElement('p'); why.className='small';
@@ -1778,8 +1842,9 @@ function openSwap(exId){ swapT=exId; const L=LIB[exId]||{alts:[]}, alt=swaps[exI
  applyAccent(); document.getElementById('swapbg').classList.add('show');
 }
 async function chooseSwap(v){ const id=swapT; if(!id)return;
- if(v===null)delete swaps[id]; else swaps[id]=v;
- await Store.set('gt4_swaps',swaps); mirrorHash(); closeSwap(); render(); }
+ if(PLACE==='home'){ homePicks[id]=v===null?'':v; swaps=homeSwapMap(); await Store.set('gt4_homeswaps',homePicks); }
+ else { if(v===null)delete swaps[id]; else swaps[id]=v; await Store.set('gt4_swaps',swaps); }
+ mirrorHash(); closeSwap(); render(); }
 function closeSwap(){ document.getElementById('swapbg').classList.remove('show'); }
 document.getElementById('swapbg').addEventListener('click',e=>{ if(e.target.id==='swapbg')closeSwap(); });
 
@@ -2195,7 +2260,7 @@ function openData(){
 function closeData(){ document.getElementById('databg').classList.remove('show'); }
 document.getElementById('databg').addEventListener('click',e=>{ if(e.target.id==='databg')closeData(); });
 function backup(){ return {app:"gym-tracker",version:4,build:BUILD,exported:new Date().toISOString(),
- plan:PLAN,cur,prev,swaps,history:hist,warm:warmDone,custom,barWeight:BARWEIGHT,notes,weekTarget:WEEKTARGET,routines,bodyweight,incs,place:PLACE,effort:efforts}; }
+ plan:PLAN,cur,prev,swaps:gymSwapMap(),homeSwaps:homePicks,history:hist,warm:warmDone,custom,barWeight:BARWEIGHT,notes,weekTarget:WEEKTARGET,routines,bodyweight,incs,place:PLACE,effort:efforts}; }
 function dl(n,t,m){ try{ const b=new Blob([t],{type:m}),u=URL.createObjectURL(b),a=document.createElement('a');
  a.href=u;a.download=n;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);return true;}catch(e){return false;} }
 function showExport(t,n){ document.getElementById('exportText').value=t;
@@ -2250,12 +2315,14 @@ async function applyImport(){ const d=window.__imp; if(!d)return;
  if(typeof d.weekTarget==='number'&&d.weekTarget>0) WEEKTARGET=d.weekTarget;
  if(PLACES[d.place]) PLACE=d.place;
  efforts=(d.effort&&typeof d.effort==='object')?d.effort:{};
+ homePicks=(d.homeSwaps&&typeof d.homeSwaps==='object')?d.homeSwaps:{};
  notes=d.notes||{}; routines=d.routines||[]; incs=(d.incs&&typeof d.incs==='object')?d.incs:{};
  bodyweight=Array.isArray(d.bodyweight)?d.bodyweight.filter(e=>e&&e.date&&e.kg>0):[];
  await Promise.all([Store.set('gt4_plan',PLAN),Store.set('gt4_cur',cur),Store.set('gt4_prev',prev),Store.set('gt4_bodyweight',bodyweight),
   Store.set('gt4_hist',hist),Store.set('gt4_swaps',swaps),Store.set('gt4_warm',warmDone),Store.set('gt4_custom',custom),
   Store.set('gt4_barweight',BARWEIGHT),Store.set('gt4_notes',notes),Store.set('gt4_weektarget',WEEKTARGET),
-  Store.set('gt4_routines',routines),Store.set('gt4_incs',incs),Store.set('gt4_place',PLACE),Store.set('gt4_effort',efforts)]);
+  Store.set('gt4_routines',routines),Store.set('gt4_incs',incs),Store.set('gt4_place',PLACE),Store.set('gt4_effort',efforts),Store.set('gt4_homeswaps',homePicks)]);
+ enterPlace();
  window.__imp=null;
  document.getElementById('importPreview').innerHTML='<b>Restored ✓</b><div class="note">Your data is back.</div>';
  render(); }
@@ -2495,7 +2562,8 @@ async function doNewSession(){
   /* _date is read by lastSrc() to pick the most recent day when the same
      exercise has a prev on more than one. It sits beside the exercise ids
      (never a valid id itself); older prev blobs have none and lose ties. */
-  prev[d.id]._date=td; prev[d.id]._at=PLACE; }
+  prev[d.id]._date=td; prev[d.id]._at=PLACE;
+  prev[d.id]._keys={}; d.items.forEach(it=>{ prev[d.id]._keys[it.ex]=hkey(it.ex,swaps[it.ex]||null); }); }
  endOfSession(d);
  cur[d.id]={}; delete warmDone[d.id]; delete sessionStart[d.id];
  await Promise.all([Store.set('gt4_hist',hist),Store.set('gt4_prev',prev),Store.set('gt4_cur',cur),Store.set('gt4_warm',warmDone),Store.set('gt4_start',sessionStart)]);
@@ -2613,6 +2681,7 @@ document.getElementById('progBtn').innerHTML=I.chart;
  incs=(await Store.get('gt4_incs'))||{};
  const pc=await Store.get('gt4_place'); if(PLACES[pc]) PLACE=pc;
  efforts=(await Store.get('gt4_effort'))||{};
+ homePicks=(await Store.get('gt4_homeswaps'))||{};
  routines=(await Store.get('gt4_routines'))||[];
  lastAuto=(await Store.get('gt4_autobackup'))||null;
  bodyweight=(await Store.get('gt4_bodyweight'))||[];

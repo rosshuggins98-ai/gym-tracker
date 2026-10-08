@@ -64,6 +64,8 @@ const LIB={
   c:["Dumbbells in front of your thighs, soft knees. Push your hips back — it's a hinge, not a squat.","Keep the dumbbells brushing your legs on the way down, back flat the whole time.","Stop at a strong hamstring stretch (usually around mid-shin), then drive the hips forward to stand tall."]},
  legcurl:{n:"Leg Curls",g:"Legs",alts:["Single-leg RDL","Hip Thrust","Good Mornings"],
   c:["Keep your hips pressed into the pad throughout.","Squeeze at the top and lower slowly — resist the weight on the way back.","Don't let the weight stack slam down between reps."]},
+ dblegcurl:{n:"Dumbbell Leg Curl",g:"Legs",alts:["Leg Curls","Single-leg RDL","Dumbbell RDL"],
+  c:["Lie face down on the bench with your knees just off the end and a dumbbell held between your feet.","Curl your heels towards your glutes, keeping your hips pressed into the bench.","Start light and lower slowly. Grip the dumbbell firmly between your feet, as it can slip if you rush."]},
  legext:{n:"Leg Extensions",g:"Legs",alts:["Goblet Squat","Walking Lunges","Leg Press"],
   c:["Line the machine's pivot up with your knee before you start.","Pause briefly at the top with the quads squeezed.","Moderate weight — jerking heavy loads here is hard on the knees."]},
  hipthrust:{n:"Hip Thrust",g:"Legs",alts:["Glute Bridge","RDLs","Single-leg RDL"],

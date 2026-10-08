@@ -33,6 +33,7 @@ document.getElementById('progBtn').innerHTML=I.chart;
  incs=(await Store.get('gt4_incs'))||{};
  const pc=await Store.get('gt4_place'); if(PLACES[pc]) PLACE=pc;
  efforts=(await Store.get('gt4_effort'))||{};
+ homePicks=(await Store.get('gt4_homeswaps'))||{};
  routines=(await Store.get('gt4_routines'))||[];
  lastAuto=(await Store.get('gt4_autobackup'))||null;
  bodyweight=(await Store.get('gt4_bodyweight'))||[];

@@ -44,7 +44,8 @@ async function doNewSession(){
   /* _date is read by lastSrc() to pick the most recent day when the same
      exercise has a prev on more than one. It sits beside the exercise ids
      (never a valid id itself); older prev blobs have none and lose ties. */
-  prev[d.id]._date=td; prev[d.id]._at=PLACE; }
+  prev[d.id]._date=td; prev[d.id]._at=PLACE;
+  prev[d.id]._keys={}; d.items.forEach(it=>{ prev[d.id]._keys[it.ex]=hkey(it.ex,swaps[it.ex]||null); }); }
  endOfSession(d);
  cur[d.id]={}; delete warmDone[d.id]; delete sessionStart[d.id];
  await Promise.all([Store.set('gt4_hist',hist),Store.set('gt4_prev',prev),Store.set('gt4_cur',cur),Store.set('gt4_warm',warmDone),Store.set('gt4_start',sessionStart)]);

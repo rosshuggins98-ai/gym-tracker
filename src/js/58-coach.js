@@ -13,7 +13,7 @@
    pin-loaded machines a plate on the stack (5kg), barbells, cables and
    plate-loaded kit 2.5kg. 0 = bodyweight or assisted: reps-only coaching.
    Overridden per history key from the chart sheet, stored in gt4_incs. */
-const INC_DB=['dbbench','incline','decline','dbfly','dbshoulder','lateral','frontraise','dbrow','pullover',
+const INC_DB=['dbbench','dblegcurl','incline','decline','dbfly','dbshoulder','lateral','frontraise','dbrow','pullover',
  'goblet','lunge','bulgarian','dbrdl','hammer','dbcurl','concentration','ohext'];
 const INC_MACHINE=['mchest','pecdeck','mshoulder','latpulldown','cablerow','legpress','legcurl','legext','calf'];
 const INC_NONE=['pushup','pullup','dips'];

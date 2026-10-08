@@ -147,11 +147,17 @@ let legacyFound=0;
         plan's target reps)
      4. weights recovered from pre-v4 builds
    Weight and reps consult the same source so a set never mixes two sessions.
-   A prev from the other place (gym vs home, its _at) is skipped once the
-   lift has history at this one, and that history's top set is used instead. */
+   A prev is only used for the exercise it was logged as (its _keys, stamped
+   on finish: at home the Leg Curls slot is a Dumbbell Leg Curl, and the
+   machine's 50kg is no prefill for it). A prev from before _keys is taken
+   as logged under the gym swaps. A prev from the other place (gym vs home, its
+   _at) is skipped once the lift has history at this one, and that history's
+   top set is used instead. */
 function lastSrc(dId,exId){
- const h=hist[hkey(exId,swaps[exId]||null)]||[], here=h.filter(e=>placeOf(e)===PLACE);
- const fits=od=>!here.length||placeOf({at:prev[od]&&prev[od]._at})===PLACE;
+ const k=hkey(exId,swaps[exId]||null), h=hist[k]||[], here=h.filter(e=>placeOf(e)===PLACE);
+ const fits=od=>{ const P=prev[od]||{};
+  if((P._keys?P._keys[exId]:hkey(exId,gymSwapMap()[exId]||null))!==k) return false;
+  return !here.length||placeOf({at:P._at})===PLACE; };
  const p=prev[dId]&&prev[dId][exId]; if(fits(dId)&&Array.isArray(p)&&p.some(x=>x&&x.w)) return {sets:p};
  let best=null;
  Object.keys(prev).forEach(od=>{ if(od===dId||!fits(od)) return; const a=prev[od]&&prev[od][exId], dt=(prev[od]&&prev[od]._date)||'';
@@ -246,7 +252,7 @@ function markSaved(){ const t=document.getElementById('savedTag'); t.classList.a
 let st=null;
 function queueSave(){ DIRTY=true; clearTimeout(st); st=setTimeout(async()=>{ if(await Store.set('gt4_cur',cur)){DIRTY=false;markSaved();} mirrorHash(); },300); }
 function flush(){ if(DIRTY){ Store.set('gt4_cur',cur); DIRTY=false; } mirrorHash(); }
-function stateBlob(){ return {v:4,a:ACTIVE,t:THEME,c:cur,p:prev,s:swaps,h:hist,w:warmDone,pl:PLAN}; }
+function stateBlob(){ return {v:4,a:ACTIVE,t:THEME,c:cur,p:prev,s:gymSwapMap(),h:hist,w:warmDone,pl:PLAN}; }
 function mirrorHash(){ if(Store.mode()!=='none')return;
  try{ const d='gt='+encodeURIComponent(JSON.stringify(stateBlob()));
   if(history&&history.replaceState)history.replaceState(null,'','#'+d); else location.hash=d; }catch(e){} }

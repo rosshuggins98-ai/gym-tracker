@@ -148,6 +148,16 @@ with a newline.
   skips a prev from the other place once this place has history. PBs, the
   check-in and Compare are still place-blind (Compare labels home sessions).
   Past sessions are re-tagged a whole date at a time (`tagDate`).
+- **Home kit** (`57-place`): home is adjustable dumbbells + an adjustable bench.
+  At home `swaps` is a computed map (`homeSwapMap()`, marked `__home`) and the gym
+  map waits in `gymSwaps`; at the gym `swaps` is the gym map, as always. Anything
+  that replaces `swaps` or the plan must be followed by `enterPlace()` (`render()`
+  calls it). Each slot's home pick: the user's choice made at home (`homePicks`,
+  `gt4_homeswaps`, `''` = planned), else the gym swap if `homeOk()`, else the
+  planned exercise if it is, else `HOME_PREF`, else the first workable alt.
+  Backups and the URL hash store the gym map (`gymSwapMap()`). `prev._keys`
+  (stamped on finish) records the history key each slot was logged as, so a
+  prefill never crosses exercises; older prevs count as logged under the gym map.
 - **Effort** (`59-effort`): Easy / Solid / Hard / Off day, one tap on the summary
   sheet, kept per date in `efforts` (`gt4_effort`, `effort` in backups), not on
   history entries. `coach()` drops off-day entries before judging (unless that

@@ -9,10 +9,12 @@
 const PLACES={gym:'Gym',home:'Home'};
 let PLACE='gym';
 function placeOf(e){ return e&&e.at==='home'?'home':'gym'; }
-/* Switching place re-prefills the active day's untouched sets (not ticked,
+/* Switching place swaps the plan to the home kit or back (see below), and
+   re-prefills the active day's untouched sets (not ticked,
    reps not typed), so the "last" weights come from the right place. */
 async function setPlace(p){ if(!PLACES[p]||p===PLACE) return;
- PLACE=p; const c=cur[ACTIVE];
+ if(p==='home'){ PLACE=p; enterPlace(); } else { PLACE=p; swaps=gymSwaps; }
+ const c=cur[ACTIVE];
  if(c) Object.keys(c).forEach(exId=>{ (c[exId]||[]).forEach((x,i)=>{ if(x&&!x.done&&!x.rt) c[exId][i]=null; }); });
  await Store.set('gt4_place',PLACE); queueSave(); flush(); }
 /* Every entry on a date, across all lifts, to one place. */
@@ -32,10 +34,12 @@ function snapW(rack,w,dir,above){ if(!rack.length) return w;
  if(dir>0){ const u=rack.filter(x=>x>above); if(u.length) return u[0]; }
  if(dir<0){ const d=rack.filter(x=>x<=w); if(d.length) return d[d.length-1]; }
  return rack.reduce((b,x)=>Math.abs(x-w)<Math.abs(b-w)?x:b); }
-function placeBar(){
+function placeBar(d){
  const c=document.createElement('div'); c.className='place';
+ const n=PLACE==='home'&&d?d.items.filter(it=>swaps[it.ex]&&swaps[it.ex]!==gymSwaps[it.ex]).length:0;
  c.innerHTML='<span class="lbl">Training at</span>'+Object.keys(PLACES).map(p=>
-  '<button data-p="'+p+'"'+(p===PLACE?' class="on"':'')+'>'+PLACES[p]+'</button>').join('');
+  '<button data-p="'+p+'"'+(p===PLACE?' class="on"':'')+'>'+PLACES[p]+'</button>').join('')+
+  (PLACE==='home'?'<span class="lbl">'+(n?n+' swapped for dumbbells &amp; bench':'dumbbells &amp; bench')+'</span>':'');
  c.querySelectorAll('button').forEach(b=>b.addEventListener('click',async()=>{ await setPlace(b.dataset.p); render(); }));
  return c; }
 /* Progress: every past session with a Gym / Home toggle, newest first, so
@@ -59,3 +63,42 @@ function wirePlace(){ const box=document.getElementById('placeBox'); if(!box) re
  box.querySelectorAll('.plrow .hpl').forEach(b=>b.addEventListener('click',async()=>{
   await tagDate(b.dataset.date,b.classList.contains('home')?'gym':'home'); redo(); render(); }));
  const m=document.getElementById('plMore'); if(m) m.addEventListener('click',()=>{ placeAll=true; redo(); }); }
+/* --- Home kit: swap the plan to what the home equipment can do ----------
+   Home is an adjustable dumbbell set and an adjustable bench. At home every
+   planned exercise that needs gym kit is swapped for one that doesn't: the
+   gym swap if that already works at home (Overhead Extension for Pushdown),
+   else HOME_PREF, else the first of its alts that works. Picks made at home
+   are kept apart in homePicks (gt4_homeswaps, '' = keep the planned one), so
+   the gym swaps are untouched and come straight back at the gym.
+   While at home `swaps` is the computed map (homeSwapMap) and the gym map
+   waits in gymSwaps; at the gym `swaps` is the gym map itself, as always. */
+const HOME_IDS=['dbbench','incline','dbfly','pushup','dbshoulder','lateral','frontraise','dbrow','pullover','goblet',
+ 'lunge','bulgarian','dbrdl','dblegcurl','hammer','dbcurl','concentration','ohext','skull','calf'];
+/* Library and alt names that need only dumbbells, the bench or bodyweight. */
+const HOME_NAME=/dumbbell|\bdb\b|goblet|push-?ups|bulgarian|lunge|single-leg rdl|glute bridge|bench dips|rear delt fly/i;
+/* Better home stand-ins than the first workable alt, where there is one. */
+const HOME_PREF={legcurl:'Dumbbell Leg Curl',legext:'Bulgarian Split Squat',hipthrust:'Dumbbell RDL',
+ pecdeck:'Dumbbell Fly',facepull:'Rear Delt Fly',cablecurl:'Dumbbell Curl',bbcurl:'Dumbbell Curl',preacher:'Concentration Curl'};
+let homePicks={}, gymSwaps={};
+function homeOk(name){ const id=nameToId(name);
+ if(id&&HOME_IDS.indexOf(id)>=0) return true;
+ if(id&&LIB[id]&&!custom[id]) return false;
+ return HOME_NAME.test(String(name||'')); }
+/* The automatic home choice for a plan slot: an alt name, or null to keep
+   the planned exercise (it works at home, or nothing listed does). */
+function homeAuto(exId){
+ const g=gymSwaps[exId]; if(g&&homeOk(g)) return g;
+ if(homeOk(exName(exId))) return null;
+ const pref=HOME_PREF[exId]; if(pref) return pref;
+ return ((LIB[exId]&&LIB[exId].alts)||[]).find(homeOk)||null; }
+/* Marked (non-enumerable, so never saved) to tell it from the gym map. */
+function homeSwapMap(){ const m={}, seen={}; Object.defineProperty(m,'__home',{value:true});
+ PLAN.days.forEach(d=>d.items.forEach(it=>{ const id=it.ex; if(seen[id]) return; seen[id]=1;
+  const p=homePicks[id], v=p!==undefined?(p||null):homeAuto(id); if(v) m[id]=v; }));
+ return m; }
+/* The gym map wherever it currently lives -- for backups and the URL hash. */
+function gymSwapMap(){ return PLACE==='home'?gymSwaps:swaps; }
+/* Call after anything replaces `swaps` or the plan while at home. */
+function enterPlace(){ if(PLACE==='home'){ if(!swaps.__home) gymSwaps=swaps; swaps=homeSwapMap(); } }
+/* A slot at home still on gym kit, with no home option found. */
+function needsGym(exId){ return PLACE==='home'&&!swaps[exId]&&!homeOk(exName(exId)); }
