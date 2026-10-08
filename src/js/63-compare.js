@@ -44,9 +44,10 @@ function liftRows(id){ const W=spanWindows(id), rows=[];
 function pctTxt(p){ const n=Math.round(p*100); return (n>0?'+':n<0?'−':'±')+Math.abs(n)+'%'; }
 function deltaTag(a,b){ if(!a) return ''; const p=(b-a)/a;
  return '<em class="'+(p>0.02?'up':p<-0.02?'down':'flat')+'">'+pctTxt(p)+'</em>'; }
+const atTxt=e=>shortDate(e.date)+(placeOf(e)==='home'?' · home':'');
 function liftDetail(k){ const h=(hist[k]||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
  const pts=h.map(e=>({label:shortDate(e.date),val:e.top}));
- return '<div class="cmp-detail">'+buildChart(pts)+h.slice(-5).reverse().map(e=>'<div class="cmp-sess"><span>'+shortDate(e.date)+'</span>'+
+ return '<div class="cmp-detail">'+buildChart(pts)+h.slice(-5).reverse().map(e=>'<div class="cmp-sess"><span>'+atTxt(e)+'</span>'+
   workSets(e).map(s=>(s.w>0?s.w+'×':'')+(s.r||'?')).join(', ')+'</div>').join('')+'</div>'; }
 function compareBlock(){
  const W=spanWindows(cmpSpan), all=!W.sp.d, rows=liftRows(cmpSpan), first=allSessionDates()[0];
@@ -69,8 +70,8 @@ function compareBlock(){
    (down.length?', down on '+down.length:'')+' · typical change '+pctTxt(avg)+'.</div>'; }
  h+=rows.map(r=>'<div class="cmp-row'+(cmpOpen===r.k?' open':'')+'" data-k="'+r.k+'"><div class="cmp-top"><span class="nm">'+r.nm+'</span>'+
   (r.pct===null?'<em class="new">new</em>':'<em class="'+(r.pct>0.02?'up':r.pct<-0.02?'down':'flat')+'">'+pctTxt(r.pct)+'</em>')+'</div>'+
-  '<div class="cmp-sets">'+(r.was?setTxt(bestSet(r.was))+' <small>'+shortDate(r.was.date)+'</small> → ':'')+
-  '<b>'+setTxt(bestSet(r.now))+'</b> <small>'+shortDate(r.now.date)+'</small></div>'+
+  '<div class="cmp-sets">'+(r.was?setTxt(bestSet(r.was))+' <small>'+atTxt(r.was)+'</small> → ':'')+
+  '<b>'+setTxt(bestSet(r.now))+'</b> <small>'+atTxt(r.now)+'</small></div>'+
   (cmpOpen===r.k?liftDetail(r.k):'')+'</div>').join('');
  h+='<div class="note">Best set in each span by weight and reps together, so 20kg × 13 beats 20kg × 10. Tap a lift for its chart.</div>';
  return h; }

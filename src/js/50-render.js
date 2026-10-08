@@ -25,6 +25,7 @@ function render(){
  wg.onclick=async()=>{ const opts=[2,3,4,5,6]; WEEKTARGET=opts[(opts.indexOf(WEEKTARGET)+1)%opts.length];
   await Store.set('gt4_weektarget',WEEKTARGET); render(); };
  const app=document.getElementById('app'); app.innerHTML='';
+ app.appendChild(placeBar());
  const ck=checkinCard(); if(ck) app.appendChild(ck);
  const td=todoStrip(d); if(td) app.appendChild(td);
  if(d.warm){

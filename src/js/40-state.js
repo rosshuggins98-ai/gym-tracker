@@ -146,15 +146,19 @@ let legacyFound=0;
         a sensible prefill for a 12-rep first set, so the tick still uses the
         plan's target reps)
      4. weights recovered from pre-v4 builds
-   Weight and reps consult the same source so a set never mixes two sessions. */
+   Weight and reps consult the same source so a set never mixes two sessions.
+   A prev from the other place (gym vs home, its _at) is skipped once the
+   lift has history at this one, and that history's top set is used instead. */
 function lastSrc(dId,exId){
- const p=prev[dId]&&prev[dId][exId]; if(Array.isArray(p)&&p.some(x=>x&&x.w)) return {sets:p};
+ const h=hist[hkey(exId,swaps[exId]||null)]||[], here=h.filter(e=>placeOf(e)===PLACE);
+ const fits=od=>!here.length||placeOf({at:prev[od]&&prev[od]._at})===PLACE;
+ const p=prev[dId]&&prev[dId][exId]; if(fits(dId)&&Array.isArray(p)&&p.some(x=>x&&x.w)) return {sets:p};
  let best=null;
- Object.keys(prev).forEach(od=>{ if(od===dId) return; const a=prev[od]&&prev[od][exId], dt=(prev[od]&&prev[od]._date)||'';
+ Object.keys(prev).forEach(od=>{ if(od===dId||!fits(od)) return; const a=prev[od]&&prev[od][exId], dt=(prev[od]&&prev[od]._date)||'';
   if(Array.isArray(a)&&a.some(x=>x&&x.w)&&(!best||dt>best.dt)) best={sets:a,dt}; });
  if(best) return {sets:best.sets};
- const h=hist[hkey(exId,swaps[exId]||null)];
- if(h&&h.length) return {top:h[h.length-1].top};
+ if(here.length) return {top:here[here.length-1].top};
+ if(h.length) return {top:h[h.length-1].top};
  return null;
 }
 function lastW(dId,exId,i){ const s=lastSrc(dId,exId);

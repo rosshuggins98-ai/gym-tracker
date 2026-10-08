@@ -31,6 +31,7 @@ document.getElementById('progBtn').innerHTML=I.chart;
  const wt=await Store.get('gt4_weektarget'); if(typeof wt==='number'&&wt>0) WEEKTARGET=wt;
  notes=(await Store.get('gt4_notes'))||{};
  incs=(await Store.get('gt4_incs'))||{};
+ const pc=await Store.get('gt4_place'); if(PLACES[pc]) PLACE=pc;
  routines=(await Store.get('gt4_routines'))||[];
  lastAuto=(await Store.get('gt4_autobackup'))||null;
  bodyweight=(await Store.get('gt4_bodyweight'))||[];

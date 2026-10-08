@@ -59,7 +59,7 @@ cache-first would either never match (offline broken) or show the previous build
 One script scope; later modules call earlier ones. `src/js/`:
 `10-lib` (exercise library + cues) → `20-plans` (`DEFAULT_PLAN`, `FULL_BODY_PLAN`,
 `PRESETS`, `MIGRATE`, `BUILD`) → `30-storage` → `40-state` (helpers, PB, prefill,
-supersets, rest) → `50-render` → `55-rest` → `58-coach` → `60-progress` → `61-week` (sets per
+supersets, rest) → `50-render` → `55-rest` → `57-place` (gym / home) → `58-coach` → `60-progress` → `61-week` (sets per
 muscle group, check-in, still-to-do strip, days done this week) → `62-cues` →
 `63-compare` (Progress "How you're doing": span vs the span before) → `64-swap` →
 `66-plates` → `68-chart` → `70-editor` → `72-routines` → `74-theme` → `76-data`
@@ -139,6 +139,15 @@ with a newline.
 - **Week balance** (`61-week`): working sets per muscle group against the plan's
   weekly sets (every day once), not kg. Only plan days count from `cur`
   (`liveDays()`) — a previous plan's unfinished sets stay in `cur` indefinitely.
+- **Gym / home** (`57-place`): `PLACE` (`gt4_place`, in backups) is where today's
+  session is and stays on whatever was picked last. Finishing stamps `at` on each
+  history entry and `_at` on `prev`; no `at` means gym (everything before
+  2026-10-08). `coach()` judges only the entries at `PLACE` when there are any
+  (`coachOn` is the old body); with none it uses them all and, for dumbbell lifts,
+  snaps the weight onto `rackAt(PLACE)`, the dumbbells logged there. `lastSrc()`
+  skips a prev from the other place once this place has history. PBs, the
+  check-in and Compare are still place-blind (Compare labels home sessions).
+  Past sessions are re-tagged a whole date at a time (`tagDate`).
 - **Days done this week**: read from `prev[dayId]._date` (stamped on finish), not
   history -- history entries don't record which day they came from. The tabs show
   "✓ Done Tue" and mark the not-done day finished longest ago as "Up next".

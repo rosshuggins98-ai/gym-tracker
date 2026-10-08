@@ -160,6 +160,17 @@
  .trend{font-size:11px;margin-left:4px}
  .trend.up{color:var(--done)} .trend.down{color:var(--warn)} .trend.flat{color:var(--dim)}
  .cx-dot{fill:var(--accent)} .cx-dot.best{fill:var(--done)} .cx-dot.today{fill:var(--card2);stroke:var(--accent);stroke-width:2.5}
+ .cx-dot.home{stroke:var(--text);stroke-width:2}
+ .place{display:flex;align-items:center;gap:6px;margin:6px 2px 8px;font-size:11.5px;font-weight:700}
+ .place .lbl{color:var(--muted)}
+ .place button{border:1px solid var(--line);background:var(--card);color:var(--muted);font-family:inherit;font-weight:800;
+  font-size:12px;padding:6px 14px;border-radius:99px;cursor:pointer}
+ .place button.on{background:var(--accent);border-color:var(--accent);color:var(--onfill)}
+ .plrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:12.5px}
+ .plrow .dt{width:48px;flex-shrink:0;color:var(--muted);font-weight:700}
+ .plrow .ls{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .mini.hpl{width:auto;padding:0 8px;font-size:10.5px;font-weight:800}
+ .mini.hpl.home{color:var(--accent);border-color:var(--accent)}
  .cx-lbl{fill:var(--text);font-size:11px;font-weight:700} .cx-ax{fill:var(--dim);font-size:10px;font-weight:600}
  .erow{display:flex;align-items:center;gap:8px;background:var(--card2);border-radius:12px;padding:10px 10px 10px 12px;margin-bottom:8px}
  .erow .en{flex:1;min-width:0}
@@ -230,7 +241,7 @@
   font-family:inherit;font-weight:700;font-size:13px;text-align:center;padding:7px 2px;outline:none}
  .histrow input:focus{border-color:var(--accent)}
  .histrow .hx{font-size:10.5px;color:var(--dim);flex-shrink:0}
- .histrow .hdel{margin-left:auto}
+ .histrow .hpl{margin-left:auto}
  .pbrow{display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--line);font-size:14px}
  .pbrow:first-of-type{border-top:0}
  .pbrow .tag{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--done);

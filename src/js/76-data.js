@@ -17,7 +17,7 @@ function openData(){
 function closeData(){ document.getElementById('databg').classList.remove('show'); }
 document.getElementById('databg').addEventListener('click',e=>{ if(e.target.id==='databg')closeData(); });
 function backup(){ return {app:"gym-tracker",version:4,build:BUILD,exported:new Date().toISOString(),
- plan:PLAN,cur,prev,swaps,history:hist,warm:warmDone,custom,barWeight:BARWEIGHT,notes,weekTarget:WEEKTARGET,routines,bodyweight,incs}; }
+ plan:PLAN,cur,prev,swaps,history:hist,warm:warmDone,custom,barWeight:BARWEIGHT,notes,weekTarget:WEEKTARGET,routines,bodyweight,incs,place:PLACE}; }
 function dl(n,t,m){ try{ const b=new Blob([t],{type:m}),u=URL.createObjectURL(b),a=document.createElement('a');
  a.href=u;a.download=n;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);return true;}catch(e){return false;} }
 function showExport(t,n){ document.getElementById('exportText').value=t;
@@ -35,12 +35,12 @@ function csvText(){
  const rows=[];
  Object.keys(hist).forEach(k=>{
   const nm=keyName(k), nt=noteFor(k);
-  (hist[k]||[]).forEach(h=>rows.push([h.date,nm,h.top,h.reps||'',nt]));
+  (hist[k]||[]).forEach(h=>rows.push([h.date,nm,h.top,h.reps||'',PLACES[placeOf(h)],nt]));
  });
- bodyweight.forEach(e=>rows.push([e.date,'Body weight',e.kg,'','']));
+ bodyweight.forEach(e=>rows.push([e.date,'Body weight',e.kg,'','','']));
  if(!rows.length) return null;
  rows.sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0);
- return [['Date','Exercise','Top weight (kg)','Reps at top weight','Note'].map(cell).join(',')]
+ return [['Date','Exercise','Top weight (kg)','Reps at top weight','Place','Note'].map(cell).join(',')]
   .concat(rows.map(r=>r.map(cell).join(','))).join('\r\n');
 }
 function exportCSV(){
@@ -70,12 +70,13 @@ async function applyImport(){ const d=window.__imp; if(!d)return;
  custom=d.custom||{}; Object.keys(custom).forEach(id=>LIB[id]=custom[id]);
  if(typeof d.barWeight==='number'&&d.barWeight>=0) BARWEIGHT=d.barWeight;
  if(typeof d.weekTarget==='number'&&d.weekTarget>0) WEEKTARGET=d.weekTarget;
+ if(PLACES[d.place]) PLACE=d.place;
  notes=d.notes||{}; routines=d.routines||[]; incs=(d.incs&&typeof d.incs==='object')?d.incs:{};
  bodyweight=Array.isArray(d.bodyweight)?d.bodyweight.filter(e=>e&&e.date&&e.kg>0):[];
  await Promise.all([Store.set('gt4_plan',PLAN),Store.set('gt4_cur',cur),Store.set('gt4_prev',prev),Store.set('gt4_bodyweight',bodyweight),
   Store.set('gt4_hist',hist),Store.set('gt4_swaps',swaps),Store.set('gt4_warm',warmDone),Store.set('gt4_custom',custom),
   Store.set('gt4_barweight',BARWEIGHT),Store.set('gt4_notes',notes),Store.set('gt4_weektarget',WEEKTARGET),
-  Store.set('gt4_routines',routines),Store.set('gt4_incs',incs)]);
+  Store.set('gt4_routines',routines),Store.set('gt4_incs',incs),Store.set('gt4_place',PLACE)]);
  window.__imp=null;
  document.getElementById('importPreview').innerHTML='<b>Restored ✓</b><div class="note">Your data is back.</div>';
  render(); }

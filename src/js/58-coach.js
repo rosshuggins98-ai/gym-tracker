@@ -44,7 +44,7 @@ function entryScore(e){ let m=0;
 /* No session in the last three beat the best before them. Needs four. Not a
    stall while the weight is climbing back by at least a jump across those
    three -- that's a reset already under way (lat pulldown: 55 -> 40, 45, 50). */
-function stalled(k){ const h=hist[k]||[]; if(h.length<4) return false;
+function stalled(k,hh){ const h=hh||hist[k]||[]; if(h.length<4) return false;
  const win=h.slice(-3), inc=incFor(k);
  if(inc>0&&win[2].top-win[0].top>=inc) return false;
  const sc=h.map(entryScore);
@@ -81,8 +81,18 @@ function firstAtTop(e){ const J=judged(e);
      stall - three sessions without beating the old best: drop ~10% and
              build back up (a reset usually passes the old best within weeks)
      reps  - bodyweight: range topped out, so add a rep (no weight to add) */
+/* Reads the sessions at the current place (gym 22 and home 22.5 are
+   different dumbbells, not progress), or every session when the lift has
+   never been done here -- then the weight is moved onto the nearest one
+   this place's rack is known to have, for dumbbell lifts. */
 function coach(k,it){
- const h=hist[k]||[]; if(!h.length) return null;
+ const all=hist[k]||[]; if(!all.length) return null;
+ const here=all.filter(e=>placeOf(e)===PLACE), c=coachOn(k,it,here.length?here:all);
+ if(!c||here.length||incDefault(k)!==2||!(c.w>0)) return c;
+ const w=snapW(rackAt(PLACE),c.w,c.kind==='up'?1:c.kind==='stay'?0:-1,c.from);
+ if(w===c.w) return c;
+ return Object.assign(c,{w,why:(c.why?c.why+' ':'')+'First time at '+PLACES[PLACE].toLowerCase()+' — '+w+'kg is the nearest weight you\'ve used there.'}); }
+function coachOn(k,it,h){
  const last=h[h.length-1], ws=workSets(last); if(!ws.length) return null;
  const inc=incFor(k), targets=it?repsFor(it):null;
  const J=judged(last), top=J?J.top:Math.max.apply(null,ws.map(s=>s.w));
@@ -122,7 +132,7 @@ function coach(k,it){
    }
    why='Under the '+lo+'-rep floor — normal straight after a jump. Stay and build up; if it\'s still under '+lo+' next time, drop back.';
   }
-  if(stalled(k)){
+  if(stalled(k,h)){
    let w=Math.floor(top*0.9/inc)*inc; if(w>=top) w=top-inc;
    if(w>0) return Object.assign(base,{kind:'stall',w:r25(w),why:'No progress in your last 3 sessions.'});
   }

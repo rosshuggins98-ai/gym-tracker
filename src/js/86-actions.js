@@ -4,6 +4,7 @@ function openSheet(){ applyAccent();
  const w=finishChecks(day(ACTIVE)), el=document.getElementById('finishWarn');
  el.innerHTML=w.length?'<b>Worth a look before saving:</b>'+w.map(x=>'<div>'+x+'</div>').join(''):'';
  el.style.display=w.length?'block':'none';
+ finishPlace();
  document.getElementById('sheetbg').classList.add('show'); }
 /* Things that usually mean a mis-log, listed on the finish sheet (never
    blocking): an exercise whose ticked sets match its last history entry set
@@ -20,6 +21,12 @@ function finishChecks(d){ const out=[]; let untyped=0;
  });
  if(untyped) out.push(untyped+' set'+(untyped===1?'':'s')+' ticked without typing the reps — saved as the target or last time\'s number.');
  return out; }
+/* Last chance to say where this was, since the place stays on whatever was
+   picked last time. */
+function finishPlace(){ const el=document.getElementById('finishPlace');
+ el.innerHTML='<span class="lbl">Saving as a</span>'+Object.keys(PLACES).map(p=>
+  '<button data-p="'+p+'"'+(p===PLACE?' class="on"':'')+'>'+PLACES[p]+'</button>').join('')+'<span class="lbl">session</span>';
+ el.querySelectorAll('button').forEach(b=>b.addEventListener('click',async()=>{ await setPlace(b.dataset.p); finishPlace(); render(); })); }
 function closeSheet(){ document.getElementById('sheetbg').classList.remove('show'); }
 document.getElementById('sheetbg').addEventListener('click',e=>{ if(e.target.id==='sheetbg')closeSheet(); });
 async function doNewSession(){
@@ -31,13 +38,13 @@ async function doNewSession(){
    const lastE=hist[k][hist[k].length-1];
    if(lastE&&lastE.date===td){ /* same-day re-finish: keep the better one, don't duplicate the point */
     if(e.top>lastE.top||(e.top===lastE.top&&(e.reps||0)>(lastE.reps||0))){ lastE.top=e.top; lastE.reps=e.reps; }
-    lastE.vol=vol; lastE.sets=sets;
-   } else hist[k].push({date:td,top:e.top,reps:e.reps,vol,sets}); } });
+    lastE.vol=vol; lastE.sets=sets; lastE.at=PLACE;
+   } else hist[k].push({date:td,top:e.top,reps:e.reps,vol,sets,at:PLACE}); } });
  if(cur[d.id]&&Object.keys(cur[d.id]).length){ prev[d.id]=JSON.parse(JSON.stringify(cur[d.id]));
   /* _date is read by lastSrc() to pick the most recent day when the same
      exercise has a prev on more than one. It sits beside the exercise ids
      (never a valid id itself); older prev blobs have none and lose ties. */
-  prev[d.id]._date=td; }
+  prev[d.id]._date=td; prev[d.id]._at=PLACE; }
  endOfSession(d);
  cur[d.id]={}; delete warmDone[d.id]; delete sessionStart[d.id];
  await Promise.all([Store.set('gt4_hist',hist),Store.set('gt4_prev',prev),Store.set('gt4_cur',cur),Store.set('gt4_warm',warmDone),Store.set('gt4_start',sessionStart)]);

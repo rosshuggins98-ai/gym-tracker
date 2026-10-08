@@ -9,7 +9,7 @@ function buildChart(pts,pts2){
  const X=i=>pts.length===1?pl+iw/2:pl+(i/(pts.length-1))*iw, Y=v=>pt+ih-((v-mn)/rg)*ih;
  const top=Math.max.apply(null,pts.map(p=>p.val)); let path='',dots='',lbls='';
  pts.forEach((p,i)=>{ path+=(i?'L':'M')+X(i).toFixed(1)+' '+Y(p.val).toFixed(1)+' ';
-  dots+='<circle class="cx-dot '+(p.today?'today':(p.val===top?'best':''))+'" cx="'+X(i).toFixed(1)+'" cy="'+Y(p.val).toFixed(1)+'" r="'+(p.today?4.5:4)+'"/>';
+  dots+='<circle class="cx-dot '+(p.today?'today':(p.val===top?'best':''))+(p.home?' home':'')+'" cx="'+X(i).toFixed(1)+'" cy="'+Y(p.val).toFixed(1)+'" r="'+(p.today?4.5:4)+'"/>';
   if(i===pts.length-1||p.val===top)lbls+='<text class="cx-lbl" x="'+X(i).toFixed(1)+'" y="'+(Y(p.val)-9).toFixed(1)+'" text-anchor="middle">'+p.val+'</text>'; });
  let path2='';
  if(pts2&&pts2.length>1) pts2.forEach((p,i)=>{ path2+=(i?'L':'M')+X(i).toFixed(1)+' '+Y(p.val).toFixed(1)+' '; });
@@ -23,11 +23,11 @@ function buildChart(pts,pts2){
 function openChart(exId,dId){
  const alt=swaps[exId]||null, k=hkey(exId,alt);
  document.getElementById('chartTitle').textContent=vName(exId,alt);
- const h=hist[k]||[], pts=h.map(e=>({label:shortDate(e.date),val:e.top}));
+ const h=hist[k]||[], pts=h.map(e=>({label:shortDate(e.date),val:e.top,home:placeOf(e)==='home'}));
  const pts2=h.map(e=>({label:shortDate(e.date),val:Math.round(e1RM(e.top,e.reps)*10)/10}));
  const live=dId?curTop(dId,exId):null;
  if(live!==null){
-  pts.push({label:'Today',val:live,today:true});
+  pts.push({label:'Today',val:live,today:true,home:PLACE==='home'});
   const liveT=dId?topWithReps(dId,exId):null;
   pts2.push({label:'Today',val:Math.round(e1RM(live,liveT&&liveT.reps)*10)/10,today:true});
  }
@@ -47,10 +47,11 @@ function openChart(exId,dId){
    '<div class="stat"><b>'+last.val+'</b><span>'+(last.today?'Today':'Latest')+' kg</span></div>'+
    '<div class="stat"><b>'+(est1rm!==null?est1rm:'—')+'</b><span>Est. 1RM</span></div></div>'+
    (est1rm===null&&lastH&&lastH.reps>10?'<div class="note">Est. 1RM is only worked out from sets of 10 reps or fewer — above that the formula overestimates badly. Rep records below are the honest measure.</div>':'')+
-   '<div class="note">'+h.length+' session'+(h.length===1?'':'s')+' logged.'+trendTxt+'</div>'+target+
+   '<div class="note">'+h.length+' session'+(h.length===1?'':'s')+' logged.'+trendTxt+
+   (pts.some(p=>p.home)?' Ringed dots are home sessions.':'')+'</div>'+target+
    repRecordBlock(k)+incBlock(k)+variantBlock(exId,k)+
    '<h5 style="margin:18px 0 8px">Sessions</h5><div id="histRows">'+histRows(h)+'</div>'+
-   (h.length?'<div class="note">Edit a weight or reps directly, or delete a mis-logged entry — saves immediately.</div>':'');
+   (h.length?'<div class="note">Edit a weight or reps directly, or delete a mis-logged entry — saves immediately. Tap Gym / Home to move that whole day\'s session to the other place.</div>':'');
   wireHistRows(k,exId,dId);
   const ii=document.getElementById('incInput');
   if(ii) ii.addEventListener('change',async()=>{ await setInc(k,ii.value); openChart(exId,dId); render(); });
@@ -66,6 +67,7 @@ function histRows(h){
   .map(({e,i})=>'<div class="histrow" data-i="'+i+'"><span class="hdt">'+shortDate(e.date)+'</span>'+
    '<input class="hw" inputmode="decimal" value="'+e.top+'"><span class="hx">kg ×</span>'+
    '<input class="hrp" inputmode="numeric" value="'+(e.reps!=null?e.reps:'')+'">'+
+   '<button class="mini hpl'+(placeOf(e)==='home'?' home':'')+'">'+PLACES[placeOf(e)]+'</button>'+
    '<button class="mini del hdel">×</button></div>').join('');
 }
 function wireHistRows(k,exId,dId){
@@ -82,6 +84,10 @@ function wireHistRows(k,exId,dId){
    openChart(exId,dId);
   };
   hw.addEventListener('change',commit); hrp.addEventListener('change',commit);
+  /* Gym <-> home for the whole session that day, every lift in it. */
+  row.querySelector('.hpl').addEventListener('click',async()=>{
+   const e=hist[k]&&hist[k][i]; if(!e) return;
+   await tagDate(e.date,placeOf(e)==='home'?'gym':'home'); openChart(exId,dId); render(); });
   del.addEventListener('click',async()=>{
    const arr=hist[k]; if(!arr) return;
    arr.splice(i,1);

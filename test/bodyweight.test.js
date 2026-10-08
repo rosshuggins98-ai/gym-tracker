@@ -35,9 +35,9 @@ test('body weight rides along in the backup, the import, and the CSV',async()=>{
  deq(app.bodyweight,[{date:'2026-09-10',kg:82}]);
  set('notes',{bench:'pin "4"'});
  const lines=app.csvText().split('\r\n');
- assert.equal(lines[0],'"Date","Exercise","Top weight (kg)","Reps at top weight","Note"');
- assert.equal(lines[1],'"2026-09-10","Body weight","82","",""');
- assert.equal(lines[2],'"2026-09-11","Bench Press","50","8","pin ""4"""');
+ assert.equal(lines[0],'"Date","Exercise","Top weight (kg)","Reps at top weight","Place","Note"');
+ assert.equal(lines[1],'"2026-09-10","Body weight","82","","",""');
+ assert.equal(lines[2],'"2026-09-11","Bench Press","50","8","Gym","pin ""4"""');
  set('hist',{}); set('bodyweight',[]);
  assert.equal(app.csvText(),null);
 });

@@ -173,6 +173,17 @@
  .trend{font-size:11px;margin-left:4px}
  .trend.up{color:var(--done)} .trend.down{color:var(--warn)} .trend.flat{color:var(--dim)}
  .cx-dot{fill:var(--accent)} .cx-dot.best{fill:var(--done)} .cx-dot.today{fill:var(--card2);stroke:var(--accent);stroke-width:2.5}
+ .cx-dot.home{stroke:var(--text);stroke-width:2}
+ .place{display:flex;align-items:center;gap:6px;margin:6px 2px 8px;font-size:11.5px;font-weight:700}
+ .place .lbl{color:var(--muted)}
+ .place button{border:1px solid var(--line);background:var(--card);color:var(--muted);font-family:inherit;font-weight:800;
+  font-size:12px;padding:6px 14px;border-radius:99px;cursor:pointer}
+ .place button.on{background:var(--accent);border-color:var(--accent);color:var(--onfill)}
+ .plrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:12.5px}
+ .plrow .dt{width:48px;flex-shrink:0;color:var(--muted);font-weight:700}
+ .plrow .ls{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .mini.hpl{width:auto;padding:0 8px;font-size:10.5px;font-weight:800}
+ .mini.hpl.home{color:var(--accent);border-color:var(--accent)}
  .cx-lbl{fill:var(--text);font-size:11px;font-weight:700} .cx-ax{fill:var(--dim);font-size:10px;font-weight:600}
  .erow{display:flex;align-items:center;gap:8px;background:var(--card2);border-radius:12px;padding:10px 10px 10px 12px;margin-bottom:8px}
  .erow .en{flex:1;min-width:0}
@@ -243,7 +254,7 @@
   font-family:inherit;font-weight:700;font-size:13px;text-align:center;padding:7px 2px;outline:none}
  .histrow input:focus{border-color:var(--accent)}
  .histrow .hx{font-size:10.5px;color:var(--dim);flex-shrink:0}
- .histrow .hdel{margin-left:auto}
+ .histrow .hpl{margin-left:auto}
  .pbrow{display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--line);font-size:14px}
  .pbrow:first-of-type{border-top:0}
  .pbrow .tag{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--done);
@@ -324,6 +335,7 @@
 <div class="sheet-bg" id="sheetbg"><div class="sheet">
  <h4>Finish this session?</h4>
  <p>Today's top weight for each exercise is saved to its progress chart, then the boxes clear for next time.</p>
+ <div class="place" id="finishPlace"></div>
  <div class="finwarn" id="finishWarn"></div>
  <div class="row"><button class="cancel" onclick="closeSheet()">Keep going</button><button class="confirm" onclick="doNewSession()">Save &amp; clear</button></div>
 </div></div>
@@ -581,7 +593,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-10-08";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-10-08b";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -748,15 +760,19 @@ let legacyFound=0;
         a sensible prefill for a 12-rep first set, so the tick still uses the
         plan's target reps)
      4. weights recovered from pre-v4 builds
-   Weight and reps consult the same source so a set never mixes two sessions. */
+   Weight and reps consult the same source so a set never mixes two sessions.
+   A prev from the other place (gym vs home, its _at) is skipped once the
+   lift has history at this one, and that history's top set is used instead. */
 function lastSrc(dId,exId){
- const p=prev[dId]&&prev[dId][exId]; if(Array.isArray(p)&&p.some(x=>x&&x.w)) return {sets:p};
+ const h=hist[hkey(exId,swaps[exId]||null)]||[], here=h.filter(e=>placeOf(e)===PLACE);
+ const fits=od=>!here.length||placeOf({at:prev[od]&&prev[od]._at})===PLACE;
+ const p=prev[dId]&&prev[dId][exId]; if(fits(dId)&&Array.isArray(p)&&p.some(x=>x&&x.w)) return {sets:p};
  let best=null;
- Object.keys(prev).forEach(od=>{ if(od===dId) return; const a=prev[od]&&prev[od][exId], dt=(prev[od]&&prev[od]._date)||'';
+ Object.keys(prev).forEach(od=>{ if(od===dId||!fits(od)) return; const a=prev[od]&&prev[od][exId], dt=(prev[od]&&prev[od]._date)||'';
   if(Array.isArray(a)&&a.some(x=>x&&x.w)&&(!best||dt>best.dt)) best={sets:a,dt}; });
  if(best) return {sets:best.sets};
- const h=hist[hkey(exId,swaps[exId]||null)];
- if(h&&h.length) return {top:h[h.length-1].top};
+ if(here.length) return {top:here[here.length-1].top};
+ if(h.length) return {top:h[h.length-1].top};
  return null;
 }
 function lastW(dId,exId,i){ const s=lastSrc(dId,exId);
@@ -898,6 +914,7 @@ function render(){
  wg.onclick=async()=>{ const opts=[2,3,4,5,6]; WEEKTARGET=opts[(opts.indexOf(WEEKTARGET)+1)%opts.length];
   await Store.set('gt4_weektarget',WEEKTARGET); render(); };
  const app=document.getElementById('app'); app.innerHTML='';
+ app.appendChild(placeBar());
  const ck=checkinCard(); if(ck) app.appendChild(ck);
  const td=todoStrip(d); if(td) app.appendChild(td);
  if(d.warm){
@@ -1104,6 +1121,67 @@ function celebratePB(){
  celebratePB._t=setTimeout(()=>el.classList.remove('show'),1800);
 }
 
+/* ============ PLACE: GYM OR HOME ============
+   The user trains at a gym (dumbbells 18, 20, 22, 24) and at home with an
+   adjustable set (20.5, 22.5), and both log to the same exercise -- so gym 22
+   then home 22.5 read as progress, and back again as a drop. PLACE is where
+   today's session is (it stays on whatever was picked last); doNewSession
+   stamps it on each history entry as `at` and on prev as `_at`. Entries
+   without `at` (everything before 2026-10-08) count as gym, the usual place;
+   a past home session is re-tagged from the chart sheet, a whole date at once. */
+const PLACES={gym:'Gym',home:'Home'};
+let PLACE='gym';
+function placeOf(e){ return e&&e.at==='home'?'home':'gym'; }
+/* Switching place re-prefills the active day's untouched sets (not ticked,
+   reps not typed), so the "last" weights come from the right place. */
+async function setPlace(p){ if(!PLACES[p]||p===PLACE) return;
+ PLACE=p; const c=cur[ACTIVE];
+ if(c) Object.keys(c).forEach(exId=>{ (c[exId]||[]).forEach((x,i)=>{ if(x&&!x.done&&!x.rt) c[exId][i]=null; }); });
+ await Store.set('gt4_place',PLACE); queueSave(); flush(); }
+/* Every entry on a date, across all lifts, to one place. */
+async function tagDate(date,p){
+ Object.keys(hist).forEach(k=>(hist[k]||[]).forEach(e=>{ if(e.date===date) e.at=p; }));
+ await Store.set('gt4_hist',hist); }
+/* Dumbbell weights seen at a place, from every dumbbell lift's working sets:
+   the rack there, as far as the log knows. */
+function rackAt(p){ const s={};
+ Object.keys(hist).forEach(k=>{ if(incDefault(k)!==2) return;
+  (hist[k]||[]).forEach(e=>{ if(placeOf(e)===p) workSets(e).forEach(x=>{ if(x.w>0) s[x.w]=1; }); }); });
+ return Object.keys(s).map(Number).sort((a,b)=>a-b); }
+/* A weight moved onto a rack: dir 1 = the lightest above `above`, -1 = the
+   heaviest at or below w, 0 = the nearest (lighter on a tie). Falls back to
+   the nearest, and to w itself on an empty rack. */
+function snapW(rack,w,dir,above){ if(!rack.length) return w;
+ if(dir>0){ const u=rack.filter(x=>x>above); if(u.length) return u[0]; }
+ if(dir<0){ const d=rack.filter(x=>x<=w); if(d.length) return d[d.length-1]; }
+ return rack.reduce((b,x)=>Math.abs(x-w)<Math.abs(b-w)?x:b); }
+function placeBar(){
+ const c=document.createElement('div'); c.className='place';
+ c.innerHTML='<span class="lbl">Training at</span>'+Object.keys(PLACES).map(p=>
+  '<button data-p="'+p+'"'+(p===PLACE?' class="on"':'')+'>'+PLACES[p]+'</button>').join('');
+ c.querySelectorAll('button').forEach(b=>b.addEventListener('click',async()=>{ await setPlace(b.dataset.p); render(); }));
+ return c; }
+/* Progress: every past session with a Gym / Home toggle, newest first, so
+   home sessions from before the tag existed can be marked in one pass. The
+   lifts listed are the dumbbell ones first, since their weights give a home
+   session away (20.5, 22.5). */
+let placeAll=false;
+function sessionsByDate(){ const by={};
+ Object.keys(hist).forEach(k=>(hist[k]||[]).forEach(e=>{ (by[e.date]=by[e.date]||[]).push({k,e}); }));
+ return Object.keys(by).sort().reverse().map(date=>({date,at:by[date].some(x=>placeOf(x.e)==='home')?'home':'gym',
+  lifts:by[date].sort((a,b)=>(incDefault(b.k)===2)-(incDefault(a.k)===2)).map(x=>keyName(x.k)+' '+x.e.top)})); }
+function placeBlock(){ const ss=sessionsByDate(); if(!ss.length) return '';
+ const show=placeAll?ss:ss.slice(0,8);
+ return '<h5>Where you trained</h5>'+show.map(s=>'<div class="plrow"><span class="dt">'+shortDate(s.date)+'</span>'+
+  '<span class="ls">'+s.lifts.slice(0,3).join(', ')+'</span>'+
+  '<button class="mini hpl'+(s.at==='home'?' home':'')+'" data-date="'+s.date+'">'+PLACES[s.at]+'</button></div>').join('')+
+  (ss.length>show.length?'<button class="dbtn" id="plMore">Show all '+ss.length+' sessions</button>':'')+
+  '<div class="note">Tap to switch a session between gym and home. The coach and your "last time" weights only compare sessions from the same place, so gym 22kg and home 22.5kg aren\'t read as progress.</div>'; }
+function wirePlace(){ const box=document.getElementById('placeBox'); if(!box) return;
+ const redo=()=>{ box.innerHTML=placeBlock(); wirePlace(); };
+ box.querySelectorAll('.plrow .hpl').forEach(b=>b.addEventListener('click',async()=>{
+  await tagDate(b.dataset.date,b.classList.contains('home')?'gym':'home'); redo(); render(); }));
+ const m=document.getElementById('plMore'); if(m) m.addEventListener('click',()=>{ placeAll=true; redo(); }); }
 /* ============ COACH ============
    Double progression over a rep range (it.reps = top, loFor(it) = bottom),
    "top set + floor" variant, agreed 2026-10-07 because the user's reps fall
@@ -1150,7 +1228,7 @@ function entryScore(e){ let m=0;
 /* No session in the last three beat the best before them. Needs four. Not a
    stall while the weight is climbing back by at least a jump across those
    three -- that's a reset already under way (lat pulldown: 55 -> 40, 45, 50). */
-function stalled(k){ const h=hist[k]||[]; if(h.length<4) return false;
+function stalled(k,hh){ const h=hh||hist[k]||[]; if(h.length<4) return false;
  const win=h.slice(-3), inc=incFor(k);
  if(inc>0&&win[2].top-win[0].top>=inc) return false;
  const sc=h.map(entryScore);
@@ -1187,8 +1265,18 @@ function firstAtTop(e){ const J=judged(e);
      stall - three sessions without beating the old best: drop ~10% and
              build back up (a reset usually passes the old best within weeks)
      reps  - bodyweight: range topped out, so add a rep (no weight to add) */
+/* Reads the sessions at the current place (gym 22 and home 22.5 are
+   different dumbbells, not progress), or every session when the lift has
+   never been done here -- then the weight is moved onto the nearest one
+   this place's rack is known to have, for dumbbell lifts. */
 function coach(k,it){
- const h=hist[k]||[]; if(!h.length) return null;
+ const all=hist[k]||[]; if(!all.length) return null;
+ const here=all.filter(e=>placeOf(e)===PLACE), c=coachOn(k,it,here.length?here:all);
+ if(!c||here.length||incDefault(k)!==2||!(c.w>0)) return c;
+ const w=snapW(rackAt(PLACE),c.w,c.kind==='up'?1:c.kind==='stay'?0:-1,c.from);
+ if(w===c.w) return c;
+ return Object.assign(c,{w,why:(c.why?c.why+' ':'')+'First time at '+PLACES[PLACE].toLowerCase()+' — '+w+'kg is the nearest weight you\'ve used there.'}); }
+function coachOn(k,it,h){
  const last=h[h.length-1], ws=workSets(last); if(!ws.length) return null;
  const inc=incFor(k), targets=it?repsFor(it):null;
  const J=judged(last), top=J?J.top:Math.max.apply(null,ws.map(s=>s.w));
@@ -1228,7 +1316,7 @@ function coach(k,it){
    }
    why='Under the '+lo+'-rep floor — normal straight after a jump. Stay and build up; if it\'s still under '+lo+' next time, drop back.';
   }
-  if(stalled(k)){
+  if(stalled(k,h)){
    let w=Math.floor(top*0.9/inc)*inc; if(w>=top) w=top-inc;
    if(w>0) return Object.assign(base,{kind:'stall',w:r25(w),why:'No progress in your last 3 sessions.'});
   }
@@ -1405,9 +1493,10 @@ function openProgress(){
   }
   if(ds.some(x=>x<mon)) h+='<h5>Last week</h5>'+checkinBody(checkin());
  }
+ if(ds.length) h+='<div id="placeBox">'+placeBlock()+'</div>';
  h+='<div class="hr"></div>'+bodyweightBlock();
  document.getElementById('progBody').innerHTML=h;
- wireBodyweight(openProgress); wireCompare();
+ wireBodyweight(openProgress); wireCompare(); wirePlace();
  document.getElementById('progbg').classList.add('show');
 }
 function closeProgress(){ document.getElementById('progbg').classList.remove('show'); }
@@ -1594,9 +1683,10 @@ function liftRows(id){ const W=spanWindows(id), rows=[];
 function pctTxt(p){ const n=Math.round(p*100); return (n>0?'+':n<0?'−':'±')+Math.abs(n)+'%'; }
 function deltaTag(a,b){ if(!a) return ''; const p=(b-a)/a;
  return '<em class="'+(p>0.02?'up':p<-0.02?'down':'flat')+'">'+pctTxt(p)+'</em>'; }
+const atTxt=e=>shortDate(e.date)+(placeOf(e)==='home'?' · home':'');
 function liftDetail(k){ const h=(hist[k]||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
  const pts=h.map(e=>({label:shortDate(e.date),val:e.top}));
- return '<div class="cmp-detail">'+buildChart(pts)+h.slice(-5).reverse().map(e=>'<div class="cmp-sess"><span>'+shortDate(e.date)+'</span>'+
+ return '<div class="cmp-detail">'+buildChart(pts)+h.slice(-5).reverse().map(e=>'<div class="cmp-sess"><span>'+atTxt(e)+'</span>'+
   workSets(e).map(s=>(s.w>0?s.w+'×':'')+(s.r||'?')).join(', ')+'</div>').join('')+'</div>'; }
 function compareBlock(){
  const W=spanWindows(cmpSpan), all=!W.sp.d, rows=liftRows(cmpSpan), first=allSessionDates()[0];
@@ -1619,8 +1709,8 @@ function compareBlock(){
    (down.length?', down on '+down.length:'')+' · typical change '+pctTxt(avg)+'.</div>'; }
  h+=rows.map(r=>'<div class="cmp-row'+(cmpOpen===r.k?' open':'')+'" data-k="'+r.k+'"><div class="cmp-top"><span class="nm">'+r.nm+'</span>'+
   (r.pct===null?'<em class="new">new</em>':'<em class="'+(r.pct>0.02?'up':r.pct<-0.02?'down':'flat')+'">'+pctTxt(r.pct)+'</em>')+'</div>'+
-  '<div class="cmp-sets">'+(r.was?setTxt(bestSet(r.was))+' <small>'+shortDate(r.was.date)+'</small> → ':'')+
-  '<b>'+setTxt(bestSet(r.now))+'</b> <small>'+shortDate(r.now.date)+'</small></div>'+
+  '<div class="cmp-sets">'+(r.was?setTxt(bestSet(r.was))+' <small>'+atTxt(r.was)+'</small> → ':'')+
+  '<b>'+setTxt(bestSet(r.now))+'</b> <small>'+atTxt(r.now)+'</small></div>'+
   (cmpOpen===r.k?liftDetail(r.k):'')+'</div>').join('');
  h+='<div class="note">Best set in each span by weight and reps together, so 20kg × 13 beats 20kg × 10. Tap a lift for its chart.</div>';
  return h; }
@@ -1764,7 +1854,7 @@ function buildChart(pts,pts2){
  const X=i=>pts.length===1?pl+iw/2:pl+(i/(pts.length-1))*iw, Y=v=>pt+ih-((v-mn)/rg)*ih;
  const top=Math.max.apply(null,pts.map(p=>p.val)); let path='',dots='',lbls='';
  pts.forEach((p,i)=>{ path+=(i?'L':'M')+X(i).toFixed(1)+' '+Y(p.val).toFixed(1)+' ';
-  dots+='<circle class="cx-dot '+(p.today?'today':(p.val===top?'best':''))+'" cx="'+X(i).toFixed(1)+'" cy="'+Y(p.val).toFixed(1)+'" r="'+(p.today?4.5:4)+'"/>';
+  dots+='<circle class="cx-dot '+(p.today?'today':(p.val===top?'best':''))+(p.home?' home':'')+'" cx="'+X(i).toFixed(1)+'" cy="'+Y(p.val).toFixed(1)+'" r="'+(p.today?4.5:4)+'"/>';
   if(i===pts.length-1||p.val===top)lbls+='<text class="cx-lbl" x="'+X(i).toFixed(1)+'" y="'+(Y(p.val)-9).toFixed(1)+'" text-anchor="middle">'+p.val+'</text>'; });
  let path2='';
  if(pts2&&pts2.length>1) pts2.forEach((p,i)=>{ path2+=(i?'L':'M')+X(i).toFixed(1)+' '+Y(p.val).toFixed(1)+' '; });
@@ -1778,11 +1868,11 @@ function buildChart(pts,pts2){
 function openChart(exId,dId){
  const alt=swaps[exId]||null, k=hkey(exId,alt);
  document.getElementById('chartTitle').textContent=vName(exId,alt);
- const h=hist[k]||[], pts=h.map(e=>({label:shortDate(e.date),val:e.top}));
+ const h=hist[k]||[], pts=h.map(e=>({label:shortDate(e.date),val:e.top,home:placeOf(e)==='home'}));
  const pts2=h.map(e=>({label:shortDate(e.date),val:Math.round(e1RM(e.top,e.reps)*10)/10}));
  const live=dId?curTop(dId,exId):null;
  if(live!==null){
-  pts.push({label:'Today',val:live,today:true});
+  pts.push({label:'Today',val:live,today:true,home:PLACE==='home'});
   const liveT=dId?topWithReps(dId,exId):null;
   pts2.push({label:'Today',val:Math.round(e1RM(live,liveT&&liveT.reps)*10)/10,today:true});
  }
@@ -1802,10 +1892,11 @@ function openChart(exId,dId){
    '<div class="stat"><b>'+last.val+'</b><span>'+(last.today?'Today':'Latest')+' kg</span></div>'+
    '<div class="stat"><b>'+(est1rm!==null?est1rm:'—')+'</b><span>Est. 1RM</span></div></div>'+
    (est1rm===null&&lastH&&lastH.reps>10?'<div class="note">Est. 1RM is only worked out from sets of 10 reps or fewer — above that the formula overestimates badly. Rep records below are the honest measure.</div>':'')+
-   '<div class="note">'+h.length+' session'+(h.length===1?'':'s')+' logged.'+trendTxt+'</div>'+target+
+   '<div class="note">'+h.length+' session'+(h.length===1?'':'s')+' logged.'+trendTxt+
+   (pts.some(p=>p.home)?' Ringed dots are home sessions.':'')+'</div>'+target+
    repRecordBlock(k)+incBlock(k)+variantBlock(exId,k)+
    '<h5 style="margin:18px 0 8px">Sessions</h5><div id="histRows">'+histRows(h)+'</div>'+
-   (h.length?'<div class="note">Edit a weight or reps directly, or delete a mis-logged entry — saves immediately.</div>':'');
+   (h.length?'<div class="note">Edit a weight or reps directly, or delete a mis-logged entry — saves immediately. Tap Gym / Home to move that whole day\'s session to the other place.</div>':'');
   wireHistRows(k,exId,dId);
   const ii=document.getElementById('incInput');
   if(ii) ii.addEventListener('change',async()=>{ await setInc(k,ii.value); openChart(exId,dId); render(); });
@@ -1821,6 +1912,7 @@ function histRows(h){
   .map(({e,i})=>'<div class="histrow" data-i="'+i+'"><span class="hdt">'+shortDate(e.date)+'</span>'+
    '<input class="hw" inputmode="decimal" value="'+e.top+'"><span class="hx">kg ×</span>'+
    '<input class="hrp" inputmode="numeric" value="'+(e.reps!=null?e.reps:'')+'">'+
+   '<button class="mini hpl'+(placeOf(e)==='home'?' home':'')+'">'+PLACES[placeOf(e)]+'</button>'+
    '<button class="mini del hdel">×</button></div>').join('');
 }
 function wireHistRows(k,exId,dId){
@@ -1837,6 +1929,10 @@ function wireHistRows(k,exId,dId){
    openChart(exId,dId);
   };
   hw.addEventListener('change',commit); hrp.addEventListener('change',commit);
+  /* Gym <-> home for the whole session that day, every lift in it. */
+  row.querySelector('.hpl').addEventListener('click',async()=>{
+   const e=hist[k]&&hist[k][i]; if(!e) return;
+   await tagDate(e.date,placeOf(e)==='home'?'gym':'home'); openChart(exId,dId); render(); });
   del.addEventListener('click',async()=>{
    const arr=hist[k]; if(!arr) return;
    arr.splice(i,1);
@@ -2061,7 +2157,7 @@ function openData(){
 function closeData(){ document.getElementById('databg').classList.remove('show'); }
 document.getElementById('databg').addEventListener('click',e=>{ if(e.target.id==='databg')closeData(); });
 function backup(){ return {app:"gym-tracker",version:4,build:BUILD,exported:new Date().toISOString(),
- plan:PLAN,cur,prev,swaps,history:hist,warm:warmDone,custom,barWeight:BARWEIGHT,notes,weekTarget:WEEKTARGET,routines,bodyweight,incs}; }
+ plan:PLAN,cur,prev,swaps,history:hist,warm:warmDone,custom,barWeight:BARWEIGHT,notes,weekTarget:WEEKTARGET,routines,bodyweight,incs,place:PLACE}; }
 function dl(n,t,m){ try{ const b=new Blob([t],{type:m}),u=URL.createObjectURL(b),a=document.createElement('a');
  a.href=u;a.download=n;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);return true;}catch(e){return false;} }
 function showExport(t,n){ document.getElementById('exportText').value=t;
@@ -2079,12 +2175,12 @@ function csvText(){
  const rows=[];
  Object.keys(hist).forEach(k=>{
   const nm=keyName(k), nt=noteFor(k);
-  (hist[k]||[]).forEach(h=>rows.push([h.date,nm,h.top,h.reps||'',nt]));
+  (hist[k]||[]).forEach(h=>rows.push([h.date,nm,h.top,h.reps||'',PLACES[placeOf(h)],nt]));
  });
- bodyweight.forEach(e=>rows.push([e.date,'Body weight',e.kg,'','']));
+ bodyweight.forEach(e=>rows.push([e.date,'Body weight',e.kg,'','','']));
  if(!rows.length) return null;
  rows.sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0);
- return [['Date','Exercise','Top weight (kg)','Reps at top weight','Note'].map(cell).join(',')]
+ return [['Date','Exercise','Top weight (kg)','Reps at top weight','Place','Note'].map(cell).join(',')]
   .concat(rows.map(r=>r.map(cell).join(','))).join('\r\n');
 }
 function exportCSV(){
@@ -2114,12 +2210,13 @@ async function applyImport(){ const d=window.__imp; if(!d)return;
  custom=d.custom||{}; Object.keys(custom).forEach(id=>LIB[id]=custom[id]);
  if(typeof d.barWeight==='number'&&d.barWeight>=0) BARWEIGHT=d.barWeight;
  if(typeof d.weekTarget==='number'&&d.weekTarget>0) WEEKTARGET=d.weekTarget;
+ if(PLACES[d.place]) PLACE=d.place;
  notes=d.notes||{}; routines=d.routines||[]; incs=(d.incs&&typeof d.incs==='object')?d.incs:{};
  bodyweight=Array.isArray(d.bodyweight)?d.bodyweight.filter(e=>e&&e.date&&e.kg>0):[];
  await Promise.all([Store.set('gt4_plan',PLAN),Store.set('gt4_cur',cur),Store.set('gt4_prev',prev),Store.set('gt4_bodyweight',bodyweight),
   Store.set('gt4_hist',hist),Store.set('gt4_swaps',swaps),Store.set('gt4_warm',warmDone),Store.set('gt4_custom',custom),
   Store.set('gt4_barweight',BARWEIGHT),Store.set('gt4_notes',notes),Store.set('gt4_weektarget',WEEKTARGET),
-  Store.set('gt4_routines',routines),Store.set('gt4_incs',incs)]);
+  Store.set('gt4_routines',routines),Store.set('gt4_incs',incs),Store.set('gt4_place',PLACE)]);
  window.__imp=null;
  document.getElementById('importPreview').innerHTML='<b>Restored ✓</b><div class="note">Your data is back.</div>';
  render(); }
@@ -2265,7 +2362,7 @@ function summarise(d){
    const pb=pbCheck(d.id,it.ex,k); if(pb&&pb.kind!=='first') pbs.push({nm,kind:pb.kind,n:pb.n,top:e.top,reps:e.reps}); }
  });
  const start=sessionStart[d.id]||null;
- return {day:d.name+' — '+d.tag,date:td,setsDone,setsPlanned,vol:Math.round(vol),prevVol:Math.round(prevVol),pbs,tops,
+ return {day:d.name+' — '+d.tag+(PLACE==='home'?' · at home':''),date:td,setsDone,setsPlanned,vol:Math.round(vol),prevVol:Math.round(prevVol),pbs,tops,
   mins:start?Math.max(1,Math.round((Date.now()-start)/60000)):null};
 }
 function showSummary(S){
@@ -2318,6 +2415,7 @@ function openSheet(){ applyAccent();
  const w=finishChecks(day(ACTIVE)), el=document.getElementById('finishWarn');
  el.innerHTML=w.length?'<b>Worth a look before saving:</b>'+w.map(x=>'<div>'+x+'</div>').join(''):'';
  el.style.display=w.length?'block':'none';
+ finishPlace();
  document.getElementById('sheetbg').classList.add('show'); }
 /* Things that usually mean a mis-log, listed on the finish sheet (never
    blocking): an exercise whose ticked sets match its last history entry set
@@ -2334,6 +2432,12 @@ function finishChecks(d){ const out=[]; let untyped=0;
  });
  if(untyped) out.push(untyped+' set'+(untyped===1?'':'s')+' ticked without typing the reps — saved as the target or last time\'s number.');
  return out; }
+/* Last chance to say where this was, since the place stays on whatever was
+   picked last time. */
+function finishPlace(){ const el=document.getElementById('finishPlace');
+ el.innerHTML='<span class="lbl">Saving as a</span>'+Object.keys(PLACES).map(p=>
+  '<button data-p="'+p+'"'+(p===PLACE?' class="on"':'')+'>'+PLACES[p]+'</button>').join('')+'<span class="lbl">session</span>';
+ el.querySelectorAll('button').forEach(b=>b.addEventListener('click',async()=>{ await setPlace(b.dataset.p); finishPlace(); render(); })); }
 function closeSheet(){ document.getElementById('sheetbg').classList.remove('show'); }
 document.getElementById('sheetbg').addEventListener('click',e=>{ if(e.target.id==='sheetbg')closeSheet(); });
 async function doNewSession(){
@@ -2345,13 +2449,13 @@ async function doNewSession(){
    const lastE=hist[k][hist[k].length-1];
    if(lastE&&lastE.date===td){ /* same-day re-finish: keep the better one, don't duplicate the point */
     if(e.top>lastE.top||(e.top===lastE.top&&(e.reps||0)>(lastE.reps||0))){ lastE.top=e.top; lastE.reps=e.reps; }
-    lastE.vol=vol; lastE.sets=sets;
-   } else hist[k].push({date:td,top:e.top,reps:e.reps,vol,sets}); } });
+    lastE.vol=vol; lastE.sets=sets; lastE.at=PLACE;
+   } else hist[k].push({date:td,top:e.top,reps:e.reps,vol,sets,at:PLACE}); } });
  if(cur[d.id]&&Object.keys(cur[d.id]).length){ prev[d.id]=JSON.parse(JSON.stringify(cur[d.id]));
   /* _date is read by lastSrc() to pick the most recent day when the same
      exercise has a prev on more than one. It sits beside the exercise ids
      (never a valid id itself); older prev blobs have none and lose ties. */
-  prev[d.id]._date=td; }
+  prev[d.id]._date=td; prev[d.id]._at=PLACE; }
  endOfSession(d);
  cur[d.id]={}; delete warmDone[d.id]; delete sessionStart[d.id];
  await Promise.all([Store.set('gt4_hist',hist),Store.set('gt4_prev',prev),Store.set('gt4_cur',cur),Store.set('gt4_warm',warmDone),Store.set('gt4_start',sessionStart)]);
@@ -2467,6 +2571,7 @@ document.getElementById('progBtn').innerHTML=I.chart;
  const wt=await Store.get('gt4_weektarget'); if(typeof wt==='number'&&wt>0) WEEKTARGET=wt;
  notes=(await Store.get('gt4_notes'))||{};
  incs=(await Store.get('gt4_incs'))||{};
+ const pc=await Store.get('gt4_place'); if(PLACES[pc]) PLACE=pc;
  routines=(await Store.get('gt4_routines'))||[];
  lastAuto=(await Store.get('gt4_autobackup'))||null;
  bodyweight=(await Store.get('gt4_bodyweight'))||[];

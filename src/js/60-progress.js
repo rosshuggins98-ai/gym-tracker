@@ -133,9 +133,10 @@ function openProgress(){
   }
   if(ds.some(x=>x<mon)) h+='<h5>Last week</h5>'+checkinBody(checkin());
  }
+ if(ds.length) h+='<div id="placeBox">'+placeBlock()+'</div>';
  h+='<div class="hr"></div>'+bodyweightBlock();
  document.getElementById('progBody').innerHTML=h;
- wireBodyweight(openProgress); wireCompare();
+ wireBodyweight(openProgress); wireCompare(); wirePlace();
  document.getElementById('progbg').classList.add('show');
 }
 function closeProgress(){ document.getElementById('progbg').classList.remove('show'); }

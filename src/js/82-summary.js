@@ -14,7 +14,7 @@ function summarise(d){
    const pb=pbCheck(d.id,it.ex,k); if(pb&&pb.kind!=='first') pbs.push({nm,kind:pb.kind,n:pb.n,top:e.top,reps:e.reps}); }
  });
  const start=sessionStart[d.id]||null;
- return {day:d.name+' — '+d.tag,date:td,setsDone,setsPlanned,vol:Math.round(vol),prevVol:Math.round(prevVol),pbs,tops,
+ return {day:d.name+' — '+d.tag+(PLACE==='home'?' · at home':''),date:td,setsDone,setsPlanned,vol:Math.round(vol),prevVol:Math.round(prevVol),pbs,tops,
   mins:start?Math.max(1,Math.round((Date.now()-start)/60000)):null};
 }
 function showSummary(S){

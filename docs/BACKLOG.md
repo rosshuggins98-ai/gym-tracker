@@ -12,11 +12,9 @@ B of that review are done (see the end of this file). What's left builds on them
 From a review of the user's real backup (13 Aug – 4 Oct). The coach rework and
 the weekly check-in from that review are done (see "Done").
 
-1. **Gym / home tag per session.** The user trains at a gym (dumbbells 18, 20,
-   22, 24) and at home with an adjustable set (20.5, 22.5). Both log to the same
-   exercise, so 22 → 22.5 looks like progress and back like a drop. One tap when
-   the session starts, stored on each history entry; the chart could colour points
-   by place, and the coach could suggest the next dumbbell that exists there.
+1. ~~Gym / home tag per session~~ — done 2026-10-08 (see "Done"). Left over:
+   PBs and the Compare view still mix the two places (Compare labels home
+   sessions); a home dumbbell can still count as a weight PB.
 2. **One-tap effort rating** (easy / solid / hard) on the summary sheet — see
    section E. More useful now: his reps fall off sharply across sets, and a
    rating separates fatigue from a weight that's too heavy.
@@ -140,3 +138,7 @@ the weekly check-in from that review are done (see "Done").
   (moved from "Older ideas"). Progress compares a span (week / 4 weeks / 3 months
   / all time) with the one before: sessions, kg lifted, PBs, bodyweight, and
   every lift's best set then vs now, biggest gain first, tap for its chart.
+- 2026-10-08: **Gym / home.** "Training at" switch on the workout screen and the
+  finish sheet, `at` on history entries, coach and prefills read the same place,
+  first time at a place snaps to its known dumbbells, ringed home dots on the
+  chart, and "Where you trained" in Progress to tag past sessions.
