@@ -6,6 +6,18 @@
    "Still to do this week" strip, the Monday check-in card on the workout
    screen, and the matching sections in Progress. */
 function addDays(iso,n){ const d=new Date(iso); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); }
+function weekday(iso){ return new Date(iso).toLocaleString('en-GB',{weekday:'short',timeZone:'UTC'}); }
+/* {dayId: date} for the plan's days finished since Monday. prev[id]._date is
+   stamped when a day is finished, so a day done twice shows the later one. */
+function daysDoneThisWeek(){ const mon=mondayISO(), out={};
+ PLAN.days.forEach(d=>{ const dt=prev[d.id]&&prev[d.id]._date; if(dt&&dt>=mon) out[d.id]=dt; });
+ return out; }
+/* Next in the rotation: of the days not done this week, the one finished
+   longest ago (never finished counts as longest). null once all are done. */
+function nextDay(){ const dn=daysDoneThisWeek(); let id=null, at=null;
+ PLAN.days.forEach(d=>{ if(dn[d.id]) return; const dt=(prev[d.id]&&prev[d.id]._date)||'';
+  if(id===null||dt<at){ id=d.id; at=dt; } });
+ return id; }
 /* A swap that resolves to a real exercise has its group; an alt:: name falls
    back to the slot's own exercise when there is one. */
 function groupFor(k,exId){ return groupOf(k)||(exId&&LIB[exId]?LIB[exId].g:null); }

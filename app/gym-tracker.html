@@ -38,6 +38,11 @@
   padding:11px 4px;border-radius:10px;cursor:pointer;display:flex;flex-direction:column;gap:2px;align-items:center;overflow:hidden}
  .toggle button small{font-size:9px;font-weight:700;opacity:.8;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
  .toggle button.on{color:var(--onfill)}
+ .toggle button em{font-style:normal;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+ .toggle button.dn{box-shadow:inset 0 0 0 2px var(--done)}
+ .toggle button.dn em{color:var(--done)}
+ .toggle button.nx em{color:var(--text)}
+ .toggle button.on em{color:var(--onfill)}
  .progress{margin:12px 2px 2px;height:6px;background:var(--card);border-radius:99px;overflow:hidden}
  .progress i{display:block;height:100%;width:0;background:var(--accent);border-radius:99px;transition:width .3s}
  .pmeta{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);margin:7px 2px 6px;font-weight:600}
@@ -59,6 +64,7 @@
  .area{display:flex;align-items:center;gap:9px;margin:20px 2px 10px}
  .area b{font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent)}
  .area .rule{flex:1;height:1px;background:var(--line)}
+ .area .donetag{font-size:11px;font-weight:800;color:var(--done)}
  .ex{background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:12px;overflow:hidden}
  .ex.complete{border-color:var(--done)}
  .ex.swapped{border-color:var(--accent)}
@@ -263,6 +269,23 @@
  .ck-sub{font-size:11.5px;color:var(--muted);font-weight:600;margin:3px 0 6px}
  .ck-line{font-size:12.5px;line-height:1.45;margin-top:7px;font-weight:600}
  .ck-line.warn{color:var(--warn)} .ck-line.good{color:var(--done)}
+ .cmp-spans{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--card2);padding:4px;border-radius:11px;margin:4px 0 8px}
+ .cmp-spans button{border:0;background:transparent;color:var(--muted);font-family:inherit;font-weight:700;font-size:12px;padding:8px 2px;border-radius:8px;cursor:pointer}
+ .cmp-spans button.on{background:var(--accent);color:var(--onfill)}
+ .cmp-tiles .s em{display:block;font-style:normal;font-size:11px;font-weight:800;margin-top:3px}
+ .cmp-row{padding:10px 0;border-top:1px solid var(--line);cursor:pointer}
+ .cmp-top{display:flex;align-items:center;gap:10px;font-size:14px}
+ .cmp-top .nm{flex:1;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .cmp-row em,.cmp-tiles em{font-style:normal;font-weight:800;font-size:13px;flex-shrink:0}
+ .cmp-row em.up,.cmp-tiles em.up{color:var(--done)}
+ .cmp-row em.down,.cmp-tiles em.down{color:var(--warn)}
+ .cmp-row em.flat,.cmp-tiles em.flat,.cmp-row em.new{color:var(--muted)}
+ .cmp-sets{font-size:12.5px;color:var(--muted);margin-top:3px}
+ .cmp-sets b{color:var(--text)}
+ .cmp-sets small{font-size:10.5px;opacity:.8}
+ .cmp-detail{margin-top:8px}
+ .cmp-sess{display:flex;gap:10px;font-size:12px;padding:3px 0;color:var(--text)}
+ .cmp-sess span{width:48px;flex-shrink:0;color:var(--muted);font-weight:700}
  .bal{display:grid;grid-template-columns:minmax(0,1.3fr) 2fr auto;gap:10px;align-items:center;padding:5px 0;font-size:12.5px}
  .bal .nm{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
  .bal .bar{height:7px;background:var(--card2);border-radius:99px;overflow:hidden}
@@ -558,7 +581,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-10-07b";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-10-08";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -852,11 +875,15 @@ const I={tick:'<svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>',
 function applyAccent(){ const d=day(ACTIVE);
  document.documentElement.style.setProperty('--accent','var('+d.av+')');
  document.documentElement.style.setProperty('--accent-soft','var('+d.av+'s)'); }
+/* A day finished this week shows a tick and the weekday in place of its tag;
+   of the rest, the one done longest ago is marked as next. */
 function renderTabs(){
- const t=document.getElementById('dayToggle');
+ const t=document.getElementById('dayToggle'), dn=daysDoneThisWeek(), nx=nextDay();
  t.style.gridTemplateColumns='repeat('+PLAN.days.length+',1fr)';
- t.innerHTML=PLAN.days.map(d=>'<button data-day="'+d.id+'"'+(d.id===ACTIVE?' class="on"':'')+
-  ' style="'+(d.id===ACTIVE?'background:var('+d.av+')':'')+'">'+d.name+'<small>'+d.tag+'</small></button>').join('');
+ t.innerHTML=PLAN.days.map(d=>{ const cl=(d.id===ACTIVE?'on ':'')+(dn[d.id]?'dn':d.id===nx?'nx':'');
+  return '<button data-day="'+d.id+'"'+(cl.trim()?' class="'+cl.trim()+'"':'')+
+  ' style="'+(d.id===ACTIVE?'background:var('+d.av+')':'')+'">'+d.name+
+  (dn[d.id]?'<em>✓ Done '+weekday(dn[d.id])+'</em>':d.id===nx?'<em>Up next</em>':'<small>'+d.tag+'</small>')+'</button>'; }).join('');
  t.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>switchDay(b.dataset.day)));
 }
 function render(){
@@ -883,7 +910,8 @@ function render(){
   app.appendChild(w);
  }
  const head=document.createElement('div'); head.className='area';
- head.innerHTML='<b>'+d.tag+'</b><span class="rule"></span>'; app.appendChild(head);
+ const dnA=daysDoneThisWeek()[d.id];
+ head.innerHTML='<b>'+d.tag+'</b><span class="rule"></span>'+(dnA?'<span class="donetag">✓ Done this week ('+weekday(dnA)+')</span>':''); app.appendChild(head);
  d.items.forEach((it,idx)=>app.appendChild(it.skip?skippedCard(it,d):card(it,d,idx)));
  const add=document.createElement('button'); add.className='addex'; add.textContent='+ Add an exercise for today';
  add.addEventListener('click',openQuickAdd); app.appendChild(add);
@@ -1352,6 +1380,7 @@ function openProgress(){
    (wk>=3?'Three this week — that is the target hit.':wk===2?'One more this week hits the target.':
     wk===1?'Two more this week hits the target.':'Nothing logged this week yet.')+'</div>'+
    '<div class="note">This week: <b>'+weekVolume()+'kg</b> total volume moved (working sets only).</div>';
+  h+='<h5>How you\'re doing</h5><div id="cmpBox">'+compareBlock()+'</div>';
   const pbs=recentPBs(6);
   if(pbs.length){
    h+='<h5>Recent personal bests</h5>'+pbs.map(p=>'<div class="pbrow"><span class="tag">'+p.kind+'</span>'+
@@ -1378,7 +1407,7 @@ function openProgress(){
  }
  h+='<div class="hr"></div>'+bodyweightBlock();
  document.getElementById('progBody').innerHTML=h;
- wireBodyweight(openProgress);
+ wireBodyweight(openProgress); wireCompare();
  document.getElementById('progbg').classList.add('show');
 }
 function closeProgress(){ document.getElementById('progbg').classList.remove('show'); }
@@ -1392,6 +1421,18 @@ document.getElementById('progbg').addEventListener('click',e=>{ if(e.target.id==
    "Still to do this week" strip, the Monday check-in card on the workout
    screen, and the matching sections in Progress. */
 function addDays(iso,n){ const d=new Date(iso); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); }
+function weekday(iso){ return new Date(iso).toLocaleString('en-GB',{weekday:'short',timeZone:'UTC'}); }
+/* {dayId: date} for the plan's days finished since Monday. prev[id]._date is
+   stamped when a day is finished, so a day done twice shows the later one. */
+function daysDoneThisWeek(){ const mon=mondayISO(), out={};
+ PLAN.days.forEach(d=>{ const dt=prev[d.id]&&prev[d.id]._date; if(dt&&dt>=mon) out[d.id]=dt; });
+ return out; }
+/* Next in the rotation: of the days not done this week, the one finished
+   longest ago (never finished counts as longest). null once all are done. */
+function nextDay(){ const dn=daysDoneThisWeek(); let id=null, at=null;
+ PLAN.days.forEach(d=>{ if(dn[d.id]) return; const dt=(prev[d.id]&&prev[d.id]._date)||'';
+  if(id===null||dt<at){ id=d.id; at=dt; } });
+ return id; }
 /* A swap that resolves to a real exercise has its group; an alt:: name falls
    back to the slot's own exercise when there is one. */
 function groupFor(k,exId){ return groupOf(k)||(exId&&LIB[exId]?LIB[exId].g:null); }
@@ -1507,6 +1548,86 @@ function openCue(exId){
 function closeCue(){ document.getElementById('cuebg').classList.remove('show'); render(); }
 document.getElementById('cuebg').addEventListener('click',e=>{ if(e.target.id==='cuebg')closeCue(); });
 
+/* ============ COMPARE: THEN VS NOW ============
+   The Progress sheet's "How you're doing" section. Pick a span and it lines
+   the last N days up against the N days before -- sessions, kg moved, PBs,
+   bodyweight -- then every lift's best set then vs now, biggest gain first.
+   "All time" compares each lift's first session with its best in the last
+   4 weeks. Tap a lift to open its chart inline. Scores are entryScore(), as
+   the coach uses, but rows show real sets, never estimated 1RMs. */
+const SPANS=[{id:'1w',d:7,lbl:'Week'},{id:'4w',d:28,lbl:'4 weeks'},{id:'3m',d:91,lbl:'3 months'},{id:'all',d:0,lbl:'All time'}];
+let cmpSpan='4w', cmpOpen=null;
+/* [from, to) for the span ending today, and the same length before it. All
+   time's "now" is the last 4 weeks and its "before" is everything. */
+function spanWindows(id){ const sp=SPANS.find(s=>s.id===id)||SPANS[1], to=addDays(today(),1);
+ const from=addDays(to,-(sp.d||28));
+ return {sp,from,to,bFrom:sp.d?addDays(from,-sp.d):'0000',bTo:sp.d?from:to}; }
+/* Entries from before per-set history have no vol; top x reps x planned sets
+   is close enough for a total (10 reps where reps weren't logged either). */
+function entryVol(k,e){ return typeof e.vol==='number'?e.vol:(e.top||0)*(e.reps||10)*plannedSetsFor(k); }
+function spanTotals(from,to){ let vol=0; const ds={};
+ Object.keys(hist).forEach(k=>(hist[k]||[]).forEach(e=>{ if(e.date>=from&&e.date<to){ vol+=entryVol(k,e); ds[e.date]=1; } }));
+ return {sessions:Object.keys(ds).length,vol:Math.round(vol),
+  pbs:recentPBs(1e9).filter(p=>p.date>=from&&p.date<to).length}; }
+/* Latest bodyweight reading at or before a date (exclusive end). */
+function bwAt(to){ let b=null; bodyweight.forEach(e=>{ if(e.date<to) b=e; }); return b; }
+const topEntry=a=>a.reduce((b,e)=>entryScore(e)>entryScore(b)?e:b);
+/* An entry whose working sets have reps logged. The first weeks' entries
+   often have only a weight, which scores as one rep and would make every
+   gain since then look huge. */
+const withReps=e=>workSets(e).some(s=>s.r);
+/* One row per lift trained in the "now" window: {k, nm, now, was, pct}.
+   "was" is the best in the window before; else the latest session before
+   the span; else (no history before it, or all time) the lift's first
+   session. Baselines with reps are preferred; with only a weight to go on,
+   pct compares top weights. A lift with one session ever is new (was null). */
+function liftRows(id){ const W=spanWindows(id), rows=[];
+ Object.keys(hist).forEach(k=>{ const h=(hist[k]||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+  const inN=h.filter(e=>e.date>=W.from&&e.date<W.to); if(!inN.length) return;
+  const now=topEntry(inN), pool=h.filter(e=>e!==now&&e.date<=now.date&&(!W.sp.d||e.date<W.from)), rp=pool.filter(withReps), c=rp.length?rp:pool;
+  let was=null;
+  if(W.sp.d&&c.length){ const inB=c.filter(e=>e.date>=W.bFrom); was=inB.length?topEntry(inB):c[c.length-1]; }
+  else { const f=h.filter(e=>e!==now&&e.date<=now.date), fr=f.filter(withReps); was=(fr.length?fr:f)[0]||null; }
+  const byW=was&&!(withReps(was)&&withReps(now)), a=was?(byW?was.top:entryScore(was)):0, b=byW?now.top:entryScore(now);
+  rows.push({k,nm:keyName(k),now,was,pct:a>0?(b-a)/a:null}); });
+ return rows.sort((x,y)=>(y.pct===null?-1e9:y.pct)-(x.pct===null?-1e9:x.pct)); }
+function pctTxt(p){ const n=Math.round(p*100); return (n>0?'+':n<0?'−':'±')+Math.abs(n)+'%'; }
+function deltaTag(a,b){ if(!a) return ''; const p=(b-a)/a;
+ return '<em class="'+(p>0.02?'up':p<-0.02?'down':'flat')+'">'+pctTxt(p)+'</em>'; }
+function liftDetail(k){ const h=(hist[k]||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+ const pts=h.map(e=>({label:shortDate(e.date),val:e.top}));
+ return '<div class="cmp-detail">'+buildChart(pts)+h.slice(-5).reverse().map(e=>'<div class="cmp-sess"><span>'+shortDate(e.date)+'</span>'+
+  workSets(e).map(s=>(s.w>0?s.w+'×':'')+(s.r||'?')).join(', ')+'</div>').join('')+'</div>'; }
+function compareBlock(){
+ const W=spanWindows(cmpSpan), all=!W.sp.d, rows=liftRows(cmpSpan), first=allSessionDates()[0];
+ let h='<div class="cmp-spans">'+SPANS.map(s=>'<button data-span="'+s.id+'"'+(s.id===cmpSpan?' class="on"':'')+'>'+s.lbl+'</button>').join('')+'</div>';
+ h+='<div class="ck-sub">'+(all?'Since you started ('+shortDate(first)+') · each lift\'s first session vs its best in the last 4 weeks':
+  'Last '+W.sp.lbl.toLowerCase()+' vs the '+W.sp.lbl.toLowerCase()+' before'+(first>=W.from?' · you started '+shortDate(first)+', so lifts compare with their first session':''))+'</div>';
+ const N=spanTotals(all?'0000':W.from,W.to), B=all?null:spanTotals(W.bFrom,W.bTo);
+ const bN=bwAt(W.to), bB=all?(bodyweight[0]||null):(bwAt(W.from)||bodyweight.find(e=>e.date>=W.from)||null), bwD=bN&&bB&&bN!==bB?Math.round((bN.kg-bB.kg)*10)/10:null;
+ const tile=(v,l,d)=>'<div class="s"><b>'+v+'</b><span>'+l+'</span>'+(d||'')+'</div>';
+ h+='<div class="bigstat cmp-tiles">'+tile(N.sessions,'Sessions',B?deltaTag(B.sessions,N.sessions):'')+
+  tile(N.vol>=10000?(N.vol/1000).toFixed(1)+'k':N.vol,'kg lifted',B?deltaTag(B.vol,N.vol):'')+
+  tile(N.pbs,'PBs','')+'</div>';
+ if(bwD!==null) h+='<div class="note">Bodyweight '+(bwD>0?'+':'')+bwD+'kg ('+bB.kg+' → '+bN.kg+')'+(all?' since your first reading.':' over the span.')+'</div>';
+ const cmp=rows.filter(r=>r.pct!==null), up=cmp.filter(r=>r.pct>0.02), down=cmp.filter(r=>r.pct<-0.02);
+ if(!rows.length){ h+='<div class="note">Nothing logged in this span yet.</div>'; return h; }
+ /* The median, so one lift that changed kit (a 16kg dumbbell row logged
+    as the machine row) can't swing it. */
+ if(cmp.length){ const ps=cmp.map(r=>r.pct).sort((a,b)=>a-b), m=ps.length>>1, avg=ps.length%2?ps[m]:(ps[m-1]+ps[m])/2;
+  h+='<div class="ck-line '+(avg>=0?'good':'warn')+'">Stronger on <b>'+up.length+' of '+cmp.length+'</b> lifts'+
+   (down.length?', down on '+down.length:'')+' · typical change '+pctTxt(avg)+'.</div>'; }
+ h+=rows.map(r=>'<div class="cmp-row'+(cmpOpen===r.k?' open':'')+'" data-k="'+r.k+'"><div class="cmp-top"><span class="nm">'+r.nm+'</span>'+
+  (r.pct===null?'<em class="new">new</em>':'<em class="'+(r.pct>0.02?'up':r.pct<-0.02?'down':'flat')+'">'+pctTxt(r.pct)+'</em>')+'</div>'+
+  '<div class="cmp-sets">'+(r.was?setTxt(bestSet(r.was))+' <small>'+shortDate(r.was.date)+'</small> → ':'')+
+  '<b>'+setTxt(bestSet(r.now))+'</b> <small>'+shortDate(r.now.date)+'</small></div>'+
+  (cmpOpen===r.k?liftDetail(r.k):'')+'</div>').join('');
+ h+='<div class="note">Best set in each span by weight and reps together, so 20kg × 13 beats 20kg × 10. Tap a lift for its chart.</div>';
+ return h; }
+function wireCompare(){ const box=document.getElementById('cmpBox'); if(!box) return;
+ const redo=()=>{ box.innerHTML=compareBlock(); wireCompare(); };
+ box.querySelectorAll('[data-span]').forEach(b=>b.addEventListener('click',()=>{ cmpSpan=b.dataset.span; cmpOpen=null; redo(); }));
+ box.querySelectorAll('.cmp-row').forEach(r=>r.addEventListener('click',()=>{ cmpOpen=cmpOpen===r.dataset.k?null:r.dataset.k; redo(); })); }
 /* ============ SWAP ============ */
 let swapT=null;
 function openSwap(exId){ swapT=exId; const L=LIB[exId]||{alts:[]}, alt=swaps[exId]||null;

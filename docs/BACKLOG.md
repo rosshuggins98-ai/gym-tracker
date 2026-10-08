@@ -20,9 +20,11 @@ the weekly check-in from that review are done (see "Done").
 2. **One-tap effort rating** (easy / solid / hard) on the summary sheet — see
    section E. More useful now: his reps fall off sharply across sets, and a
    rating separates fatigue from a weight that's too heavy.
-3. **Since-you-started per exercise, then "Biggest gains" in Progress** — section C.
-   The check-in's "best lift" covers one week; this is the long view.
-4. **Monthly report and milestones** — section C.
+3. ~~Since-you-started per exercise, then "Biggest gains" in Progress~~ — done
+   2026-10-08 as Progress → "How you're doing" (see "Done"). Still open: the
+   same then-vs-now line on the chart sheet.
+4. **Milestones**, and a monthly report shown on the first session of a month —
+   section C. The "4 weeks" span covers most of the report already.
 
 ## What the data can support now
 
@@ -107,9 +109,6 @@ the weekly check-in from that review are done (see "Done").
 
 ## Older ideas (moved from CLAUDE.md)
 
-- **"Next up" on the main screen** for A/B/C rotation. The app has no notion of
-  which day comes next; with full body it's whichever of A/B/C was finished
-  longest ago (`prev[dayId]._date` already holds that), so it's a small addition.
 - **Day editor:** add / rename / remove days. Presets are hard-wired to three days
   and three accent vars (`--a1..--a3`); a 4-day upper/lower would need both.
 - **Swap to any library exercise**, not only the listed `alts`. The swap sheet is
@@ -136,3 +135,8 @@ the weekly check-in from that review are done (see "Done").
 - 2026-10-07 `3ba9554`: **Weekly view.** Sets per muscle group vs the plan,
   "Still to do this week" strip, Monday check-in card (sessions, balance,
   neglected lifts, resets, best lift), same in Progress.
+- 2026-10-08: **Week status on the day tabs and "How you're doing".** Tabs show
+  "✓ Done Tue" for days finished this week and "Up next" for the rotation
+  (moved from "Older ideas"). Progress compares a span (week / 4 weeks / 3 months
+  / all time) with the one before: sessions, kg lifted, PBs, bodyweight, and
+  every lift's best set then vs now, biggest gain first, tap for its chart.

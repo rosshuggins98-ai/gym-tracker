@@ -60,7 +60,8 @@ One script scope; later modules call earlier ones. `src/js/`:
 `10-lib` (exercise library + cues) → `20-plans` (`DEFAULT_PLAN`, `FULL_BODY_PLAN`,
 `PRESETS`, `MIGRATE`, `BUILD`) → `30-storage` → `40-state` (helpers, PB, prefill,
 supersets, rest) → `50-render` → `55-rest` → `58-coach` → `60-progress` → `61-week` (sets per
-muscle group, check-in, still-to-do strip) → `62-cues` → `64-swap` →
+muscle group, check-in, still-to-do strip, days done this week) → `62-cues` →
+`63-compare` (Progress "How you're doing": span vs the span before) → `64-swap` →
 `66-plates` → `68-chart` → `70-editor` → `72-routines` → `74-theme` → `76-data`
 (export/import) → `78-onthefly` (today-only extras, skips) → `80-bodyweight` → `82-summary` → `84-autobackup` → `86-actions`
 (finish) → `90-migrate` → `99-boot`. New module: pick a free number, end the file
@@ -138,6 +139,14 @@ with a newline.
 - **Week balance** (`61-week`): working sets per muscle group against the plan's
   weekly sets (every day once), not kg. Only plan days count from `cur`
   (`liveDays()`) — a previous plan's unfinished sets stay in `cur` indefinitely.
+- **Days done this week**: read from `prev[dayId]._date` (stamped on finish), not
+  history -- history entries don't record which day they came from. The tabs show
+  "✓ Done Tue" and mark the not-done day finished longest ago as "Up next".
+- **Compare** (`63-compare`): per lift, best entry in the span by `entryScore`
+  vs the best in the span before (else the latest before it, else its first
+  session). Early entries with no reps are skipped as baselines when a rep-logged
+  one exists, and compared by top weight when not -- otherwise a weight-only
+  entry scores as one rep and every gain looks huge.
 - **Supersets**: `it.super` on a plan item = "paired with the next item". Roles come
   from `ssRole(d, idx)` — always pass the day and index, never infer from the item
   alone, since the pairing is positional. Rest fires after the second half only.

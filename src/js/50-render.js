@@ -2,11 +2,15 @@
 function applyAccent(){ const d=day(ACTIVE);
  document.documentElement.style.setProperty('--accent','var('+d.av+')');
  document.documentElement.style.setProperty('--accent-soft','var('+d.av+'s)'); }
+/* A day finished this week shows a tick and the weekday in place of its tag;
+   of the rest, the one done longest ago is marked as next. */
 function renderTabs(){
- const t=document.getElementById('dayToggle');
+ const t=document.getElementById('dayToggle'), dn=daysDoneThisWeek(), nx=nextDay();
  t.style.gridTemplateColumns='repeat('+PLAN.days.length+',1fr)';
- t.innerHTML=PLAN.days.map(d=>'<button data-day="'+d.id+'"'+(d.id===ACTIVE?' class="on"':'')+
-  ' style="'+(d.id===ACTIVE?'background:var('+d.av+')':'')+'">'+d.name+'<small>'+d.tag+'</small></button>').join('');
+ t.innerHTML=PLAN.days.map(d=>{ const cl=(d.id===ACTIVE?'on ':'')+(dn[d.id]?'dn':d.id===nx?'nx':'');
+  return '<button data-day="'+d.id+'"'+(cl.trim()?' class="'+cl.trim()+'"':'')+
+  ' style="'+(d.id===ACTIVE?'background:var('+d.av+')':'')+'">'+d.name+
+  (dn[d.id]?'<em>✓ Done '+weekday(dn[d.id])+'</em>':d.id===nx?'<em>Up next</em>':'<small>'+d.tag+'</small>')+'</button>'; }).join('');
  t.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>switchDay(b.dataset.day)));
 }
 function render(){
@@ -33,7 +37,8 @@ function render(){
   app.appendChild(w);
  }
  const head=document.createElement('div'); head.className='area';
- head.innerHTML='<b>'+d.tag+'</b><span class="rule"></span>'; app.appendChild(head);
+ const dnA=daysDoneThisWeek()[d.id];
+ head.innerHTML='<b>'+d.tag+'</b><span class="rule"></span>'+(dnA?'<span class="donetag">✓ Done this week ('+weekday(dnA)+')</span>':''); app.appendChild(head);
  d.items.forEach((it,idx)=>app.appendChild(it.skip?skippedCard(it,d):card(it,d,idx)));
  const add=document.createElement('button'); add.className='addex'; add.textContent='+ Add an exercise for today';
  add.addEventListener('click',openQuickAdd); app.appendChild(add);
