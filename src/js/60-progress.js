@@ -130,6 +130,7 @@ function openProgress(){
    h+='<div class="note">Working sets done this week (warm-ups not counted) against what your plan asks for when every day is done once. '+
     'A set counts fully for the main muscle and half for a muscle that helps. Flagged if nothing that trains a muscle has been logged in 7+ days.</div>';
   }
+  h+=muscleTrendBlock();
   if(ds.some(x=>x<mon)) h+='<h5>Last week</h5>'+checkinBody(checkin());
  }
  if(ds.length) h+='<div id="placeBox">'+placeBlock()+'</div>';

@@ -117,6 +117,37 @@ function checkinCard(){
  c.innerHTML='<div class="ck-head"><b>Last week</b><button class="ck-ok">Got it</button></div>'+checkinBody(checkin());
  c.querySelector('.ck-ok').addEventListener('click',async()=>{ checkinSeen=mon; await Store.set('gt4_checkin',mon); render(); });
  return c; }
+/* --- Week by week ---------------------------------------------------------
+   Working sets per muscle for up to the last n weeks, oldest first, from the
+   week of the first session (weeks before he started would only be empty).
+   The last week is this one, today's unfinished session included. Rows are
+   every muscle the plan trains or that was trained, in MUSCLES order:
+   {weeks: [monday...], rows: [{g, sets: [per week], planned}]}. */
+function mondayOf(iso){ return addDays(iso,-((new Date(iso).getUTCDay()+6)%7)); }
+function muscleWeeks(n){ const ds=allSessionDates(), live=liveDays().some(id=>Object.values(cur[id]||{}).some(a=>(a||[]).some(x=>x&&x.done)));
+ if(!ds.length&&!live) return {weeks:[],rows:[]};
+ const mon=mondayISO(), start=ds.length?mondayOf(ds[0]):mon, weeks=[];
+ for(let i=n-1;i>=0;i--){ const w=addDays(mon,-7*i); if(w>=start) weeks.push(w); }
+ const per=weeks.map((w,i)=>setsByGroup(w,addDays(w,7),i===weeks.length-1)), planned=plannedByGroup();
+ const gs=Object.keys(MUSCLES).filter(g=>planned[g]||per.some(p=>p[g]));
+ return {weeks,rows:gs.map(g=>({g,sets:per.map(p=>p[g]||0),planned:planned[g]||0}))}; }
+/* Progress: one row of small bars per muscle. Each row is scaled to itself
+   (its plan line and its biggest week), green where a week met the plan,
+   the last bar is this week so far. */
+function muscleTrendBlock(){ const W=muscleWeeks(12); if(!W.rows.length) return '';
+ const last=W.weeks.length-1;
+ return '<h5>Sets per muscle, week by week</h5>'+W.rows.map(r=>{
+   /* headroom so the plan line sits inside the row, not on its top edge */
+   const top=(Math.max(r.planned,...r.sets)||1)*1.25, pc=v=>Math.round(v/top*1000)/10;
+   const done=r.sets.slice(0,last), avg=done.length?done.reduce((a,b)=>a+b,0)/done.length:null;
+   return '<div class="mtr"><span class="nm">'+muscleName(r.g)+'</span><span class="mbars">'+
+    r.sets.map((v,i)=>'<b style="height:'+pc(v)+'%"'+(i===last?' class="cur'+(r.planned&&v>=r.planned?' hit':'')+'"':
+     (r.planned&&v>=r.planned?' class="hit"':''))+'></b>').join('')+
+    (r.planned?'<i class="mref" style="bottom:'+pc(r.planned)+'%"></i>':'')+'</span>'+
+    '<span class="n">'+(avg!==null?fmtSets(avg):'–')+'</span></div>'; }).join('')+
+  '<div class="mtr axis"><span></span><span class="mlbl"><span>'+shortDate(W.weeks[0])+'</span><span>this week</span></span><span class="n">avg</span></div>'+
+  '<div class="note">Working sets each week, oldest on the left; a set counts half for a muscle that helps. '+
+  'The line is what your plan asks for in a week, and a green bar met it. The last bar is this week so far. "avg" is per finished week.</div>'; }
 /* Rows of weekBalance still owed at least one whole set this week, most left
    first -- half a set left from a helper muscle isn't worth a chip. */
 function todoRows(rows){ return rows.filter(r=>r.planned-r.done>=1).sort((a,b)=>(b.planned-b.done)-(a.planned-a.done)); }

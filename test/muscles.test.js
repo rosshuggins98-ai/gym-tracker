@@ -70,6 +70,44 @@ test('the still-to-do strip shows four muscles and folds the rest into "+N more"
  assert.ok(/class="chip more">\+4 more</.test(html),'8 owed, 4 shown');
 });
 
+/* --- Week by week (backlog item 10) --- */
+test('muscleWeeks: sets per muscle per week, from the first week trained, this week live',async()=>{
+ const {app,set}=await load();
+ set('PLAN',{name:'T',days:[{id:'a',name:'A',tag:'',av:'--a1',items:[{ex:'dbbench',sets:3,reps:[10,10,10]},{ex:'legcurl',sets:3,reps:[12,12,12]}]}]});
+ set('swaps',{}); set('ACTIVE','a');
+ const mon=app.mondayISO(), wk=n=>app.addDays(mon,-7*n);
+ set('hist',{dbbench:[{date:app.addDays(wk(3),1),top:20,reps:10,sets:[{w:20,r:10},{w:20,r:10}]},
+                      {date:app.addDays(wk(1),2),top:22,reps:10,sets:[{w:10,r:10,t:'warm'},{w:22,r:10},{w:22,r:9},{w:22,r:8}]}],
+             calf:[{date:app.addDays(wk(1),2),top:60,reps:15,sets:[{w:60,r:15}]}]});
+ set('cur',{a:{dbbench:[{w:'22',r:'10',done:true}]}});
+ const W=app.muscleWeeks(12);
+ deq(W.weeks,[wk(3),wk(2),wk(1),mon],'starts at the first week trained, not 12 weeks back');
+ const row=g=>W.rows.find(r=>r.g===g);
+ deq(row('chest').sets,[2,0,3,1],'2 sets, a week off, 3 (warm-up not counted), 1 live today');
+ deq(row('triceps').sets,[1,0,1.5,0.5],'helpers at half');
+ assert.equal(row('chest').planned,3);
+ deq(row('hamstrings').sets,[0,0,0,0],'planned but never trained: still a row');
+ assert.equal(row('hamstrings').planned,3);
+ deq(row('calves').sets,[0,0,1,0],'trained but not planned: a row, planned 0');
+ deq(W.rows.map(r=>r.g),['chest','shoulders','triceps','hamstrings','calves'],'MUSCLES order');
+ set('hist',{}); set('cur',{});
+ deq(plain(app.muscleWeeks(12)).rows,[],'nothing logged: nothing to show');
+});
+
+test('the week-by-week block: a row per muscle, bars, the plan line, this week marked',async()=>{
+ const {app,set}=await load();
+ set('PLAN',{name:'T',days:[{id:'a',name:'A',tag:'',av:'--a1',items:[{ex:'dbbench',sets:3,reps:[10,10,10]}]}]});
+ set('swaps',{}); set('ACTIVE','a'); set('cur',{});
+ const mon=app.mondayISO();
+ set('hist',{dbbench:[{date:app.addDays(mon,-6),top:20,reps:10,sets:[{w:20,r:10},{w:20,r:10},{w:20,r:10}]}]});
+ const h=app.muscleTrendBlock();
+ assert.ok(h.indexOf('>Chest<')>0&&h.indexOf('>Triceps<')>0);
+ assert.equal((h.match(/class="mref"/g)||[]).length,3,'a plan line per planned muscle');
+ assert.ok(/class="hit"/.test(h),'last week met the plan for chest: marked');
+ assert.ok(/class="cur/.test(h),'this week marked');
+ set('hist',{}); assert.equal(app.muscleTrendBlock(),'');
+});
+
 test('display: names, halves, and the still-to-do strip skips half-set remainders',async()=>{
  const {app}=await load();
  assert.equal(app.muscleName('quads'),'Quads');
