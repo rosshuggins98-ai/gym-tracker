@@ -10,10 +10,10 @@ From the market review (`docs/MARKET-REVIEW.md`), checked against the code.
 Decided with Ross on 2026-10-14: **charts first**; **PBs stay one record across
 gym and home**; **no 4th day planned**, so the day editor stays parked.
 
-**All five phases are done (items 0–11): see "Done".** Nothing agreed is left
-here. The next piece of work needs agreeing with Ross first. Open candidates:
-backlog F (copying backups off the phone; raised 2026-10-14 and still
-unscheduled), relative strength (section C), and the loose ends below.
+**All five phases are done (items 0–11), and so is F (backups to GitHub): see
+"Done".** Nothing agreed is left here. The next piece of work needs agreeing with
+Ross first. Open candidates: relative strength (section C), and the loose ends
+below.
 
 ### Decided or parked on 2026-10-14
 
@@ -66,11 +66,9 @@ unscheduled), relative strength (section C), and the loose ends below.
 
 ## F. Data safety
 
-- **Copy backups off the phone automatically.** Today every backup lives on the
-  phone (`serve.py` keeps the newest 20 in `gym-backups/`). Options: Termux
-  writing to a synced folder (Drive/Syncthing), or `serve.py` committing and
-  pushing to a private repo after each save. Losing the phone currently means
-  losing everything. Not yet scheduled; raised with Ross on 2026-10-14.
+- ~~Copy backups off the phone automatically~~: done 2026-10-14. Ross chose a
+  private GitHub repo over a synced folder (see "Done"). He still has to do the
+  one-off setup on the phone (README, "Backups to GitHub").
 
 ## Loose ends from A and B
 
@@ -187,3 +185,10 @@ unscheduled), relative strength (section C), and the loose ends below.
   workout screen once per new month (sessions vs target, PBs by kind, biggest
   gains, lifts that didn't beat their best, bodyweight, milestones), and "Last
   month" in Progress. Dismissal is UI state (`gt4_monthseen`), not backed up.
+- 2026-10-14 `7f32e53`, `7a17048`: **F, backups to GitHub.** `serve.py --offsite`
+  sends every dated backup to a private repo (contents API, stdlib only): on
+  start, after each save, and every 5 minutes while one is waiting. It refuses
+  a public repo and never shows the token. Setup is `~/gymtools/offsite-setup.sh`
+  (launcher v5). Data shows the status, and the finish screen says "phone and
+  GitHub ✓", or warns after 7 days without a copy. Checked end to end, including
+  a restore from the copy that reached the repo.

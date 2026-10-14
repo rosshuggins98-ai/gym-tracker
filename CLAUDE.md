@@ -38,7 +38,10 @@ Use these to decide between options.
   generate workouts or reshuffle his plan automatically.
 - **History belongs to the exercise**, not to the day or the plan.
 - **Local and offline.** No accounts, cloud sync, social features, nutrition or
-  wearables. `docs/MARKET-REVIEW.md` explains why.
+  wearables. `docs/MARKET-REVIEW.md` explains why. The one thing that leaves the
+  phone is the backup copy `serve.py` sends to Ross's own private GitHub repo
+  (chosen 2026-10-14, see "Server"). The app itself never talks to anything but
+  its own server.
 - **Plain language in the UI.** Match the existing copy: short and direct, and any
   jargon is explained where it appears (e.g. the note under "Est. 1RM").
 
@@ -111,6 +114,25 @@ calls from `autoBackup()` after every finished session. It is embedded verbatim 
 `termux/gym-setup.sh` as a heredoc and a test asserts the two match — edit
 `serve.py`, then paste it into the heredoc (or regenerate) before committing.
 `autoBackup()` must stay fire-and-forget: no UI, no error, if the endpoint is absent.
+
+**GitHub copy** (`serve.py --offsite ~/gymtools/offsite.json`, passed by `serve.sh`).
+When that settings file exists (`{"repo","token"}`, chmod 600, written by
+`~/gymtools/offsite-setup.sh`), `OffsiteWorker` sends every dated backup to that
+private repo through the contents API, stdlib `urllib` only. It sends on start,
+after each save (`worker.wake`), and every `OFFSITE_RETRY` seconds while one is
+waiting. `<backups>/.offsite.json` remembers each file's hash and sha, so only
+new or changed days go up. A `.offsite.lock` flock keeps the server and
+`--offsite-check` from sending at once. Rules that must hold:
+- Refuse a public repo.
+- Never print, log, or return the token.
+- Never let a copy failure touch the save or the server.
+- Errors are plain sentences, shown as they are.
+
+`/api/status` reports `offsite: {enabled:false}` or `{enabled, repo, pending,
+last_ok, error}`. The Data panel shows it, and the summary line asks it a few
+times after a save (`offsiteAfterSave`), warning when nothing has got through for
+`OFFSITE_STALE` (7) days. Tests use a fake GitHub on localhost via the settings
+file's `api` and `retry` keys. Never point tests at the real API.
 
 The Termux launcher (`serve.sh`, written by `gym-setup.sh`) self-updates: on every
 tap it fetches `termux/gym-setup.sh` from the repo and re-runs it in
@@ -304,7 +326,7 @@ Coverage: migration, PB detection, volume/trend/1RM, the coach, the finish-sessi
 flow, backup round-trip, presets, gym/home, effort, supersets, warm-ups, the chart
 (ranges, metrics, since-you-started), muscles and the weekly views (week by week
 too), history editing, the per-set CSV, the session note, the calendar, milestones,
-the monthly review, the build, the server and the launcher. Add a
+the monthly review, the build, the server, the GitHub copy and the launcher. Add a
 test whenever you touch any of those, and write it first when the change touches
 stored history.
 
@@ -345,5 +367,6 @@ is recorded under "Done" in `docs/BACKLOG.md`. Its phases:
 4. **Motivation over months:** a training calendar, muscle-group sets over
    time, and milestones with a monthly report. *Done 2026-10-14.*
 
-Agree the next piece of work with Ross before starting it. `docs/BACKLOG.md`
-lists the open candidates, including copying backups off the phone (section F).
+Copying backups off the phone (backlog F) followed the same day. Agree the next
+piece of work with Ross before starting it; `docs/BACKLOG.md` lists the open
+candidates.

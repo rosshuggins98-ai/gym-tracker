@@ -44,6 +44,47 @@ the manual exports get archived to. If the app is served by anything else (or
 `file://`), it silently does nothing — the manual export in the Data panel is
 unchanged. The Data panel shows when the last auto-backup landed.
 
+## Backups to GitHub (off the phone)
+
+The auto-backups above live on the phone, so losing the phone would lose them
+too. `serve.py --offsite` also sends each one to a **private** GitHub repo:
+one file per day, `gym-backup-<date>.json`, at the repo root. It sends them when
+the server starts, after every finished session, and every 5 minutes while one is
+still waiting (no signal at the gym). It remembers what has gone up, so only new
+or changed days are sent. It refuses a public repo, because backups hold your
+bodyweight and notes. The finish screen says "Backed up to the phone and GitHub
+✓", the Data panel shows when a backup was last sent, and if nothing has got
+through for a week the finish screen warns you.
+
+**One-off setup** (after the launcher has updated: tap the Gym widget once):
+
+1. **Make the repo.** On github.com: **+** → **New repository**. Name it
+   `gym-backups`, choose **Private**, tick **Add a README file**, then
+   **Create repository**.
+2. **Make a token that can only use that repo.** Settings → Developer settings →
+   Personal access tokens → **Fine-grained tokens** → **Generate new token**.
+   - Name: `gym backups`.
+   - Expiration: the longest it offers.
+   - Repository access: **Only select repositories** → `gym-backups`.
+   - Permissions → Repository permissions → **Contents: Read and write**.
+     Metadata: Read-only is added automatically.
+
+   Generate it and copy the token (it starts `github_pat_`).
+3. **Give it to the phone.** In Termux, run `bash ~/gymtools/offsite-setup.sh`.
+   Type `rosshuggins98-ai/gym-backups` (a pasted repo URL works too), then paste
+   the token. It doesn't show as you paste. The script saves both where only
+   Termux can read them, checks them with GitHub, and sends the backups already
+   on the phone.
+
+To change the token (say, when it expires), run the same command again. To stop
+the copy, run `bash ~/gymtools/offsite-setup.sh off`. `bash ~/gymtools/doctor.sh`
+also prints the GitHub copy's status.
+
+**Restoring on a new phone:** set up Termux and the launcher as below and open
+the app. Then on GitHub, open the repo, open the newest `gym-backup-<date>.json`,
+and download it (the download button above the file). In the app, go to Data →
+Import, pick the file, and tap **Replace my data**.
+
 ## Deploying to the phone
 
 Two options.
@@ -96,6 +137,7 @@ exactly as it always did, online-only.
    orphan logged weights.
 2. **Single file out, no toolchain.** Source lives in `src/`, but the shipped app is
    one HTML file servable by `python3 -m http.server` from a phone; `build.py` is a
-   stdlib concatenation, not a bundler, and `serve.py` only adds the backup endpoint.
+   stdlib concatenation, not a bundler, and `serve.py` only adds the backup endpoint
+   and the GitHub copy.
 3. **Never lose data silently.** Every storage mode is detected and reported.
 4. **Gym-floor usability first.** Large tap targets, minimal typing, one-handed.

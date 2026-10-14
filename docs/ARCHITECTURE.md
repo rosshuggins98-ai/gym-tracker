@@ -72,6 +72,16 @@ legacy weights. So a new preset shows real numbers from its first session.
 | `gt4_sessnote` | `{date: text}`, one short note per session date (≤140 chars, stored as typed, escaped when shown). In backups (`sessNotes`); a backup without it loads with none |
 | `gt4_active`, `gt4_theme` | UI state |
 
+## Files on the phone (outside the app)
+
+Kept by `serve.py` and the launcher, not by the app, so not in its backups:
+
+| Path | Contents |
+|---|---|
+| `~/gym-backups/gym-backup-<date>.json` | one auto-backup per day, newest 20 kept; `gym-latest.json` is the newest again |
+| `~/gym-backups/.offsite.json` | GitHub copy state: `{repo, files: {name: {hash, sha}}, last_ok, error}`. Only files whose hash changed are sent again; a new repo gets everything |
+| `~/gymtools/offsite.json` | GitHub copy settings `{repo, token}`, chmod 600, written by `offsite-setup.sh`. Absent means the copy is off |
+
 ## Storage modes
 
 `Store` picks one at boot:
