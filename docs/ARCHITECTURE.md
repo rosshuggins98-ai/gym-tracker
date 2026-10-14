@@ -55,6 +55,7 @@ legacy weights. So a new preset shows real numbers from its first session.
 | `gt4_hist` | `{historyKey: [{date, top, reps, vol?, sets?}]}` -- `vol` (sets x reps x kg, working sets only) is present from 2026-09-11 onward; older entries lack it and count as 0 toward volume stats rather than being guessed at. `sets` (every ticked set, `{w, r, t?}`) from 2026-09-23 |
 | `gt4_dedupe1` | set once the one-off duplicate-session clean-up (`dropDupeDays`) has run |
 | `gt4_checkin` | Monday (ISO date) of the week whose check-in card was dismissed |
+| `gt4_monthseen` | `YYYY-MM` of the monthly review card last dismissed (UI state, like `gt4_checkin`; not in backups) |
 | `gt4_weektarget` | sessions/week target shown on the main screen (default 3) |
 | `gt4_routines` | `[{id, label, savedISO, days}]`, named snapshots of `PLAN.days`, switchable from the plan editor |
 | `gt4_swaps` | `{exId: alternativeName}` |

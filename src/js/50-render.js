@@ -26,7 +26,8 @@ function render(){
   await Store.set('gt4_weektarget',WEEKTARGET); render(); };
  const app=document.getElementById('app'); app.innerHTML='';
  app.appendChild(placeBar(d));
- const ck=checkinCard(); if(ck) app.appendChild(ck);
+ /* one card at a time: last month's review first, then the weekly check-in */
+ const ck=monthCard()||checkinCard(); if(ck) app.appendChild(ck);
  const td=todoStrip(d); if(td) app.appendChild(td);
  if(d.warm){
   const w=document.createElement('div'); w.className='warm'+(warmDone[d.id]===today()?' on':'');

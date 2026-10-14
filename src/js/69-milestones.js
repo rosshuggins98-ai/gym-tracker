@@ -62,3 +62,66 @@ function milestoneBlock(){ const got=milestones().reverse(), nx=nextMilestones()
    '<span class="bar"><i style="width:'+Math.round(n.f*100)+'%"></i></span><span class="n">'+n.left+'</span></div>').join(''):''); }
 /* Summary sheet: any milestone this session's date reached. */
 function milestonesOn(date){ return milestones().filter(m=>m.date===date); }
+
+/* ============ MONTHLY REPORT ============
+   The month just gone, in one card: sessions against the weekly target,
+   PBs (all three kinds pbCheck celebrates live), the biggest gains, lifts
+   trained at least twice without beating their best, bodyweight change and
+   milestones. Shown on the workout screen in a new month until dismissed
+   (monthSeen, gt4_monthseen -- UI state like gt4_checkin, not backed up),
+   and kept in Progress as "Last month". */
+let monthSeen=null;
+function monthBounds(ym){ const y=+ym.slice(0,4), m=+ym.slice(5,7)-1;
+ return {from:isoOf(y,m,1),to:isoOf(y,m+1,1),days:new Date(Date.UTC(y,m+1,0)).getUTCDate(),
+  name:new Date(Date.UTC(y,m,1)).toLocaleString('en-GB',{month:'long',timeZone:'UTC'})}; }
+function lastMonthYM(){ const t=today(); return isoOf(+t.slice(0,4),+t.slice(5,7)-2,1).slice(0,7); }
+/* Every PB, oldest first: [{k, date, kind}] -- weight (heavier), reps (more
+   reps at the best weight) or range (heaviest yet for N+ reps, beating an
+   earlier set at N+). One per lift per session; a lift's first session
+   sets the baseline. */
+function pbEvents(){ const out=[];
+ Object.keys(hist).forEach(k=>{ const h=(hist[k]||[]).slice().sort(byDateAsc); let bw=null, br=null; const rec={};
+  h.forEach(e=>{ const mx={};
+   workSets(e).forEach(s=>{ if(!s.r) return; REP_BUCKETS.forEach(n=>{ if(s.r>=n&&(mx[n]===undefined||s.w>mx[n])) mx[n]=s.w; }); });
+   let kind=null;
+   if(bw!==null){
+    if(e.top>bw) kind='weight';
+    else if(e.top===bw&&e.reps&&br&&e.reps>br) kind='reps';
+    else if(REP_BUCKETS.some(n=>mx[n]!==undefined&&rec[n]!==undefined&&mx[n]>rec[n])) kind='range'; }
+   if(kind) out.push({k,date:e.date,kind});
+   if(bw===null||e.top>bw){ bw=e.top; br=e.reps||null; } else if(e.top===bw&&e.reps&&(!br||e.reps>br)) br=e.reps;
+   REP_BUCKETS.forEach(n=>{ if(mx[n]!==undefined&&(rec[n]===undefined||mx[n]>rec[n])) rec[n]=mx[n]; }); }); });
+ return out.sort(byDateAsc); }
+function monthReport(ym){ const B=monthBounds(ym), inM=d=>d>=B.from&&d<B.to;
+ const pbs=pbEvents().filter(p=>inM(p.date)), kinds={weight:0,reps:0,range:0}; pbs.forEach(p=>kinds[p.kind]++);
+ const lifts=[];
+ Object.keys(hist).forEach(k=>{ const h=hist[k]||[], m=h.filter(e=>inM(e.date)), before=h.filter(e=>e.date<B.from);
+  if(!m.length) return; const now=topEntry(m);
+  if(!before.length){ lifts.push({k,nm:keyName(k),now,was:null,pct:null,n:m.length}); return; }
+  const rp=before.filter(withReps), was=topEntry(rp.length?rp:before), byW=!(withReps(was)&&withReps(now));
+  const a=byW?was.top:entryScore(was), b=byW?now.top:entryScore(now);
+  lifts.push({k,nm:keyName(k),now,was,pct:a>0?(b-a)/a:null,n:m.length}); });
+ const bw=bodyweight.filter(e=>inM(e.date));
+ return {ym,name:B.name,sessions:allSessionDates().filter(inM).length,target:Math.round(WEEKTARGET*B.days/7),
+  pbs:pbs.length,kinds,
+  gains:lifts.filter(l=>l.pct!==null&&l.pct>0.02).sort((a,b)=>b.pct-a.pct).slice(0,3),
+  stuck:lifts.filter(l=>l.pct!==null&&l.pct<=0&&l.n>=2),
+  bwd:bw.length>1?Math.round((bw[bw.length-1].kg-bw[0].kg)*10)/10:null,bwFrom:bw[0]||null,bwTo:bw[bw.length-1]||null,
+  ms:milestones().filter(m=>inM(m.date))}; }
+function monthBody(R){
+ const kinds=[['weight','heavier'],['reps','more reps'],['range','rep-range']].filter(x=>R.kinds[x[0]]).map(x=>R.kinds[x[0]]+' '+x[1]);
+ let h='<div class="ck-sub">'+R.sessions+' of about '+R.target+' sessions · '+R.pbs+' personal best'+(R.pbs===1?'':'s')+
+  (kinds.length?' ('+kinds.join(', ')+')':'')+'</div>';
+ if(R.gains.length) h+='<div class="ck-line good">Biggest gains:</div>'+R.gains.map(g=>'<div class="mgain"><div><span class="nm">'+escHTML(g.nm)+'</span><em>'+pctTxt(g.pct)+'</em></div>'+
+  '<small>'+setTxt(bestSet(g.was))+' → <b>'+setTxt(bestSet(g.now))+'</b></small></div>').join('');
+ if(R.stuck.length) h+='<div class="ck-line warn">No gain this month: '+R.stuck.map(s=>escHTML(s.nm)).join(', ')+'.</div>';
+ if(R.bwd!==null) h+='<div class="ck-line">Bodyweight '+R.bwFrom.kg+' → '+R.bwTo.kg+'kg ('+(R.bwd>0?'+':R.bwd<0?'−':'±')+Math.abs(R.bwd)+'kg).</div>';
+ if(R.ms.length) h+='<div class="ck-line good">Milestones: '+R.ms.map(m=>m.label).join(', ')+' 🎉</div>';
+ return h; }
+/* The workout screen's card for last month, or null. */
+function monthCard(){ const ym=lastMonthYM(); if(monthSeen===ym) return null;
+ const R=monthReport(ym); if(!R.sessions) return null;
+ const c=document.createElement('div'); c.className='checkin month';
+ c.innerHTML='<div class="ck-head"><b>'+R.name+' in review</b><button class="ck-ok">Got it</button></div>'+monthBody(R);
+ c.querySelector('.ck-ok').addEventListener('click',async()=>{ monthSeen=ym; await Store.set('gt4_monthseen',ym); render(); });
+ return c; }

@@ -133,6 +133,8 @@ function openProgress(){
   }
   h+=muscleTrendBlock();
   if(ds.some(x=>x<mon)) h+='<h5>Last week</h5>'+checkinBody(checkin());
+  const lm=monthReport(lastMonthYM());
+  if(lm.sessions) h+='<h5>Last month: '+lm.name+'</h5>'+monthBody(lm);
  }
  if(ds.length) h+='<div id="placeBox">'+placeBlock()+'</div>';
  h+='<div class="hr"></div>'+bodyweightBlock();
