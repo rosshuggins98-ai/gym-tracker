@@ -46,7 +46,7 @@ function deltaTag(a,b){ if(!a) return ''; const p=(b-a)/a;
  return '<em class="'+(p>0.02?'up':p<-0.02?'down':'flat')+'">'+pctTxt(p)+'</em>'; }
 const atTxt=e=>shortDate(e.date)+(placeOf(e)==='home'?' · home':'');
 function liftDetail(k){ const h=(hist[k]||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
- const pts=h.map(e=>({label:shortDate(e.date),val:e.top}));
+ const pts=h.map(e=>({date:e.date,label:shortDate(e.date),val:e.top}));
  return '<div class="cmp-detail">'+buildChart(pts)+h.slice(-5).reverse().map(e=>'<div class="cmp-sess"><span>'+atTxt(e)+'</span>'+
   workSets(e).map(s=>(s.w>0?s.w+'×':'')+(s.r||'?')).join(', ')+'</div>').join('')+'</div>'; }
 function compareBlock(){

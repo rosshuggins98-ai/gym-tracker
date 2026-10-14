@@ -279,6 +279,7 @@
  .cmp-spans{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--card2);padding:4px;border-radius:11px;margin:4px 0 8px}
  .cmp-spans button{border:0;background:transparent;color:var(--muted);font-family:inherit;font-weight:700;font-size:12px;padding:8px 2px;border-radius:8px;cursor:pointer}
  .cmp-spans button.on{background:var(--accent);color:var(--onfill)}
+ .chart-spans{grid-template-columns:repeat(3,1fr);margin:2px 0 0}
  .cmp-tiles .s em{display:block;font-style:normal;font-size:11px;font-weight:800;margin-top:3px}
  .cmp-row{padding:10px 0;border-top:1px solid var(--line);cursor:pointer}
  .cmp-top{display:flex;align-items:center;gap:10px;font-size:14px}
