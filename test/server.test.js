@@ -27,7 +27,7 @@ test('serve.py: static files, status, and POST /api/save writing a dated + lates
   const page=await req(s.port,'GET','/gym-tracker.html');
   assert.equal(page.status,200); assert.match(page.body,/const BUILD=/); assert.match(page.headers['cache-control'],/no-store/);
   let st=JSON.parse((await req(s.port,'GET','/api/status')).body);
-  assert.deepEqual(st,{ok:true,backups:0,latest:null});
+  assert.deepEqual(st,{ok:true,backups:0,latest:null,offsite:{enabled:false}});
 
   const bad=await req(s.port,'POST','/api/save',JSON.stringify({app:'other'}));
   assert.equal(bad.status,400);
@@ -50,7 +50,7 @@ test('serve.py: static files, status, and POST /api/save writing a dated + lates
   assert.equal(fs.readdirSync(s.backups).length,2);
   assert.equal(JSON.parse(fs.readFileSync(path.join(s.backups,j.file),'utf8')).history.bench[0].top,55);
   st=JSON.parse((await req(s.port,'GET','/api/status')).body);
-  assert.deepEqual(st,{ok:true,backups:1,latest:j.file});
+  assert.deepEqual(st,{ok:true,backups:1,latest:j.file,offsite:{enabled:false}});
  } finally { s.stop(); }
 });
 
