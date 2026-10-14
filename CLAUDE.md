@@ -1,13 +1,56 @@
-# Context for Claude Code
+# Gym Tracker: context for Claude Code
 
 ## What this is
-A workout tracker used on an Android phone, served locally from Termux. Single HTML
-file, vanilla JS, no framework, no build step. That constraint is deliberate.
+A workout tracker used on an Android phone, mid-workout, served locally from Termux.
+Vanilla JS, no framework, no npm. Authored as modules under `src/` and concatenated
+by `build.py` (stdlib only) into one self-contained file, `app/gym-tracker.html`.
+That shape is deliberate.
 
-## Who uses it
-One user, a gym beginner training 3 days a week, logging on a phone mid-workout.
-The app's job is to make logging fast and to make progress visible enough to keep
-him turning up. Motivation is a feature, not decoration.
+## Who it's for, and what it has to be good at
+One user, Ross. He is a beginner, training three days a week, in kg, mostly at a
+gym and sometimes at home (adjustable dumbbells and a bench). His plan keeps
+changing as he improves, and his history must survive every change.
+
+He values three things. Every feature should serve at least one of them:
+
+1. **Designing effective workouts.** He builds and adjusts his own plan, so the app
+   should give enough feedback (sets per muscle, balance, session length) for him
+   to know a plan is sensible.
+2. **Tracking progression.** He should always know what to lift next and whether
+   he is progressing.
+3. **Visualising progress.** He should see progress over weeks and months, in a
+   way that keeps him turning up. Motivation is a feature, not decoration.
+
+`docs/TRAINING-PLAN.md` has his programme history, the kit his gym lacks, and what
+he has tried and disliked (for example supersets in the beginner plan, face pulls,
+and three leg exercises in one session). Read it before proposing any plan or
+preset change.
+
+## Product principles
+Use these to decide between options.
+
+- **Logging speed comes first.** A set that matches last time should take two
+  taps. A change that adds taps mid-workout is the wrong change unless Ross asks
+  for it.
+- **Insight over storage.** Answer "am I getting stronger?" and "what do I lift
+  next?" without him doing any arithmetic.
+- **A stable plan, progressed set by set.** The coach suggests and he decides. Don't
+  generate workouts or reshuffle his plan automatically.
+- **History belongs to the exercise**, not to the day or the plan.
+- **Local and offline.** No accounts, cloud sync, social features, nutrition or
+  wearables. `docs/MARKET-REVIEW.md` explains why.
+- **Plain language in the UI.** Match the existing copy: short and direct, and any
+  jargon is explained where it appears (e.g. the note under "Est. 1RM").
+
+## Commands
+```bash
+python3 build.py                # after any change in src/; writes app/gym-tracker.html
+python3 build.py --check        # exits 1 if app/gym-tracker.html is stale
+node --test 'test/*.test.js'    # the whole suite; nothing to install
+./serve.py                      # http://localhost:8000/gym-tracker.html, backups go to ./gym-backups/
+```
+Use the quoted glob. `node --test test/`, the form in the README, fails on Node 22
+and later because it no longer accepts a directory.
 
 ## Hard constraints
 - **Edit `src/`, ship one file.** The app is authored as modules under `src/`
@@ -17,25 +60,50 @@ him turning up. Motivation is a feature, not decoration.
   installs. Never edit `app/gym-tracker.html` directly: the build test fails if it
   drifts from `src/`. Always run `build.py` before the tests and commit both.
 - **One file out.** `app/gym-tracker.html` must stay self-contained and runnable by
-  `python3 -m http.server`. No npm, no bundler, no runtime CDN. The one narrow,
-  deliberate exception is `app/sw.js` (offline shell cache) — a service worker has
-  to be a same-origin file by browser security policy, a `blob:`/`data:` URL can't
-  be registered as one, so it can't be inlined into the HTML. It's still no
-  bundler, no CDN, and the app works fully without it if it's ever missing
-  (registration is wrapped in a no-op `.catch()`). Don't add a third file without
-  an equally load-bearing platform reason.
+  `python3 -m http.server`. No npm, no bundler, no runtime CDN, no vendored
+  libraries (charts are hand-rolled SVG; extend `buildChart()` in `68-chart.js`).
+  The one narrow, deliberate exception is `app/sw.js` (offline shell cache) — a
+  service worker has to be a same-origin file by browser security policy, a
+  `blob:`/`data:` URL can't be registered as one, so it can't be inlined into the
+  HTML. It's still no bundler, no CDN, and the app works fully without it if it's
+  ever missing (registration is wrapped in a no-op `.catch()`). Don't add a third
+  file without an equally load-bearing platform reason.
 - **Three storage modes.** Claude artifact storage, localStorage, and none (file://,
   falls back to mirroring state into the URL hash). Don't collapse this.
+- **Migrate, never orphan.** Ross has real history from 13 Aug 2026 onwards. Any
+  change to the data model migrates the existing `gt4_*` keys. Test it by importing
+  a backup exported from the previous build.
 - **Migration is load-bearing.** Several older key formats are migrated on boot.
   `dropDupeDays()` (a session saved twice a day apart) runs once at boot behind
   `gt4_dedupe1`, and on every import.
   Never remove `MIGRATE`, `pullLegacy`, or `pullLegacyWeights` without a replacement.
   `migrate()` also recovers pre-2026-09-10 `baseId::slug` swap keys onto today's
   `hkey()` scheme (see below) — keep that in step with `hkey()` if it changes again.
+- **Every piece of user data is in the backup.** A new `gt4_*` key that holds user
+  data goes into `backup()` and `applyImport()` (`76-data.js`) and into the storage
+  key table in `docs/ARCHITECTURE.md`, with a round-trip test.
 - **kg only.**
 - **Custom exercise names are user input.** They're stripped of HTML-significant
   characters in `cleanName()` because the app renders with innerHTML throughout. If
   that ever changes, escape at render instead.
+
+## How to work
+- **Pushing to `main` deploys.** With the update URL set on the phone (README,
+  "Deploying to the phone"), the launcher fetches `app/gym-tracker.html` from
+  `main` on the next tap of the widget. Treat `main` as production and don't push
+  a build that fails the tests.
+- **Bump `BUILD`** in `src/js/20-plans.js` on every change, as the date plus a
+  letter (e.g. `2026-10-14a`). It shows on the phone, so Ross can confirm which
+  build he is running.
+- **One change per commit.** Rebuild, run the tests, and commit `src/` and `app/`
+  together. The message says what changed and what was tested.
+- **Start a session with `docs/BACKLOG.md`.** It holds the agreed work, in order.
+  Move an item to its "Done" section, with the commit hash, when it ships.
+- **New ideas come from `docs/MARKET-REVIEW.md`.** Its proposals are not agreed
+  yet. Confirm one with Ross, then add it to the backlog. Where the backlog and the
+  review overlap, the backlog's order wins.
+- **Phone first.** Every screen must work at phone width, one-handed, in both the
+  light and dark themes.
 
 ## Server
 `serve.py` (stdlib only) serves `app/` and handles `POST /api/save`, which the app
@@ -58,14 +126,15 @@ cache-first would either never match (offline broken) or show the previous build
 ## File order
 One script scope; later modules call earlier ones. `src/js/`:
 `10-lib` (exercise library + cues) → `20-plans` (`DEFAULT_PLAN`, `FULL_BODY_PLAN`,
-`PRESETS`, `MIGRATE`, `BUILD`) → `30-storage` → `40-state` (helpers, PB, prefill,
-supersets, rest) → `50-render` → `55-rest` → `57-place` (gym / home) → `58-coach` → `59-effort` → `60-progress` → `61-week` (sets per
+`BEGINNER_PLAN`, `PRESETS`, `MIGRATE`, `BUILD`) → `30-storage` → `40-state`
+(helpers, PB, prefill, supersets, rest) → `50-render` → `55-rest` → `57-place`
+(gym / home) → `58-coach` → `59-effort` → `60-progress` → `61-week` (sets per
 muscle group, check-in, still-to-do strip, days done this week) → `62-cues` →
 `63-compare` (Progress "How you're doing": span vs the span before) → `64-swap` →
 `66-plates` → `68-chart` → `70-editor` → `72-routines` → `74-theme` → `76-data`
-(export/import) → `78-onthefly` (today-only extras, skips) → `80-bodyweight` → `82-summary` → `84-autobackup` → `86-actions`
-(finish) → `90-migrate` → `99-boot`. New module: pick a free number, end the file
-with a newline.
+(export/import) → `78-onthefly` (today-only extras, skips) → `80-bodyweight` →
+`82-summary` → `84-autobackup` → `86-actions` (finish) → `90-migrate` → `99-boot`.
+New module: pick a free number, end the file with a newline.
 
 ## Key concepts
 - **History key**: `hkey(exId, alt)`. Unswapped, it's `exerciseId`. Swapped, it
@@ -147,6 +216,8 @@ with a newline.
   snaps the weight onto `rackAt(PLACE)`, the dumbbells logged there. `lastSrc()`
   skips a prev from the other place once this place has history. PBs, the
   check-in and Compare are still place-blind (Compare labels home sessions).
+  For PBs that is deliberate: on 2026-10-14 Ross chose one record across both
+  places, so don't make PBs place-aware.
   Past sessions are re-tagged a whole date at a time (`tagDate`).
 - **Home kit** (`57-place`): home is adjustable dumbbells + an adjustable bench.
   At home `swaps` is a computed map (`homeSwapMap()`, marked `__home`) and the gym
@@ -182,7 +253,7 @@ with a newline.
 
 ## Testing
 ```bash
-python3 build.py && node --test test/
+python3 build.py && node --test 'test/*.test.js'
 ```
 
 No npm, nothing to install: `test/harness.js` evaluates the app's `<script>` in a
@@ -191,14 +262,38 @@ so the whole file boots and every top-level function/variable is reachable as
 `app.name`, assignable via `set('name', value)`. Storage lands in `Store`'s
 in-memory fallback, so each `load()` is a clean slate. Sandbox values have their
 own prototypes — compare with `deq()` (JSON round-trip) not `assert.deepEqual`.
-Coverage: migration, PB detection, volume/trend/1RM, the finish-session flow,
-backup round-trip, presets. Add a test whenever you touch any of those.
+Coverage: migration, PB detection, volume/trend/1RM, the coach, the finish-session
+flow, backup round-trip, presets, gym/home, effort, supersets, warm-ups, the build,
+the server and the launcher. Add a test whenever you touch any of those.
 
 The suite doesn't render anything, so still serve and click through after a UI
 change: log a set, swap an exercise, edit the plan, create a custom exercise,
 finish a session, open Progress, export a backup, re-import it.
 
-## Backlog
-Everything agreed but not built yet lives in `docs/BACKLOG.md`. Read it at the start
-of a session when looking for the next thing to do, and move items to its "Done"
-section (with the commit hash) as they ship.
+## Docs
+| File | What it is |
+|---|---|
+| `docs/BACKLOG.md` | Agreed work, in order. The source of truth for what's next. |
+| `docs/MARKET-REVIEW.md` | October 2026 review of Hevy, Strong, Alpha Progression, Fitbod, Boostcamp, Liftosaur, RP Hypertrophy and JEFIT. The proposals Ross agreed are now in the backlog; the rest are background. |
+| `docs/TRAINING-PLAN.md` | Programme history, progression rules, and what Ross has disliked. |
+| `docs/full-body-plan.json` | Source of record for `FULL_BODY_PLAN()`. |
+| `docs/ARCHITECTURE.md` | Data model, storage keys, migration. **Partly stale:** the key table is missing `gt4_incs`, `gt4_place`, `gt4_effort` and `gt4_homeswaps`; it says there are two presets (there are three); and "Known rough edges" still says there are no tests and no supersets. Fix it the next time you touch storage. |
+| `docs/ROADMAP.md` | The original September brief, now delivered. **Historical only:** its cache-first service worker and "stop after item 3" instructions are superseded by this file. |
+
+## Product direction
+Logging and progression coaching are already as good as the leading apps (see
+`docs/MARKET-REVIEW.md`). The thinnest areas are **visualisation**, then **plan
+design**. The plan agreed on 2026-10-14 is in `docs/BACKLOG.md` under "Next up",
+in phases:
+
+0. Tidy the docs.
+1. **See your progress:** chart ranges spaced by date, a metric switch, and a
+   then-vs-now line.
+2. **Design plans with feedback:** weekly sets per muscle group in the editor,
+   then finer muscle groups with secondary muscles.
+3. **Fix the record:** per-set history editing, per-set CSV, and a session note.
+4. **Motivation over months:** a training calendar, muscle-group sets over
+   time, and milestones with a monthly report.
+
+Work through it in that order. Each item says which code it touches, its tests,
+and when it's done.

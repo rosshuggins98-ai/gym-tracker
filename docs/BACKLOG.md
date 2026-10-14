@@ -4,24 +4,126 @@ Ideas agreed with the user but not built yet. Pick from here at the start of a
 session, and move an item to "Done" (with the commit) when it ships. The hard
 constraints in `CLAUDE.md` still apply to everything below.
 
-Most of this came out of a review of long-term tracking on 2026-09-23. Parts A and
-B of that review are done (see the end of this file). What's left builds on them.
+## Next up (agreed 2026-10-14, in this order)
 
-## Next up (agreed 2026-10-07, in this order)
+From the market review (`docs/MARKET-REVIEW.md`), checked against the code.
+Decided with Ross on 2026-10-14: **charts first**; **PBs stay one record across
+gym and home**; **no 4th day planned**, so the day editor stays parked.
 
-From a review of the user's real backup (13 Aug – 4 Oct). The coach rework and
-the weekly check-in from that review are done (see "Done").
+Phases 1, 2 and 4 are UI only and don't change stored data. Phase 3 changes
+stored history, so write its tests first.
 
-1. ~~Gym / home tag per session~~ — done 2026-10-08 (see "Done"). Left over:
-   PBs and the Compare view still mix the two places (Compare labels home
-   sessions); a home dumbbell can still count as a weight PB.
-2. ~~One-tap effort rating~~ — done 2026-10-08 (see "Done"), with a fourth
-   option, Off day, which is the one the coach acts on.
-3. ~~Since-you-started per exercise, then "Biggest gains" in Progress~~ — done
-   2026-10-08 as Progress → "How you're doing" (see "Done"). Still open: the
-   same then-vs-now line on the chart sheet.
-4. **Milestones**, and a monthly report shown on the first session of a month —
-   section C. The "4 weeks" span covers most of the report already.
+### Phase 0: tidy the docs (no app change, no `BUILD` bump)
+
+0. `docs/ARCHITECTURE.md`: add `gt4_incs`, `gt4_place`, `gt4_effort` and
+   `gt4_homeswaps` to the key table; say there are three presets (add
+   `BEGINNER_PLAN()`); drop "No test coverage" and "supersets aren't implemented"
+   from Known rough edges; note that the chart spaces points by index. `README.md`:
+   the test command becomes `node --test 'test/*.test.js'`. Then remove the
+   "Partly stale" note from the docs table in `CLAUDE.md`.
+
+### Phase 1: see your progress
+
+1. **Chart ranges, spaced by date.** `68-chart.js`. Add range chips to the chart
+   sheet: 4 weeks / 3 months / All (default All, which is today's behaviour), with
+   the ids and labels taken from `SPANS` in `63-compare.js` (no 1-week chip).
+   `buildChart()` currently places points by index (`X=i=>…`), so a week off is
+   invisible. Place them by date instead, with the live "Today" point at today's
+   date. Past ~30 points, draw smaller dots. Labels stay on the best and latest
+   only, as now. Keep the chosen range in a variable, like `cmpSpan`, not in
+   storage.
+   Test: a pure `chartSeries(k, metric, span)` returning `[{date, val, home}]`;
+   range filtering; x positions increase with date.
+   Done when: a lift with 25+ sessions reads cleanly at 360px wide in both themes,
+   and a 10-day gap is visible.
+2. **Metric switch.** Same sheet. Top set (the default, as Ross chose top-set
+   weight as his progress metric), Est. 1RM, Volume, Reps.
+   - Volume uses `e.vol` and skips entries without it (before 2026-09-11), with a
+     one-line note. Don't use `entryVol()`'s estimate on a chart.
+   - Est. 1RM follows the `e1RMShown()` rule (sets of 10 reps or fewer); skip the
+     rest with a note.
+   - Reps is the reps at the top set. A bodyweight lift (`incFor(k)===0`) defaults
+     to Reps, since its weight is 0.
+   - Drop today's always-on second line (est. 1RM under top set): the switch
+     replaces it. The stat tiles follow the chosen metric.
+   Test: each metric's series against a fixture that includes entries without
+   `vol` and without `sets`.
+3. **Then vs now on the chart sheet** (from section C, still open). One line above
+   the chart: the first session against the best in the last 4 weeks, as real sets,
+   with % by `entryScore()`. That's the rule `liftRows('all')` in `63-compare.js`
+   already uses, so extract a per-key function from it rather than re-deriving.
+   Test: the chart line matches the Compare "All time" row for the same key.
+
+### Phase 2: design plans with feedback
+
+4. **Weekly sets per muscle group in the plan editor.** `70-editor.js`. Under the
+   per-session `volNote`, add bars in the `balanceRows()` style from
+   `plannedByGroup()` (the whole plan, every day once), redrawn on every edit. This
+   is guidance only, with no enforced target. A reference band (~10–20 sets per
+   group per week, as Fitbod uses) may be shown as guidance.
+   Done when: changing sets on one day updates the weekly numbers at once.
+5. **Finer muscle groups, with secondary muscles** (from section D). `10-lib.js`:
+   add `m` to every `LIB` entry, e.g. dumbbell bench `{chest:1, triceps:.5,
+   shoulders:.5}`. Groups: chest, back, shoulders, biceps, triceps, quads,
+   hamstrings, glutes, calves. Keep `g` for coarse views. Custom exercises
+   (`gt4_custom`) get a default `m` from their `g` when read, so no stored data
+   changes. Swap alternates under `alt::` keys take the slot's exercise, as
+   `groupFor()` already does for `g`. Then move week balance, the check-in, the
+   still-to-do strip and item 4 to fine groups, counting secondary muscles as
+   fractional sets (rounded for display).
+   Tests: every `LIB` entry has `m` with one primary at 1; the custom default;
+   fractional sums. On each day of `BEGINNER_PLAN()`, built on the rule of one
+   quad-led and one hamstring-led lift per day (`docs/TRAINING-PLAN.md`), both
+   quads and hamstrings come out above 0.
+   Risk: numbers change on several screens at once, so check the check-in card and
+   the strip by eye.
+
+### Phase 3: fix the record (changes stored history: tests first)
+
+6. **Edit individual past sets** (was the loose end "History editing only edits
+   the top set"). On the chart sheet, a history row expands to its `sets`, where a
+   set's kg and reps can be edited, the set deleted, or toggled as a warm-up. Add
+   one pure function, `entryFromSets(sets)` → `{top, reps, vol}`, working sets
+   only, ties going to more reps (the same rules as `topWithReps()` and
+   `exVolume()`). Use it in both the editor and `doNewSession()`, so the two can't
+   drift. Entries without `sets` (before 2026-09-23) keep today's top/reps
+   editing. Deleting the last set deletes the entry.
+   Tests: for the same sets, the rebuilt entry matches what `doNewSession()`
+   writes; warm-ups are excluded; old entries are untouched; backup round-trip.
+7. **Per-set CSV** (was the loose end "CSV export has no per-set data"). Add a
+   second export, "CSV, every set": one row per set with date, exercise, set number,
+   kg, reps, type and place. Leave the current CSV unchanged. Entries without
+   `sets` export their top set as one row.
+   Test: row count equals sets logged, plus one per old entry.
+8. **Session note** (from section E). A text box on the summary sheet beside the
+   effort rating, one note per date, stored in `gt4_sessnote` as `{date: text}`.
+   Cap it at ~140 characters and strip it like `cleanName()`, because it renders
+   through innerHTML. Show it on chart history rows and in "Where you trained".
+   Add it to `backup()`/`applyImport()` and the ARCHITECTURE key table, with a
+   round-trip test. Re-run `autoBackup()` after an edit, as the effort rating does.
+
+### Phase 4: motivation over months
+
+9. **Training calendar.** Progress sheet: the last 3–6 months as month grids from
+   `allSessionDates()`, one dot per session day, ringed for home (`placeOf`). Tap
+   a day to list what was trained.
+10. **Muscle-group sets over time.** Build after item 5. Weekly working sets per
+    group for the last 12 weeks, via `setsByGroup()` week by week, as small bars
+    with the plan's weekly number as a reference line.
+11. **Milestones and a monthly report** (section C; this was "Next up" item 4 on
+    2026-10-07). As described in section C.
+
+### Decided or parked on 2026-10-14
+
+- **PBs stay one record across gym and home.** This is Ross's call, so don't make
+  them place-aware. Compare still labels home sessions.
+- **Day editor:** parked, as no 4th day is planned (see "Older ideas").
+- **Swap to any library exercise:** parked (see "Older ideas").
+- **Suggested warm-up weights:** parked. Warm-up rows already prefill from last
+  session's warm-up rows (`slot()` via `lastW`/`lastR`), so this would only help
+  right after a weight jump.
+- **Deload week, a progression rule per exercise:** later, if ever. See the
+  market review.
 
 ## What the data can support now
 
@@ -31,49 +133,37 @@ the weekly check-in from that review are done (see "Done").
 - Only ticked sets are recorded, and warm-ups are kept but flagged `t:'warm'`.
 - Bodyweight is logged per day (`bodyweight`, `80-bodyweight.js`).
 - Muscle groups are coarse: `LIB[id].g` is one of Chest / Back / Shoulders / Arms /
-  Legs (custom exercises can also use Other).
+  Legs (custom exercises can also use Other). Item 5 adds finer ones.
 
 ## C. The long view
 
-- **Since-you-started comparison per exercise.** For example "Dumbbell Bench: 16kg × 10
-  in Sept → 20kg × 13 now, +25%". Use the same score as `entryScore()` for the
-  percentage, but show real sets, not estimated 1RMs. Chart sheet first, then a
-  "Biggest gains" list in Progress. Weekly numbers are noisy; this is the view
-  that motivates.
-- **Monthly report.** Sessions attended vs target, PBs (all three kinds), biggest
-  gains, exercises that stalled, bodyweight change. Could be a sheet opened
-  from Progress, or shown automatically on the first session of a new month.
-- **Milestones.** 10/25/50/100 sessions, first 20kg dumbbell, first time leg
-  pressing your bodyweight, longest week streak. Cheap, and they motivate. Work
-  them out from history rather than storing them, so they appear for past
+- ~~Since-you-started comparison per exercise~~: done 2026-10-08 in Progress as
+  "How you're doing". The chart-sheet line is item 3.
+- **Monthly report** (item 11). Sessions attended vs target, PBs (all three
+  kinds), biggest gains, exercises that stalled, bodyweight change. Could be a
+  sheet opened from Progress, or shown automatically on the first session of a new
+  month. The "4 weeks" span in Compare covers most of it already.
+- **Milestones** (item 11). 10/25/50/100 sessions, first 20kg dumbbell, first time
+  leg pressing your bodyweight, longest week streak. Cheap, and they motivate.
+  Work them out from history rather than storing them, so they appear for past
   sessions too.
 - **Relative strength.** Top set ÷ bodyweight on the nearest date for the main
-  lifts. Bodyweight is already logged.
+  lifts. Bodyweight is already logged. Not scheduled.
 
 ## D. Training balance
 
-- ~~Hard sets per muscle per week~~ — done 2026-10-07 against the plan's own
-  weekly sets rather than a fixed 10–20 range (see "Done"). Still coarse groups.
-- **Finer muscle groups, with secondary muscles.** Quads, hamstrings, glutes,
-  calves, chest, back, shoulders, biceps and triceps, with a weight per muscle
-  on each library entry. For example, dumbbell bench = chest 1, triceps 0.5,
-  front delts 0.5. This is a new field on `LIB` (keep `g` for the existing
-  views), plus a default for custom exercises based on their group.
-- Swap alternates stored under `alt::` keys have no group today, so
-  `groupOf()` returns null and they're left out of per-group views. Let them
-  inherit the group of the exercise they were swapped in for.
+- ~~Hard sets per muscle per week~~: done 2026-10-07 against the plan's own
+  weekly sets rather than a fixed 10–20 range (see "Done").
+- Finer muscle groups with secondary muscles, and `alt::` keys inheriting the
+  slot's group: now item 5.
 
 ## E. Context on sessions
 
-- **One-tap effort rating per session** (easy / solid / hard), asked on the
-  summary sheet. Store it on the session and not on each exercise. It explains
-  bad days, and the coach could use it (e.g. don't call a stall when the last
-  sessions were rated hard because of fatigue).
+- ~~One-tap effort rating~~: done 2026-10-08 (see "Done").
 - **Reps in reserve (RIR) on the last set** as an optional alternative. A more
   precise signal, but it's another tap per exercise, so only add it if the
   effort rating proves too coarse.
-- **Short session note** ("slept badly", "gym packed") on the summary sheet,
-  shown on the history rows for that date.
+- Short session note: now item 8.
 
 ## F. Data safety
 
@@ -81,15 +171,12 @@ the weekly check-in from that review are done (see "Done").
   phone (`serve.py` keeps the newest 20 in `gym-backups/`). Options: Termux
   writing to a synced folder (Drive/Syncthing), or `serve.py` committing and
   pushing to a private repo after each save. Losing the phone currently means
-  losing everything.
+  losing everything. Not yet scheduled; raised with Ross on 2026-10-14.
 
 ## Loose ends from A and B
 
-- **CSV export has no per-set data.** `csvText()` still writes one row per entry
-  (the top set). Add a per-set CSV, or a `sets` column.
-- **History editing only edits the top set.** In the chart sheet, `wireHistRows`
-  changes `top`/`reps` but leaves `sets` unchanged, so the two can disagree.
-  Either edit per set or rebuild top/reps from an edited set list.
+- Per-set CSV: now item 7.
+- Per-set history editing: now item 6.
 - **"vs last time" in the session summary** still compares against `prev` (the
   last session on that day). It could compare set by set from history instead,
   which also works when the exercise was last done on a different day.
@@ -106,11 +193,13 @@ the weekly check-in from that review are done (see "Done").
 
 ## Older ideas (moved from CLAUDE.md)
 
-- **Day editor:** add / rename / remove days. Presets are hard-wired to three days
-  and three accent vars (`--a1..--a3`); a 4-day upper/lower would need both.
-- **Swap to any library exercise**, not only the listed `alts`. The swap sheet is
-  limited to the alt list, so Leg Press → Bulgarian means a plan edit, not a swap.
-  (The "+ Add an exercise for today" picker covers some of this.)
+- **Day editor** (parked 2026-10-14): add / rename / remove days. Presets are
+  hard-wired to three days and three accent vars (`--a1..--a3`); a 4-day
+  upper/lower would need both.
+- **Swap to any library exercise** (parked 2026-10-14), not only the listed
+  `alts`. The swap sheet is limited to the alt list, so Leg Press → Bulgarian
+  means a plan edit, not a swap. (The "+ Add an exercise for today" picker covers
+  some of this.)
 - **A tiny browser smoke test.** The vm harness can't render; even a script that
   opens the file in headless Chromium and checks for console errors would catch
   what the stub DOM hides. No browser is installed in the dev container.
@@ -144,7 +233,7 @@ the weekly check-in from that review are done (see "Done").
 - 2026-10-08: **Effort rating.** Easy / Solid / Hard / Off day on the summary
   sheet, per date; off-day sessions are left out of the coach's judgement (no
   "drop back" or stall from a bad day). Shown on chart history rows and in
-  "Where you trained". The session note (section E) is still to do.
+  "Where you trained". The session note is now item 8.
 - 2026-10-08: **Home kit.** At home each planned exercise that needs gym kit is
   swapped for a dumbbells-and-bench one (gym swap if it works at home, else a
   preferred stand-in, else the first workable alt); picks made at home stay
