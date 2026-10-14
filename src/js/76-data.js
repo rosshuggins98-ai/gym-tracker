@@ -11,7 +11,8 @@ function openData(){
  const hn=Object.keys(hist||{}).length;
  el.innerHTML+='<br><br><b>Data found:</b> '+hn+' exercise'+(hn===1?'':'s')+' with logged history'+
   (n?', plus recovered weights for '+n+' exercise'+(n===1?'':'s')+' from an earlier version':'')+'.'+
-  '<br><br>'+autoBackupNote();
+  '<br><br>'+autoBackupNote()+'<span id="offsiteNote"></span>';
+ loadOffsiteNote();
  applyAccent(); document.getElementById('databg').classList.add('show');
 }
 function closeData(){ document.getElementById('databg').classList.remove('show'); }

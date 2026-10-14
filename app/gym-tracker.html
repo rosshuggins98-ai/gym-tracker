@@ -239,6 +239,7 @@
  .exportout textarea{width:100%;height:110px;background:var(--card2);border:1px solid var(--line);border-radius:12px;
   color:var(--text);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;padding:10px;resize:vertical;margin-bottom:8px}
  .note{font-size:12px;color:var(--muted);line-height:1.5;margin-top:8px}
+.note .bad,#storeStatus .bad{color:var(--warn);font-weight:700}
  .hr{height:1px;background:var(--line);margin:20px 0 16px}
  .filebtn{display:block;text-align:center;border:1px dashed var(--line);background:var(--card2);color:var(--text);
   font-weight:700;font-size:14px;padding:15px;border-radius:12px;cursor:pointer}
@@ -689,7 +690,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-10-14m";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-10-14n";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -2770,7 +2771,8 @@ function openData(){
  const hn=Object.keys(hist||{}).length;
  el.innerHTML+='<br><br><b>Data found:</b> '+hn+' exercise'+(hn===1?'':'s')+' with logged history'+
   (n?', plus recovered weights for '+n+' exercise'+(n===1?'':'s')+' from an earlier version':'')+'.'+
-  '<br><br>'+autoBackupNote();
+  '<br><br>'+autoBackupNote()+'<span id="offsiteNote"></span>';
+ loadOffsiteNote();
  applyAccent(); document.getElementById('databg').classList.add('show');
 }
 function closeData(){ document.getElementById('databg').classList.remove('show'); }
@@ -3058,6 +3060,55 @@ function autoBackupNote(){
  return 'Auto-backup: last written <b>'+shortDate(lastAuto.date)+'</b>'+(lastAuto.file?' ('+lastAuto.file+')':'')+' to the server\u2019s gym-backups folder.';
 }
 
+/* ---- The off-phone copy (serve.py --offsite) ----
+   The server sends each backup to a private GitHub repo in the background
+   and reports how that went in /api/status as `offsite`:
+   {enabled:false} when not set up, else {enabled, repo, pending, last_ok,
+   error}. Read-only here, best-effort like autoBackup: no server, an older
+   serve.py, or file:// just means nothing is shown. */
+function canAskServer(){ return typeof fetch==='function'&&/^https?:$/.test(location.protocol); }
+async function offsiteStatus(){
+ if(!canAskServer()) return null;
+ try{ const r=await fetch('api/status',{cache:'no-store'}); if(!r.ok) return null;
+  const j=await r.json(); return (j&&j.offsite)||null; }catch(e){ return null; }
+}
+/* Right after a save the copy is usually still going: ask a few times
+   (~10s) until it has gone up or failed. */
+async function offsiteAfterSave(tries,wait){ let o=null;
+ for(let i=0;i<(tries||6);i++){ o=await offsiteStatus();
+  if(!o||!o.enabled||o.error||!o.pending) return o;
+  await new Promise(r=>setTimeout(r,wait==null?1500:wait)); }
+ return o; }
+/* last_ok is the phone's local time, "YYYY-MM-DDTHH:MM". */
+function localISO(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function sentWhen(t){ if(!t) return 'never';
+ const day=t.slice(0,10), hm=t.slice(11,16);
+ return (day===localISO(new Date())?'today':shortDate(day))+(hm?' at '+hm:''); }
+/* Days since anything reached GitHub while something is waiting or failing:
+   0 when all is well (or it's off), Infinity when nothing ever has. */
+function offsiteStaleDays(o,now){
+ if(!o||!o.enabled||!(o.error||o.pending)) return 0;
+ if(!o.last_ok) return Infinity;
+ return Math.max(0,Math.floor(((now||Date.now())-new Date(o.last_ok))/864e5)); }
+const OFFSITE_STALE=7;
+/* Data panel line. */
+function offsiteText(o){
+ if(!o) return '';
+ if(!o.enabled) return '<b>GitHub copy:</b> not set up, so your backups only exist on this phone. To send them to a private GitHub repo as well, run <b>bash ~/gymtools/offsite-setup.sh</b> in Termux once.';
+ const repo=o.repo?'<b>'+escHTML(o.repo)+'</b>':'GitHub', n=o.pending||0, wait=n?' '+n+' backup'+(n===1?'':'s')+' waiting.':'';
+ if(o.error) return '<b>GitHub copy:</b> <span class="bad">not sent.</span> '+escHTML(o.error)+wait+' Last sent: '+sentWhen(o.last_ok)+'.';
+ if(n) return '<b>GitHub copy:</b> sending to '+repo+'\u2026'+wait;
+ return '<b>GitHub copy:</b> up to date in '+repo+'. Last sent '+sentWhen(o.last_ok)+'.'; }
+/* Summary sheet line once the phone copy is written. */
+function sumBackupLine(file,o,now){
+ const phone='Backed up to the phone'+(o&&o.enabled&&!o.error&&!o.pending?' and GitHub':'')+' \u2713'+(file?' ('+file+')':'')+'.';
+ if(!o||!o.enabled||(!o.error&&!o.pending)) return phone;
+ const d=offsiteStaleDays(o,now);
+ if(d>=OFFSITE_STALE) return phone+' <span class="bad">\u26a0 '+(d===Infinity?'Nothing has reached GitHub yet.':'Nothing has reached GitHub for '+d+' days.')+'</span> '+
+  (o.error?escHTML(o.error)+' ':'')+'Details in Data.';
+ return phone+(o.error?' Not on GitHub yet: '+escHTML(o.error):' GitHub copy still sending.'); }
+async function loadOffsiteNote(){ const o=await offsiteStatus(), el=document.getElementById('offsiteNote');
+ if(el&&o){ el.innerHTML='<br><br>'+offsiteText(o); } return o; }
 /* ============ ACTIONS ============ */
 function switchDay(id){ if(id===ACTIVE)return; flush(); ACTIVE=id; Store.set('gt4_active',id); render(); window.scrollTo({top:0}); }
 function openSheet(){ applyAccent();
@@ -3114,8 +3165,10 @@ async function doNewSession(){
  await Promise.all([Store.set('gt4_hist',hist),Store.set('gt4_prev',prev),Store.set('gt4_cur',cur),Store.set('gt4_warm',warmDone),Store.set('gt4_start',sessionStart)]);
  DIRTY=false; mirrorHash(); closeSheet(); render(); window.scrollTo({top:0});
  showSummary(S);
- autoBackup().then(r=>{ const el=document.getElementById('sumBackup'); if(!el) return;
-  el.innerHTML=r?'Backed up to the phone ✓ ('+r.file+')':(typeof fetch==='function'&&/^https?:$/.test(location.protocol)?'Auto-backup unavailable — export from the Data panel now and then.':''); });
+ autoBackup().then(async r=>{ const el=document.getElementById('sumBackup'); if(!el) return;
+  el.innerHTML=r?sumBackupLine(r.file,null):(canAskServer()?'Auto-backup unavailable — export from the Data panel now and then.':'');
+  if(!r) return;
+  const o=await offsiteAfterSave(); if(o&&o.enabled) el.innerHTML=sumBackupLine(r.file,o); });
 }
 
 /* ============ MIGRATION ============ */

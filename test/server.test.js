@@ -78,8 +78,9 @@ test('app: autoBackup posts the backup after a finished session, and is silent w
  const {app,set,tick}=await load({fetch});
  set('hist',{}); set('cur',{push:{bench:[{w:'50',r:'8',done:true}]}});
  await app.doNewSession(); await tick();
- assert.equal(calls.length,1);
  assert.equal(calls[0].url,'api/save'); assert.equal(calls[0].opts.method,'POST');
+ assert.equal(calls.filter(c=>c.url==='api/save').length,1,'one save');
+ assert.ok(calls.slice(1).every(c=>c.url==='api/status'),'then only asks how the GitHub copy went');
  const body=JSON.parse(calls[0].opts.body); assert.equal(body.app,'gym-tracker'); assert.equal(body.history.bench[0].top,50);
  assert.equal(app.lastAuto.file,'gym-backup-x.json');
 

@@ -216,3 +216,41 @@ test('offsite-setup.sh (written by the installer): saves owner/name and the toke
   assert.equal(r.status,0); assert.ok(!fs.existsSync(cfg));
  } finally { fs.rmSync(home,{recursive:true,force:true}); }
 });
+
+test('app: Data panel and summary wording for the GitHub copy',async()=>{
+ const {load}=require('./harness');
+ const {app}=await load();
+ const now=new Date('2026-10-14T12:00:00').getTime();
+ assert.equal(app.offsiteText(null),'','an older server says nothing');
+ assert.match(app.offsiteText({enabled:false}),/not set up.*offsite-setup\.sh/);
+ assert.match(app.offsiteText({enabled:true,repo:REPO,pending:0,error:null,last_ok:'2026-10-13T19:40'}),/up to date in <b>ross\/gym-backups<\/b>\. Last sent 13 Oct at 19:40/);
+ assert.match(app.offsiteText({enabled:true,repo:REPO,pending:2,error:"Couldn't reach GitHub (no signal?). It will try again.",last_ok:null}),
+  /not sent\..*Couldn&#39;t reach GitHub.*2 backups waiting\. Last sent: never/);
+ assert.match(app.offsiteText({enabled:true,repo:'<x>/y',pending:0,error:null,last_ok:null}),/&lt;x&gt;\/y/,'escaped');
+
+ const f='gym-backup-2026-10-14.json';
+ assert.equal(app.sumBackupLine(f,null),'Backed up to the phone ✓ ('+f+').');
+ assert.equal(app.sumBackupLine(f,{enabled:false}),'Backed up to the phone ✓ ('+f+').');
+ assert.equal(app.sumBackupLine(f,{enabled:true,pending:0,error:null,last_ok:'2026-10-14T11:59'},now),'Backed up to the phone and GitHub ✓ ('+f+').');
+ assert.match(app.sumBackupLine(f,{enabled:true,pending:1,error:null,last_ok:'2026-10-13T10:00'},now),/still sending/);
+ const recent=app.sumBackupLine(f,{enabled:true,pending:1,error:'No signal.',last_ok:'2026-10-10T10:00'},now);
+ assert.match(recent,/Not on GitHub yet: No signal\./); assert.doesNotMatch(recent,/⚠/);
+ const stale=app.sumBackupLine(f,{enabled:true,pending:3,error:'Token expired.',last_ok:'2026-10-01T10:00'},now);
+ assert.match(stale,/⚠ Nothing has reached GitHub for 13 days\..*Token expired\..*Details in Data/);
+ assert.match(app.sumBackupLine(f,{enabled:true,pending:1,error:'Public.',last_ok:null},now),/Nothing has reached GitHub yet/);
+ assert.equal(app.offsiteStaleDays({enabled:true,pending:0,error:null,last_ok:'2026-01-01T00:00'},now),0,'old but nothing waiting is fine');
+});
+
+test('app: after a save it asks the server until the GitHub copy has gone up; silent without one',async()=>{
+ const {load}=require('./harness');
+ const seen=[]; let n=0;
+ const fetch=async url=>{ seen.push(url); n++;
+  return {ok:true,json:async()=>({ok:true,offsite:{enabled:true,repo:REPO,pending:n<3?1:0,error:null,last_ok:'2026-10-14T10:00'}})}; };
+ const {app}=await load({fetch});
+ const o=await app.offsiteAfterSave(6,0);
+ assert.equal(o.pending,0); assert.equal(seen.length,3); assert.ok(seen.every(u=>u==='api/status'));
+ const q=await load({fetch:async()=>({ok:true,json:async()=>({ok:true,backups:1,latest:'x'})})});
+ assert.equal(await q.app.offsiteAfterSave(6,0),null,'an older serve.py: nothing');
+ const r=await load({fetch:async()=>{ throw new Error('refused'); }});
+ assert.equal(await r.app.offsiteAfterSave(6,0),null,'no server: nothing');
+});

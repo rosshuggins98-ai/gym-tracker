@@ -54,7 +54,9 @@ async function doNewSession(){
  await Promise.all([Store.set('gt4_hist',hist),Store.set('gt4_prev',prev),Store.set('gt4_cur',cur),Store.set('gt4_warm',warmDone),Store.set('gt4_start',sessionStart)]);
  DIRTY=false; mirrorHash(); closeSheet(); render(); window.scrollTo({top:0});
  showSummary(S);
- autoBackup().then(r=>{ const el=document.getElementById('sumBackup'); if(!el) return;
-  el.innerHTML=r?'Backed up to the phone ✓ ('+r.file+')':(typeof fetch==='function'&&/^https?:$/.test(location.protocol)?'Auto-backup unavailable — export from the Data panel now and then.':''); });
+ autoBackup().then(async r=>{ const el=document.getElementById('sumBackup'); if(!el) return;
+  el.innerHTML=r?sumBackupLine(r.file,null):(canAskServer()?'Auto-backup unavailable — export from the Data panel now and then.':'');
+  if(!r) return;
+  const o=await offsiteAfterSave(); if(o&&o.enabled) el.innerHTML=sumBackupLine(r.file,o); });
 }
 
