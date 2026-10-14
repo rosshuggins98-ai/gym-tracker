@@ -10,23 +10,10 @@ From the market review (`docs/MARKET-REVIEW.md`), checked against the code.
 Decided with Ross on 2026-10-14: **charts first**; **PBs stay one record across
 gym and home**; **no 4th day planned**, so the day editor stays parked.
 
-Phases 1, 2 and 4 are UI only and don't change stored data. Phase 3 changes
-stored history, so write its tests first.
-
-Phases 0–3 are done (items 0–8): see "Done". **Next is Phase 4, item 9.**
-Backlog F (copying backups off the phone) is still unscheduled. It was raised with
-Ross on 2026-10-14, and he chose to go straight to Phase 3.
-
-### Phase 4: motivation over months
-
-9. **Training calendar.** Progress sheet: the last 3–6 months as month grids from
-   `allSessionDates()`, one dot per session day, ringed for home (`placeOf`). Tap
-   a day to list what was trained.
-10. **Muscle-group sets over time.** Build after item 5. Weekly working sets per
-    group for the last 12 weeks, via `setsByGroup()` week by week, as small bars
-    with the plan's weekly number as a reference line.
-11. **Milestones and a monthly report** (section C; this was "Next up" item 4 on
-    2026-10-07). As described in section C.
+**All five phases are done (items 0–11): see "Done".** Nothing agreed is left
+here. The next piece of work needs agreeing with Ross first. Open candidates:
+backlog F (copying backups off the phone; raised 2026-10-14 and still
+unscheduled), relative strength (section C), and the loose ends below.
 
 ### Decided or parked on 2026-10-14
 
@@ -55,14 +42,10 @@ Ross on 2026-10-14, and he chose to go straight to Phase 3.
 
 - ~~Since-you-started comparison per exercise~~: done 2026-10-08 in Progress as
   "How you're doing". The chart-sheet line is item 3.
-- **Monthly report** (item 11). Sessions attended vs target, PBs (all three
-  kinds), biggest gains, exercises that stalled, bodyweight change. Could be a
-  sheet opened from Progress, or shown automatically on the first session of a new
-  month. The "4 weeks" span in Compare covers most of it already.
-- **Milestones** (item 11). 10/25/50/100 sessions, first 20kg dumbbell, first time
-  leg pressing your bodyweight, longest week streak. Cheap, and they motivate.
-  Work them out from history rather than storing them, so they appear for past
-  sessions too.
+- ~~Monthly report~~: done 2026-10-14 as item 11 (a card in a new month, and
+  "Last month" in Progress).
+- ~~Milestones~~: done 2026-10-14 as item 11, worked out from history, never
+  stored.
 - **Relative strength.** Top set ÷ bodyweight on the nearest date for the main
   lifts. Bodyweight is already logged. Not scheduled.
 
@@ -121,7 +104,9 @@ Ross on 2026-10-14, and he chose to go straight to Phase 3.
   what the stub DOM hides. Headless Chromium does install in the cloud dev
   container (`pip install --break-system-packages playwright && python3 -m
   playwright install chromium`); Phase 1 was checked that way, with a seeded
-  history, at 360px in both themes. The script wasn't committed.
+  history, at 360px in both themes. Phases 3 and 4 also had a whole-app run (log a
+  set, finish, open every sheet, export, wipe, restore, against `serve.py`). The
+  scripts weren't committed.
 - **Header wraps at phone width.** "GYM TRACKER" breaks onto two lines and the
   build badge squashes (seen in a 2026-09-23 screenshot).
 
@@ -188,3 +173,17 @@ Ross on 2026-10-14, and he chose to go straight to Phase 3.
   (`gt4_sessnote`, in backups), shown on chart rows and in "Where you trained".
   Escaped when shown rather than stripped like `cleanName()` (the plan's
   wording), so apostrophes survive.
+- 2026-10-14 `aee3ff1`: **Item 9, training calendar.** Progress shows the last
+  three months as month grids (filled dot gym, ringed home); tap a day for its
+  lifts, place, effort and note; "Show 6 months" when there's older history.
+- 2026-10-14 `977f36f`: **Item 10, sets per muscle week by week.** Up to 12 weeks
+  of small bars per muscle under this week's balance, the plan's weekly sets as a
+  dashed line, weeks that met it in green, this week live.
+- 2026-10-14 `b5910d9`, `5a51d96`: **Item 11, milestones.** Sessions, week
+  streaks, dumbbell weights, lifts against bodyweight, kg lifted and PB counts,
+  worked out from history. In Progress (latest four, plus the three nearest with
+  a bar) and on the summary when a session reaches one.
+- 2026-10-14 `c745109`: **Item 11, monthly report.** "<Month> in review" on the
+  workout screen once per new month (sessions vs target, PBs by kind, biggest
+  gains, lifts that didn't beat their best, bodyweight, milestones), and "Last
+  month" in Progress. Dismissal is UI state (`gt4_monthseen`), not backed up.
