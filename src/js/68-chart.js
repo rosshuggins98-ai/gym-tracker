@@ -161,7 +161,8 @@ function histRows(h,k){
      '<input class="hw" inputmode="decimal" value="'+e.top+'"><span class="hx">kg ×</span>'+
      '<input class="hrp" inputmode="numeric" value="'+(e.reps!=null?e.reps:'')+'">')+
     '<button class="mini hpl'+(placeOf(e)==='home'?' home':'')+'">'+PLACES[placeOf(e)]+'</button>'+
-    '<button class="mini del hdel">×</button></div>'+(open?histSetsBlock(e,i):''); }).join('');
+    '<button class="mini del hdel">×</button></div>'+
+    (sessNoteOf(e.date)?'<div class="hnote">'+escHTML(sessNoteOf(e.date))+'</div>':'')+(open?histSetsBlock(e,i):''); }).join('');
 }
 /* The open session's sets: working sets numbered, warm-ups marked W. */
 function histSetsBlock(e,i){ let n=0;

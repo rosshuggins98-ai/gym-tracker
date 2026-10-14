@@ -190,6 +190,12 @@
  .place.effort button.off.on{background:var(--warn);border-color:var(--warn)}
  i.eff{display:block;font-style:normal;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
  .plrow i.eff{display:inline;margin-right:6px}
+ .plrow .pnote{display:block;color:var(--muted);font-weight:600;font-size:11px;overflow:hidden;text-overflow:ellipsis}
+ .sessnote{margin:8px 2px 4px}
+ .sessnote input{width:100%;box-sizing:border-box;background:var(--card2);border:1px solid var(--line);border-radius:10px;
+  color:var(--text);font-family:inherit;font-size:13px;padding:10px 11px;outline:none}
+ .sessnote input:focus{border-color:var(--accent)}
+ .hnote{font-size:11.5px;color:var(--muted);font-weight:600;margin:-4px 0 8px 59px;line-height:1.4}
  i.eff.hard{color:var(--accent)} i.eff.off{color:var(--warn)} i.eff.easy{color:var(--done)}
  .mini.hpl{width:auto;padding:0 8px;font-size:10.5px;font-weight:800}
  .mini.hpl.home{color:var(--accent);border-color:var(--accent)}
@@ -645,7 +651,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-10-14g";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-10-14h";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -1248,7 +1254,8 @@ function sessionsByDate(){ const by={};
 function placeBlock(){ const ss=sessionsByDate(); if(!ss.length) return '';
  const show=placeAll?ss:ss.slice(0,8);
  return '<h5>Where you trained</h5>'+show.map(s=>'<div class="plrow"><span class="dt">'+shortDate(s.date)+'</span>'+
-  '<span class="ls">'+(effortOf(s.date)?'<i class="eff '+effortOf(s.date)+'">'+EFFORTS[effortOf(s.date)]+'</i>':'')+s.lifts.slice(0,3).join(', ')+'</span>'+
+  '<span class="ls">'+(effortOf(s.date)?'<i class="eff '+effortOf(s.date)+'">'+EFFORTS[effortOf(s.date)]+'</i>':'')+s.lifts.slice(0,3).join(', ')+
+   (sessNoteOf(s.date)?'<small class="pnote">'+escHTML(sessNoteOf(s.date))+'</small>':'')+'</span>'+
   '<button class="mini hpl'+(s.at==='home'?' home':'')+'" data-date="'+s.date+'">'+PLACES[s.at]+'</button></div>').join('')+
   (ss.length>show.length?'<button class="dbtn" id="plMore">Show all '+ss.length+' sessions</button>':'')+
   '<div class="note">Tap to switch a session between gym and home. The coach and your "last time" weights only compare sessions from the same place, so gym 22kg and home 22.5kg aren\'t read as progress.</div>'; }
@@ -1502,6 +1509,24 @@ function effortRow(date){ const cur=effortOf(date);
 function wireEffort(date){ const el=document.getElementById('sumEffort'); if(!el) return;
  el.querySelectorAll('button').forEach(b=>b.addEventListener('click',async()=>{
   await setEffort(date,b.dataset.v); el.innerHTML=effortRow(date); wireEffort(date); render(); autoBackup(); })); }
+
+/* --- Session note --------------------------------------------------------
+   One short note per session date ("slept badly", "gym packed"), typed on
+   the summary sheet, kept in gt4_sessnote and backups (sessNotes). Stored as
+   typed and escaped wherever it's shown (escHTML), so "didn't" keeps its
+   apostrophe. Shown on the chart's session rows and in "Where you trained". */
+const SESSNOTE_MAX=140;
+let sessNotes={};
+function sessNoteOf(date){ return typeof sessNotes[date]==='string'?sessNotes[date]:''; }
+async function setSessNote(date,t){ const v=String(t||'').replace(/\s+/g,' ').trim().slice(0,SESSNOTE_MAX);
+ if(v) sessNotes[date]=v; else delete sessNotes[date];
+ await Store.set('gt4_sessnote',sessNotes); }
+function sessNoteRow(date){
+ return '<input id="sumNote" maxlength="'+SESSNOTE_MAX+'" placeholder="Add a note (e.g. slept badly, gym packed)" value="'+escHTML(sessNoteOf(date))+'">'; }
+/* Saves when the box loses focus or Enter is pressed, then re-runs the
+   auto-backup like the effort rating does. */
+function wireSessNote(date){ const el=document.getElementById('sumNote'); if(!el) return;
+ el.addEventListener('change',async()=>{ await setSessNote(date,el.value); el.value=sessNoteOf(date); autoBackup(); }); }
 /* ============ PROGRESS ============ */
 function allSessionDates(){
  const d={}; Object.values(hist).forEach(a=>(a||[]).forEach(e=>{ if(e.date)d[e.date]=1; }));
@@ -2236,7 +2261,8 @@ function histRows(h,k){
      '<input class="hw" inputmode="decimal" value="'+e.top+'"><span class="hx">kg ×</span>'+
      '<input class="hrp" inputmode="numeric" value="'+(e.reps!=null?e.reps:'')+'">')+
     '<button class="mini hpl'+(placeOf(e)==='home'?' home':'')+'">'+PLACES[placeOf(e)]+'</button>'+
-    '<button class="mini del hdel">×</button></div>'+(open?histSetsBlock(e,i):''); }).join('');
+    '<button class="mini del hdel">×</button></div>'+
+    (sessNoteOf(e.date)?'<div class="hnote">'+escHTML(sessNoteOf(e.date))+'</div>':'')+(open?histSetsBlock(e,i):''); }).join('');
 }
 /* The open session's sets: working sets numbered, warm-ups marked W. */
 function histSetsBlock(e,i){ let n=0;
@@ -2506,7 +2532,7 @@ function openData(){
 function closeData(){ document.getElementById('databg').classList.remove('show'); }
 document.getElementById('databg').addEventListener('click',e=>{ if(e.target.id==='databg')closeData(); });
 function backup(){ return {app:"gym-tracker",version:4,build:BUILD,exported:new Date().toISOString(),
- plan:PLAN,cur,prev,swaps:gymSwapMap(),homeSwaps:homePicks,history:hist,warm:warmDone,custom,barWeight:BARWEIGHT,notes,weekTarget:WEEKTARGET,routines,bodyweight,incs,place:PLACE,effort:efforts}; }
+ plan:PLAN,cur,prev,swaps:gymSwapMap(),homeSwaps:homePicks,history:hist,warm:warmDone,custom,barWeight:BARWEIGHT,notes,weekTarget:WEEKTARGET,routines,bodyweight,incs,place:PLACE,effort:efforts,sessNotes}; }
 function dl(n,t,m){ try{ const b=new Blob([t],{type:m}),u=URL.createObjectURL(b),a=document.createElement('a');
  a.href=u;a.download=n;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);return true;}catch(e){return false;} }
 function showExport(t,n){ document.getElementById('exportText').value=t;
@@ -2581,13 +2607,14 @@ async function applyImport(){ const d=window.__imp; if(!d)return;
  if(typeof d.weekTarget==='number'&&d.weekTarget>0) WEEKTARGET=d.weekTarget;
  if(PLACES[d.place]) PLACE=d.place;
  efforts=(d.effort&&typeof d.effort==='object')?d.effort:{};
+ sessNotes=(d.sessNotes&&typeof d.sessNotes==='object')?d.sessNotes:{};
  homePicks=(d.homeSwaps&&typeof d.homeSwaps==='object')?d.homeSwaps:{};
  notes=d.notes||{}; routines=d.routines||[]; incs=(d.incs&&typeof d.incs==='object')?d.incs:{};
  bodyweight=Array.isArray(d.bodyweight)?d.bodyweight.filter(e=>e&&e.date&&e.kg>0):[];
  await Promise.all([Store.set('gt4_plan',PLAN),Store.set('gt4_cur',cur),Store.set('gt4_prev',prev),Store.set('gt4_bodyweight',bodyweight),
   Store.set('gt4_hist',hist),Store.set('gt4_swaps',swaps),Store.set('gt4_warm',warmDone),Store.set('gt4_custom',custom),
   Store.set('gt4_barweight',BARWEIGHT),Store.set('gt4_notes',notes),Store.set('gt4_weektarget',WEEKTARGET),
-  Store.set('gt4_routines',routines),Store.set('gt4_incs',incs),Store.set('gt4_place',PLACE),Store.set('gt4_effort',efforts),Store.set('gt4_homeswaps',homePicks)]);
+  Store.set('gt4_routines',routines),Store.set('gt4_incs',incs),Store.set('gt4_place',PLACE),Store.set('gt4_effort',efforts),Store.set('gt4_homeswaps',homePicks),Store.set('gt4_sessnote',sessNotes)]);
  enterPlace();
  window.__imp=null;
  document.getElementById('importPreview').innerHTML='<b>Restored ✓</b><div class="note">Your data is back.</div>';
@@ -2751,10 +2778,11 @@ function showSummary(S){
  if(S.tops.length) h+='<h5>Top sets</h5>'+S.tops.map(x=>'<div class="goal"><span class="nm">'+x.nm+'</span><span class="tg">'+x.top+'kg'+(x.reps?' × '+x.reps:'')+'</span></div>').join('');
  else h+='<div class="empty">Nothing was logged this session.</div>';
  h+='<div class="place effort" id="sumEffort">'+effortRow(S.date)+'</div>';
+ h+='<div class="sessnote">'+sessNoteRow(S.date)+'</div>';
  h+='<div class="hr"></div>'+bodyweightBlock()+
   '<div class="note" id="sumBackup">'+(typeof fetch==='function'&&/^https?:$/.test(location.protocol)?'Backing up…':'')+'</div>';
  body.innerHTML=h;
- wireBodyweight(()=>showSummary(S)); wireEffort(S.date);
+ wireBodyweight(()=>showSummary(S)); wireEffort(S.date); wireSessNote(S.date);
  applyAccent(); document.getElementById('sumbg').classList.add('show');
 }
 function closeSummary(){ document.getElementById('sumbg').classList.remove('show'); }
@@ -2950,6 +2978,7 @@ document.getElementById('progBtn').innerHTML=I.chart;
  incs=(await Store.get('gt4_incs'))||{};
  const pc=await Store.get('gt4_place'); if(PLACES[pc]) PLACE=pc;
  efforts=(await Store.get('gt4_effort'))||{};
+ sessNotes=(await Store.get('gt4_sessnote'))||{};
  homePicks=(await Store.get('gt4_homeswaps'))||{};
  routines=(await Store.get('gt4_routines'))||[];
  lastAuto=(await Store.get('gt4_autobackup'))||null;

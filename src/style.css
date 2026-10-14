@@ -177,6 +177,12 @@
  .place.effort button.off.on{background:var(--warn);border-color:var(--warn)}
  i.eff{display:block;font-style:normal;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
  .plrow i.eff{display:inline;margin-right:6px}
+ .plrow .pnote{display:block;color:var(--muted);font-weight:600;font-size:11px;overflow:hidden;text-overflow:ellipsis}
+ .sessnote{margin:8px 2px 4px}
+ .sessnote input{width:100%;box-sizing:border-box;background:var(--card2);border:1px solid var(--line);border-radius:10px;
+  color:var(--text);font-family:inherit;font-size:13px;padding:10px 11px;outline:none}
+ .sessnote input:focus{border-color:var(--accent)}
+ .hnote{font-size:11.5px;color:var(--muted);font-weight:600;margin:-4px 0 8px 59px;line-height:1.4}
  i.eff.hard{color:var(--accent)} i.eff.off{color:var(--warn)} i.eff.easy{color:var(--done)}
  .mini.hpl{width:auto;padding:0 8px;font-size:10.5px;font-weight:800}
  .mini.hpl.home{color:var(--accent);border-color:var(--accent)}
