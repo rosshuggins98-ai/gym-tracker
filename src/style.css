@@ -251,6 +251,22 @@
  .histrow input:focus{border-color:var(--accent)}
  .histrow .hx{font-size:10.5px;color:var(--dim);flex-shrink:0}
  .histrow .hpl{margin-left:auto}
+ .histrow .htop{flex:1;min-width:0;text-align:left;background:none;border:0;padding:6px 0;color:var(--text);
+  font-family:inherit;font-weight:800;font-size:13.5px;cursor:pointer}
+ .histrow .htop small{display:block;font-size:10.5px;font-weight:700;color:var(--muted)}
+ .histrow .htop.open small{color:var(--accent)}
+ .hsets{background:var(--card2);border-radius:12px;padding:6px 10px 8px;margin:0 0 8px}
+ .hset{display:flex;align-items:center;gap:6px;padding:4px 0}
+ .hset .hsn{width:16px;flex-shrink:0;font-size:11px;font-weight:800;color:var(--muted);text-align:center}
+ .hset.hwarm .hsn{color:var(--dim)}
+ .hset input{width:54px;background:var(--card);border:1px solid var(--line);border-radius:8px;color:var(--text);
+  font-family:inherit;font-weight:700;font-size:13px;text-align:center;padding:7px 2px;outline:none}
+ .hset input:focus{border-color:var(--accent)}
+ .hset.hwarm input{color:var(--muted)}
+ .hset .hx{font-size:10.5px;color:var(--dim);flex-shrink:0}
+ .mini.hwu{width:auto;padding:0 8px;font-size:10.5px;font-weight:800;margin-left:auto;color:var(--muted)}
+ .mini.hwu.on{color:var(--accent);border-color:var(--accent)}
+ .hsets .hmsg{color:var(--warn);font-weight:600;margin-top:4px}
  .pbrow{display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--line);font-size:14px}
  .pbrow:first-of-type{border-top:0}
  .pbrow .tag{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--done);

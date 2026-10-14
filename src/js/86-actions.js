@@ -32,14 +32,17 @@ document.getElementById('sheetbg').addEventListener('click',e=>{ if(e.target.id=
 async function doNewSession(){
  const d=day(ACTIVE), td=today();
  const S=summarise(d);
- d.items.forEach(it=>{ if(it.skip) return; const e=topWithReps(d.id,it.ex);
+ d.items.forEach(it=>{ if(it.skip) return;
+  /* An exercise is recorded when a working set with a weight was ticked
+     (topWithReps); its top / reps / vol come from entryFromSets, the same
+     function that rebuilds an entry after a past set is edited. */
+  const a=cur[d.id]&&cur[d.id][it.ex], sets=doneSets(a), e=topWithReps(d.id,it.ex)?entryFromSets(sets):null;
   if(e){ const k=hkey(it.ex,swaps[it.ex]||null); if(!hist[k])hist[k]=[];
-   const a=cur[d.id]&&cur[d.id][it.ex], vol=exVolume(a), sets=doneSets(a);
    const lastE=hist[k][hist[k].length-1];
    if(lastE&&lastE.date===td){ /* same-day re-finish: keep the better one, don't duplicate the point */
     if(e.top>lastE.top||(e.top===lastE.top&&(e.reps||0)>(lastE.reps||0))){ lastE.top=e.top; lastE.reps=e.reps; }
-    lastE.vol=vol; lastE.sets=sets; lastE.at=PLACE;
-   } else hist[k].push({date:td,top:e.top,reps:e.reps,vol,sets,at:PLACE}); } });
+    lastE.vol=e.vol; lastE.sets=sets; lastE.at=PLACE;
+   } else hist[k].push({date:td,top:e.top,reps:e.reps,vol:e.vol,sets,at:PLACE}); } });
  if(cur[d.id]&&Object.keys(cur[d.id]).length){ prev[d.id]=JSON.parse(JSON.stringify(cur[d.id]));
   /* _date is read by lastSrc() to pick the most recent day when the same
      exercise has a prev on more than one. It sits beside the exercise ids
