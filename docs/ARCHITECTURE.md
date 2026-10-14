@@ -17,8 +17,9 @@ history. This is the central design decision.
 
 `rest` is seconds between sets for that slot, used by the auto-starting rest timer;
 absent means `REST_DEFAULT` (60s), which is what every plan saved before 2026-09-16
-gets without migration. Two built-in presets exist, `DEFAULT_PLAN()` (push/pull/legs)
-and `FULL_BODY_PLAN()` (3-day A/B/C, source of record `docs/full-body-plan.json`);
+gets without migration. Three built-in presets exist (`PRESETS`): `BEGINNER_PLAN()`
+(full body beginner, dumbbells and machines), `DEFAULT_PLAN()` (push/pull/legs) and
+`FULL_BODY_PLAN()` (3-day A/B/C, source of record `docs/full-body-plan.json`);
 `loadPreset()` snapshots the outgoing plan into `gt4_routines` first unless an
 identical one is already saved.
 
@@ -55,6 +56,10 @@ legacy weights. So a new preset shows real numbers from its first session.
 | `gt4_bodyweight` | `[{date, kg}]`, one reading per day, sorted; logged from Progress or the post-session summary; in backup and CSV (as an exercise row named "Body weight") |
 | `gt4_start` | `{dayId: ms}`, when the first set of the in-progress session was ticked; only feeds the summary's minutes, cleared on finish |
 | `gt4_autobackup` | `{date, file}` of the last successful POST to `/api/save` (see `serve.py`); shown in the Data panel |
+| `gt4_incs` | `{historyKey: kg}`, per-exercise weight jump overriding the kit default (`incFor()`); 0 = bodyweight, reps only. In backups (`incs`) |
+| `gt4_place` | `'gym'` or `'home'`, where today's session is; stays on the last pick. In backups (`place`) |
+| `gt4_effort` | `{date: 'easy'\|'solid'\|'hard'\|'off'}`, one rating per session date. In backups (`effort`) |
+| `gt4_homeswaps` | `{exId: altName}`, swaps chosen at home (`''` = keep the planned exercise); the gym map stays in `gt4_swaps`. In backups (`homeSwaps`) |
 | `gt4_active`, `gt4_theme` | UI state |
 
 ## Storage modes
@@ -96,13 +101,14 @@ the base exercise's alt list and re-deriving the key — so history logged befor
 this change merges rather than going dark.
 
 ## Known rough edges
-- No test coverage
+- The test suite (`node --test 'test/*.test.js'`) runs the app in a `vm` sandbox
+  with a stub DOM, so it covers logic but nothing rendered (see CLAUDE.md,
+  "Testing")
 - `innerHTML` throughout; safe because custom names/notes are stripped/escaped at
   input and render respectively
-- Hand-rolled SVG chart, fine to ~20 points
+- Hand-rolled SVG chart in `68-chart.js`. Points with a date are placed by date
+  and the dots shrink past 30, so a few months read fine; the range chips keep
+  longer histories readable. No zoom or tap-for-value
 - `app/sw.js` (see CLAUDE.md) caches the shell for offline use once loaded at least
-  once over http://; it isn't build-stamp-aware, just stale-while-revalidate, so a
-  brand new build still needs one successful online load to become the new cached
-  version
-- Set types cover warm-up/failure/drop; supersets (linking sets across two
-  exercises) aren't implemented
+  once over http://. It's network-first, so a brand new build shows as soon as the
+  server has it; the cache only answers when the server can't be reached

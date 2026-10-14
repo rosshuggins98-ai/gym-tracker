@@ -28,7 +28,7 @@ function bodyweightBlock(){
   '<input id="bwIn" inputmode="decimal" placeholder="'+(last?last.kg:'e.g. 82.4')+'" style="margin-top:0"></div>'+
   '<button class="mini" id="bwLog" style="width:auto;padding:0 12px;font-size:12px">Log today</button></div>';
  if(!last){ h+='<div class="note">Nothing logged yet. A reading every week or so is plenty — the chart shows the direction, not the daily noise.</div>'; return h; }
- const pts=bodyweight.slice(-20).map(e=>({label:shortDate(e.date),val:e.kg}));
+ const pts=bodyweight.slice(-20).map(e=>({date:e.date,label:shortDate(e.date),val:e.kg}));
  if(pts.length>1) h+=buildChart(pts,null);
  h+='<div class="stats"><div class="stat"><b>'+last.kg+'</b><span>Latest kg</span></div>'+
   '<div class="stat"><b>'+(tr?(tr.delta>0?'+':'')+tr.delta:'—')+'</b><span>'+(tr?'kg / '+tr.days+' days':'Change')+'</span></div>'+

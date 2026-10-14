@@ -292,6 +292,9 @@
  .cmp-spans{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--card2);padding:4px;border-radius:11px;margin:4px 0 8px}
  .cmp-spans button{border:0;background:transparent;color:var(--muted);font-family:inherit;font-weight:700;font-size:12px;padding:8px 2px;border-radius:8px;cursor:pointer}
  .cmp-spans button.on{background:var(--accent);color:var(--onfill)}
+ .chart-spans{grid-template-columns:repeat(3,1fr);margin:2px 0 0}
+ .chart-metrics{margin:6px 0 0} .chart-metrics button{font-size:11px}
+ .then-now{margin:0 0 10px;font-size:13px} .then-now small{color:var(--muted);font-weight:600}
  .cmp-tiles .s em{display:block;font-style:normal;font-size:11px;font-weight:800;margin-top:3px}
  .cmp-row{padding:10px 0;border-top:1px solid var(--line);cursor:pointer}
  .cmp-top{display:flex;align-items:center;gap:10px;font-size:14px}
@@ -604,7 +607,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-10-08d";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-10-14c";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -1761,22 +1764,32 @@ const withReps=e=>workSets(e).some(s=>s.r);
    the span; else (no history before it, or all time) the lift's first
    session. Baselines with reps are preferred; with only a weight to go on,
    pct compares top weights. A lift with one session ever is new (was null). */
-function liftRows(id){ const W=spanWindows(id), rows=[];
- Object.keys(hist).forEach(k=>{ const h=(hist[k]||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
-  const inN=h.filter(e=>e.date>=W.from&&e.date<W.to); if(!inN.length) return;
-  const now=topEntry(inN), pool=h.filter(e=>e!==now&&e.date<=now.date&&(!W.sp.d||e.date<W.from)), rp=pool.filter(withReps), c=rp.length?rp:pool;
-  let was=null;
-  if(W.sp.d&&c.length){ const inB=c.filter(e=>e.date>=W.bFrom); was=inB.length?topEntry(inB):c[c.length-1]; }
-  else { const f=h.filter(e=>e!==now&&e.date<=now.date), fr=f.filter(withReps); was=(fr.length?fr:f)[0]||null; }
-  const byW=was&&!(withReps(was)&&withReps(now)), a=was?(byW?was.top:entryScore(was)):0, b=byW?now.top:entryScore(now);
-  rows.push({k,nm:keyName(k),now,was,pct:a>0?(b-a)/a:null}); });
- return rows.sort((x,y)=>(y.pct===null?-1e9:y.pct)-(x.pct===null?-1e9:x.pct)); }
+/* One lift's row for a span, or null when it wasn't trained in the "now"
+   window. Shared by the Compare list and the chart sheet's "since you
+   started" line, so the two always agree. */
+function liftThenNow(k,id){ const W=spanWindows(id), h=(hist[k]||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+ const inN=h.filter(e=>e.date>=W.from&&e.date<W.to); if(!inN.length) return null;
+ const now=topEntry(inN), pool=h.filter(e=>e!==now&&e.date<=now.date&&(!W.sp.d||e.date<W.from)), rp=pool.filter(withReps), c=rp.length?rp:pool;
+ let was=null;
+ if(W.sp.d&&c.length){ const inB=c.filter(e=>e.date>=W.bFrom); was=inB.length?topEntry(inB):c[c.length-1]; }
+ else { const f=h.filter(e=>e!==now&&e.date<=now.date), fr=f.filter(withReps); was=(fr.length?fr:f)[0]||null; }
+ const byW=was&&!(withReps(was)&&withReps(now)), a=was?(byW?was.top:entryScore(was)):0, b=byW?now.top:entryScore(now);
+ return {k,nm:keyName(k),now,was,pct:a>0?(b-a)/a:null}; }
+function liftRows(id){
+ return Object.keys(hist).map(k=>liftThenNow(k,id)).filter(Boolean)
+  .sort((x,y)=>(y.pct===null?-1e9:y.pct)-(x.pct===null?-1e9:x.pct)); }
+/* The chart sheet's line: first session against the best in the last 4
+   weeks, as real sets -- Compare's "All time" row for this lift. Empty for a
+   lift with one session, or none in the last 4 weeks. */
+function sinceStartedLine(k){ const r=liftThenNow(k,'all'); if(!r||!r.was||r.pct===null) return '';
+ return '<div class="ck-line then-now '+(r.pct>0.02?'good':r.pct<-0.02?'warn':'')+'">Since you started: '+
+  setTxt(bestSet(r.was))+' <small>'+atTxt(r.was)+'</small> → <b>'+setTxt(bestSet(r.now))+'</b> <small>'+atTxt(r.now)+'</small> · '+pctTxt(r.pct)+'</div>'; }
 function pctTxt(p){ const n=Math.round(p*100); return (n>0?'+':n<0?'−':'±')+Math.abs(n)+'%'; }
 function deltaTag(a,b){ if(!a) return ''; const p=(b-a)/a;
  return '<em class="'+(p>0.02?'up':p<-0.02?'down':'flat')+'">'+pctTxt(p)+'</em>'; }
 const atTxt=e=>shortDate(e.date)+(placeOf(e)==='home'?' · home':'');
 function liftDetail(k){ const h=(hist[k]||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
- const pts=h.map(e=>({label:shortDate(e.date),val:e.top}));
+ const pts=h.map(e=>({date:e.date,label:shortDate(e.date),val:e.top}));
  return '<div class="cmp-detail">'+buildChart(pts)+h.slice(-5).reverse().map(e=>'<div class="cmp-sess"><span>'+atTxt(e)+'</span>'+
   workSets(e).map(s=>(s.w>0?s.w+'×':'')+(s.r||'?')).join(', ')+'</div>').join('')+'</div>'; }
 function compareBlock(){
@@ -1945,44 +1958,121 @@ function renderPlateResult(target){
 function closePlates(){ document.getElementById('platebg').classList.remove('show'); }
 document.getElementById('platebg').addEventListener('click',e=>{ if(e.target.id==='platebg')closePlates(); });
 
-/* ============ CHART ============ */
+/* ============ CHART ============
+   Points are {label, val, date?, today?, home?}. When every point has a date
+   (ISO day) they are placed by date, so a week off shows as a gap rather
+   than looking like back-to-back sessions; without dates they're spaced
+   evenly. Past 30 points the dots shrink, so a few months still read at
+   phone width. */
 function buildChart(pts,pts2){
  if(!pts.length)return '';
- const W=320,H=150,pl=30,pr=14,pt=18,pb=26;
  const vals=pts.concat(pts2||[]).map(p=>p.val);
  let mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals);
  if(mn===mx){mn=Math.max(0,mn-5);mx=mx+5;}
+ /* the left margin fits the longer y label ("540", "18.7", "12.4k"), so the
+    first dot never sits on it */
+ const W=320,H=150,pl=Math.max(30,12+6*Math.max(chartNum(mx).length,chartNum(mn).length)),pr=14,pt=18,pb=26;
  const rg=mx-mn||1, iw=W-pl-pr, ih=H-pt-pb;
- const X=i=>pts.length===1?pl+iw/2:pl+(i/(pts.length-1))*iw, Y=v=>pt+ih-((v-mn)/rg)*ih;
+ const byDate=pts.every(p=>p.date), ts=byDate?pts.map(p=>Date.parse(p.date)):[];
+ const t0=byDate?Math.min.apply(null,ts):0, t1=byDate?Math.max.apply(null,ts):0;
+ /* x for point i of a series; a series of its own (pts2) is placed by its
+    own dates, or by index alongside pts when it has none */
+ const X=(i,p)=>{ if(byDate&&p&&p.date) return t1===t0?pl+iw/2:pl+((Date.parse(p.date)-t0)/(t1-t0))*iw;
+  return pts.length===1?pl+iw/2:pl+(i/(pts.length-1))*iw; }, Y=v=>pt+ih-((v-mn)/rg)*ih;
+ const r=pts.length>30?3:4;
  const top=Math.max.apply(null,pts.map(p=>p.val)); let path='',dots='',lbls='';
- pts.forEach((p,i)=>{ path+=(i?'L':'M')+X(i).toFixed(1)+' '+Y(p.val).toFixed(1)+' ';
-  dots+='<circle class="cx-dot '+(p.today?'today':(p.val===top?'best':''))+(p.home?' home':'')+'" cx="'+X(i).toFixed(1)+'" cy="'+Y(p.val).toFixed(1)+'" r="'+(p.today?4.5:4)+'"/>';
-  if(i===pts.length-1||p.val===top)lbls+='<text class="cx-lbl" x="'+X(i).toFixed(1)+'" y="'+(Y(p.val)-9).toFixed(1)+'" text-anchor="middle">'+p.val+'</text>'; });
+ /* Value labels go on the latest point and on the first time the best was
+    reached -- not on every tie for the best, which stacked into "2222". The
+    best's label is dropped when it would sit on top of the latest's. */
+ const last=pts.length-1, bi=pts.findIndex(p=>p.val===top);
+ const nearLast=Math.abs(X(bi,pts[bi])-X(last,pts[last]))<26&&Math.abs(Y(top)-Y(pts[last].val))<14;
+ pts.forEach((p,i)=>{ const x=X(i,p).toFixed(1); path+=(i?'L':'M')+x+' '+Y(p.val).toFixed(1)+' ';
+  dots+='<circle class="cx-dot '+(p.today?'today':(p.val===top?'best':''))+(p.home?' home':'')+'" cx="'+x+'" cy="'+Y(p.val).toFixed(1)+'" r="'+(p.today?r+.5:r)+'"/>';
+  if(i===last||(i===bi&&!nearLast))lbls+='<text class="cx-lbl" x="'+x+'" y="'+(Y(p.val)-9).toFixed(1)+'" text-anchor="middle">'+chartNum(p.val)+'</text>'; });
  let path2='';
- if(pts2&&pts2.length>1) pts2.forEach((p,i)=>{ path2+=(i?'L':'M')+X(i).toFixed(1)+' '+Y(p.val).toFixed(1)+' '; });
+ if(pts2&&pts2.length>1) pts2.forEach((p,i)=>{ path2+=(i?'L':'M')+X(i,p).toFixed(1)+' '+Y(p.val).toFixed(1)+' '; });
  let ax='<text class="cx-ax" x="'+pl+'" y="'+(H-8)+'" text-anchor="start">'+pts[0].label+'</text>';
  if(pts.length>1)ax+='<text class="cx-ax" x="'+(W-pr)+'" y="'+(H-8)+'" text-anchor="end">'+pts[pts.length-1].label+'</text>';
- ax+='<text class="cx-ax" x="4" y="'+(pt+4)+'">'+mx+'</text><text class="cx-ax" x="4" y="'+(pt+ih)+'">'+mn+'</text>';
+ ax+='<text class="cx-ax" x="4" y="'+(pt+4)+'">'+chartNum(mx)+'</text><text class="cx-ax" x="4" y="'+(pt+ih)+'">'+chartNum(mn)+'</text>';
  return '<div class="chartwrap"><svg viewBox="0 0 '+W+' '+H+'">'+
   (path2?'<path class="cx-line2" d="'+path2.trim()+'"/>':'')+
   (pts.length>1?'<path class="cx-line" d="'+path.trim()+'"/>':'')+dots+lbls+ax+'</svg></div>';
 }
+/* --- Range ----------------------------------------------------------------
+   The chart sheet's range chips: Compare's spans minus the single week, which
+   is too few sessions to draw. Kept for the session in a variable (like
+   cmpSpan), so it stays put from one exercise to the next. */
+const CHART_SPANS=SPANS.filter(s=>s.id!=='1w');
+let chartSpan='all';
+/* First day inside the span (ending today), or null for all time -- the same
+   window as Compare's spanWindows(). */
+function chartFrom(span){ const sp=SPANS.find(s=>s.id===span); return sp&&sp.d?addDays(addDays(today(),1),-sp.d):null; }
+/* History entries for a key inside the span, oldest first. */
+function chartEntries(k,span){ const from=chartFrom(span);
+ return (hist[k]||[]).filter(e=>e&&e.date&&(!from||e.date>=from))
+  .sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0); }
+/* --- Metric ---------------------------------------------------------------
+   What the line shows. Top set is the default (the measure Ross chose); a
+   bodyweight lift has no weight to chart, so it shows reps. The choice holds
+   for the session, like the range. */
+const CHART_METRICS=[{id:'top',lbl:'Top set',unit:'kg'},{id:'e1rm',lbl:'Est. 1RM',unit:'kg'},
+ {id:'vol',lbl:'Volume',unit:'kg'},{id:'reps',lbl:'Reps',unit:'reps'}];
+let chartMetric='top';
+/* Reps only: a zero weight jump means bodyweight (incFor), and so does a lift
+   whose every session was logged at 0kg. */
+function chartBodyweight(k){ const h=hist[k]||[]; return incFor(k)===0||(h.length>0&&h.every(e=>!e.top)); }
+function chartMetricFor(k){ return chartBodyweight(k)?'reps':chartMetric; }
+/* One entry's value for a metric, or null when it can't be worked out
+   honestly -- the point is then left off rather than guessed:
+   - e1rm: best estimate from a working set of 10 reps or fewer (e1RMShown's
+     rule); older entries without sets fall back to the top set (workSets)
+   - vol: recorded from 2026-09-11 only; earlier entries have none
+   - reps: reps at the top set */
+function chartVal(e,metric){
+ if(!e) return null;
+ if(metric==='e1rm'){ let m=null; workSets(e).forEach(s=>{ const v=s.w>0?e1RMShown(s.w,s.r):null; if(v!==null&&(m===null||v>m)) m=v; }); return m; }
+ if(metric==='vol') return typeof e.vol==='number'&&e.vol>0?Math.round(e.vol):null;
+ if(metric==='reps') return typeof e.reps==='number'&&e.reps>0?e.reps:null;
+ return typeof e.top==='number'&&!isNaN(e.top)?e.top:null; }
+/* [{date, label, val, home}] for one metric over a span. */
+function chartSeries(k,metric,span){
+ return chartEntries(k,span).map(e=>({date:e.date,label:shortDate(e.date),val:chartVal(e,metric),home:placeOf(e)==='home'}))
+  .filter(p=>p.val!==null); }
+/* Today's unfinished session as an entry, the shape chartVal() reads. */
+function chartLiveEntry(dId,exId){ const t=dId?topWithReps(dId,exId):null; if(!t) return null;
+ const a=cur[dId]&&cur[dId][exId];
+ return {date:today(),top:t.top,reps:t.reps,vol:exVolume(a),sets:doneSets(a)}; }
+/* Axis and point labels: 12,400 reads as 12.4k so it fits the axis. */
+function chartNum(v){ return v>=10000?(Math.round(v/100)/10)+'k':String(v); }
+function chartSpanChips(){
+ return '<div class="cmp-spans chart-spans">'+CHART_SPANS.map(s=>'<button data-cspan="'+s.id+'"'+(s.id===chartSpan?' class="on"':'')+'>'+s.lbl+'</button>').join('')+'</div>'; }
+function chartMetricChips(k){
+ if(chartBodyweight(k)) return '';
+ const m=chartMetricFor(k);
+ return '<div class="cmp-spans chart-metrics">'+CHART_METRICS.map(x=>'<button data-cmetric="'+x.id+'"'+(x.id===m?' class="on"':'')+'>'+x.lbl+'</button>').join('')+'</div>'; }
+/* The note under the tiles: what the line is, and why any session is missing. */
+function chartMetricNote(k,metric,inSpan){
+ const left=inSpan.filter(e=>chartVal(e,metric)===null).length, s=n=>n+' session'+(n===1?'':'s');
+ if(metric==='reps') return chartBodyweight(k)?'A bodyweight lift, so this charts the reps of your best set each session.':'Reps of your top set each session.';
+ if(metric==='e1rm') return 'Estimated one-rep max from your best set of 10 reps or fewer.'+
+  (left?' '+s(left)+' had only higher-rep sets, where the estimate overshoots badly, so they aren\'t shown. Rep records below are the honest measure there.':'');
+ if(metric==='vol') return 'Kg × reps across your working sets each session (warm-ups not counted).'+
+  (left?' '+s(left)+' have no volume recorded (it started on 11 Sep), so they aren\'t shown.':'');
+ return 'Heaviest working set each session.'; }
 function openChart(exId,dId){
  const alt=swaps[exId]||null, k=hkey(exId,alt);
  document.getElementById('chartTitle').textContent=vName(exId,alt);
- const h=hist[k]||[], pts=h.map(e=>({label:shortDate(e.date),val:e.top,home:placeOf(e)==='home'}));
- const pts2=h.map(e=>({label:shortDate(e.date),val:Math.round(e1RM(e.top,e.reps)*10)/10}));
- const live=dId?curTop(dId,exId):null;
- if(live!==null){
-  pts.push({label:'Today',val:live,today:true,home:PLACE==='home'});
-  const liveT=dId?topWithReps(dId,exId):null;
-  pts2.push({label:'Today',val:Math.round(e1RM(live,liveT&&liveT.reps)*10)/10,today:true});
- }
+ const h=hist[k]||[], sp=CHART_SPANS.find(s=>s.id===chartSpan)||CHART_SPANS[CHART_SPANS.length-1];
+ const metric=chartMetricFor(k), M=CHART_METRICS.find(x=>x.id===metric);
+ const inSpan=chartEntries(k,chartSpan), pts=chartSeries(k,metric,chartSpan);
+ const liveE=chartLiveEntry(dId,exId), liveV=chartVal(liveE,metric);
+ if(liveV!==null) pts.push({date:today(),label:'Today',val:liveV,today:true,home:PLACE==='home'});
  const body=document.getElementById('chartBody');
- if(!pts.length){ body.innerHTML='<div class="empty">No weights logged for this yet.<br>Log a weight and finish a session — your top set charts here.</div>'; }
- else{ const best=Math.max.apply(null,pts.map(p=>p.val)), last=pts[pts.length-1];
-  const lastH=h[h.length-1], liveR=live!==null?(topWithReps(dId,exId)||{}).reps:null;
-  const est1rm=live!==null?e1RMShown(live,liveR):(lastH?e1RMShown(lastH.top,lastH.reps):null);
+ if(!h.length&&!liveE){ body.innerHTML='<div class="empty">No weights logged for this yet.<br>Log a weight and finish a session — your top set charts here.</div>'; }
+ else{ const best=pts.length?Math.max.apply(null,pts.map(p=>p.val)):null, last=pts.length?pts[pts.length-1]:null;
+  /* change across what's on screen: latest point against the first */
+  const chg=pts.length>1?Math.round((last.val-pts[0].val)*10)/10:null;
+  const bestLbl=({'4w':'4-wk best','3m':'3-mo best'}[sp.id])||'Best '+M.unit;
   let target='';
   /* targets from this day's item if there is one, else wherever it's planned */
   const pool=(dId?day(dId).items:[]).concat(...PLAN.days.map(x=>x.items)), planIt=pool.find(x=>x.ex===exId)||null;
@@ -1990,16 +2080,22 @@ function openChart(exId,dId){
   if(co) target='<div class="note"><b>Next time:</b> '+coachText(co)+'</div>';
   const trend=trendFor(k);
   const trendTxt=trend==='up'?' Trending up over your last sessions.':trend==='down'?' Trending down over your last sessions.':trend==='flat'?' Holding flat over your last sessions.':'';
-  body.innerHTML=buildChart(pts,pts.length>1?pts2:null)+'<div class="stats"><div class="stat"><b>'+best+'</b><span>Best kg</span></div>'+
-   '<div class="stat"><b>'+last.val+'</b><span>'+(last.today?'Today':'Latest')+' kg</span></div>'+
-   '<div class="stat"><b>'+(est1rm!==null?est1rm:'—')+'</b><span>Est. 1RM</span></div></div>'+
-   (est1rm===null&&lastH&&lastH.reps>10?'<div class="note">Est. 1RM is only worked out from sets of 10 reps or fewer — above that the formula overestimates badly. Rep records below are the honest measure.</div>':'')+
-   '<div class="note">'+h.length+' session'+(h.length===1?'':'s')+' logged.'+trendTxt+
+  const chart=pts.length?buildChart(pts):
+   '<div class="note">'+(inSpan.length?'None of the sessions in this range can show '+M.lbl.toLowerCase()+' (see below).':
+    'Nothing logged in the last '+sp.lbl.toLowerCase()+'. Pick a longer range to see this lift.')+'</div>';
+  body.innerHTML=sinceStartedLine(k)+chartSpanChips()+chartMetricChips(k)+chart+
+   '<div class="stats"><div class="stat"><b>'+(best!==null?chartNum(best):'—')+'</b><span>'+bestLbl+'</span></div>'+
+   '<div class="stat"><b>'+(last?chartNum(last.val):'—')+'</b><span>'+(last&&last.today?'Today':'Latest')+' '+M.unit+'</span></div>'+
+   '<div class="stat"><b>'+(chg!==null?(chg>0?'+':chg<0?'−':'±')+chartNum(Math.abs(chg)):'—')+'</b><span>Change '+M.unit+'</span></div></div>'+
+   '<div class="note">'+chartMetricNote(k,metric,inSpan)+'</div>'+
+   '<div class="note">'+h.length+' session'+(h.length===1?'':'s')+' logged'+(sp.d?', '+inSpan.length+' in the last '+sp.lbl.toLowerCase():'')+'.'+trendTxt+
    (pts.some(p=>p.home)?' Ringed dots are home sessions.':'')+'</div>'+target+
    repRecordBlock(k)+incBlock(k)+variantBlock(exId,k)+
    '<h5 style="margin:18px 0 8px">Sessions</h5><div id="histRows">'+histRows(h)+'</div>'+
    (h.length?'<div class="note">Edit a weight or reps directly, or delete a mis-logged entry — saves immediately. Tap Gym / Home to move that whole day\'s session to the other place.</div>':'');
   wireHistRows(k,exId,dId);
+  body.querySelectorAll('[data-cspan]').forEach(b=>b.addEventListener('click',()=>{ chartSpan=b.dataset.cspan; openChart(exId,dId); }));
+  body.querySelectorAll('[data-cmetric]').forEach(b=>b.addEventListener('click',()=>{ chartMetric=b.dataset.cmetric; openChart(exId,dId); }));
   const ii=document.getElementById('incInput');
   if(ii) ii.addEventListener('change',async()=>{ await setInc(k,ii.value); openChart(exId,dId); render(); });
  }
@@ -2437,7 +2533,7 @@ function bodyweightBlock(){
   '<input id="bwIn" inputmode="decimal" placeholder="'+(last?last.kg:'e.g. 82.4')+'" style="margin-top:0"></div>'+
   '<button class="mini" id="bwLog" style="width:auto;padding:0 12px;font-size:12px">Log today</button></div>';
  if(!last){ h+='<div class="note">Nothing logged yet. A reading every week or so is plenty — the chart shows the direction, not the daily noise.</div>'; return h; }
- const pts=bodyweight.slice(-20).map(e=>({label:shortDate(e.date),val:e.kg}));
+ const pts=bodyweight.slice(-20).map(e=>({date:e.date,label:shortDate(e.date),val:e.kg}));
  if(pts.length>1) h+=buildChart(pts,null);
  h+='<div class="stats"><div class="stat"><b>'+last.kg+'</b><span>Latest kg</span></div>'+
   '<div class="stat"><b>'+(tr?(tr.delta>0?'+':'')+tr.delta:'—')+'</b><span>'+(tr?'kg / '+tr.days+' days':'Change')+'</span></div>'+

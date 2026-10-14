@@ -16,9 +16,11 @@ app/gym-tracker.html     the built app, committed; what the phone installs
 app/sw.js                offline shell cache; optional, the app works without it
 termux/gym-setup.sh      installs the Android/Termux server + widgets
 serve.py                 server: static files + POST /api/save auto-backup (dev and Termux)
-test/                    node --test test/  (no npm)
+test/                    node --test 'test/*.test.js'  (no npm)
 docs/ARCHITECTURE.md     data model, storage keys, migration history
 docs/TRAINING-PLAN.md    the programme and the reasoning behind it
+docs/BACKLOG.md          agreed work, in order
+docs/MARKET-REVIEW.md    October 2026 review of the leading gym trackers
 CLAUDE.md                context for Claude Code
 ```
 
@@ -27,7 +29,7 @@ CLAUDE.md                context for Claude Code
 ```bash
 python3 build.py   # after editing anything in src/
 ./serve.py         # http://localhost:8000/gym-tracker.html, backups -> ./gym-backups/
-node --test test/  # the suite (includes a check that the build is current)
+node --test 'test/*.test.js'  # the suite (includes a check that the build is current)
 ```
 
 It must be served over http:// — opened directly as a file, Chrome gives it no
