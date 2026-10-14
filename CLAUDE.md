@@ -49,8 +49,8 @@ python3 build.py --check        # exits 1 if app/gym-tracker.html is stale
 node --test 'test/*.test.js'    # the whole suite; nothing to install
 ./serve.py                      # http://localhost:8000/gym-tracker.html, backups go to ./gym-backups/
 ```
-Use the quoted glob. `node --test test/`, the form in the README, fails on Node 22
-and later because it no longer accepts a directory.
+Use the quoted glob. `node --test test/` fails on Node 22 and later because it no
+longer accepts a directory.
 
 ## Hard constraints
 - **Edit `src/`, ship one file.** The app is authored as modules under `src/`
@@ -277,7 +277,7 @@ finish a session, open Progress, export a backup, re-import it.
 | `docs/MARKET-REVIEW.md` | October 2026 review of Hevy, Strong, Alpha Progression, Fitbod, Boostcamp, Liftosaur, RP Hypertrophy and JEFIT. The proposals Ross agreed are now in the backlog; the rest are background. |
 | `docs/TRAINING-PLAN.md` | Programme history, progression rules, and what Ross has disliked. |
 | `docs/full-body-plan.json` | Source of record for `FULL_BODY_PLAN()`. |
-| `docs/ARCHITECTURE.md` | Data model, storage keys, migration. **Partly stale:** the key table is missing `gt4_incs`, `gt4_place`, `gt4_effort` and `gt4_homeswaps`; it says there are two presets (there are three); and "Known rough edges" still says there are no tests and no supersets. Fix it the next time you touch storage. |
+| `docs/ARCHITECTURE.md` | Data model, every storage key, migration. Keep the key table in step whenever a key is added. |
 | `docs/ROADMAP.md` | The original September brief, now delivered. **Historical only:** its cache-first service worker and "stop after item 3" instructions are superseded by this file. |
 
 ## Product direction
