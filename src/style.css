@@ -281,6 +281,7 @@
  .cmp-spans button.on{background:var(--accent);color:var(--onfill)}
  .chart-spans{grid-template-columns:repeat(3,1fr);margin:2px 0 0}
  .chart-metrics{margin:6px 0 0} .chart-metrics button{font-size:11px}
+ .then-now{margin:0 0 10px;font-size:13px} .then-now small{color:var(--muted);font-weight:600}
  .cmp-tiles .s em{display:block;font-style:normal;font-size:11px;font-weight:800;margin-top:3px}
  .cmp-row{padding:10px 0;border-top:1px solid var(--line);cursor:pointer}
  .cmp-top{display:flex;align-items:center;gap:10px;font-size:14px}

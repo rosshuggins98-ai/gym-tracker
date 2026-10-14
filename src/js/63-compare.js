@@ -31,16 +31,26 @@ const withReps=e=>workSets(e).some(s=>s.r);
    the span; else (no history before it, or all time) the lift's first
    session. Baselines with reps are preferred; with only a weight to go on,
    pct compares top weights. A lift with one session ever is new (was null). */
-function liftRows(id){ const W=spanWindows(id), rows=[];
- Object.keys(hist).forEach(k=>{ const h=(hist[k]||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
-  const inN=h.filter(e=>e.date>=W.from&&e.date<W.to); if(!inN.length) return;
-  const now=topEntry(inN), pool=h.filter(e=>e!==now&&e.date<=now.date&&(!W.sp.d||e.date<W.from)), rp=pool.filter(withReps), c=rp.length?rp:pool;
-  let was=null;
-  if(W.sp.d&&c.length){ const inB=c.filter(e=>e.date>=W.bFrom); was=inB.length?topEntry(inB):c[c.length-1]; }
-  else { const f=h.filter(e=>e!==now&&e.date<=now.date), fr=f.filter(withReps); was=(fr.length?fr:f)[0]||null; }
-  const byW=was&&!(withReps(was)&&withReps(now)), a=was?(byW?was.top:entryScore(was)):0, b=byW?now.top:entryScore(now);
-  rows.push({k,nm:keyName(k),now,was,pct:a>0?(b-a)/a:null}); });
- return rows.sort((x,y)=>(y.pct===null?-1e9:y.pct)-(x.pct===null?-1e9:x.pct)); }
+/* One lift's row for a span, or null when it wasn't trained in the "now"
+   window. Shared by the Compare list and the chart sheet's "since you
+   started" line, so the two always agree. */
+function liftThenNow(k,id){ const W=spanWindows(id), h=(hist[k]||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+ const inN=h.filter(e=>e.date>=W.from&&e.date<W.to); if(!inN.length) return null;
+ const now=topEntry(inN), pool=h.filter(e=>e!==now&&e.date<=now.date&&(!W.sp.d||e.date<W.from)), rp=pool.filter(withReps), c=rp.length?rp:pool;
+ let was=null;
+ if(W.sp.d&&c.length){ const inB=c.filter(e=>e.date>=W.bFrom); was=inB.length?topEntry(inB):c[c.length-1]; }
+ else { const f=h.filter(e=>e!==now&&e.date<=now.date), fr=f.filter(withReps); was=(fr.length?fr:f)[0]||null; }
+ const byW=was&&!(withReps(was)&&withReps(now)), a=was?(byW?was.top:entryScore(was)):0, b=byW?now.top:entryScore(now);
+ return {k,nm:keyName(k),now,was,pct:a>0?(b-a)/a:null}; }
+function liftRows(id){
+ return Object.keys(hist).map(k=>liftThenNow(k,id)).filter(Boolean)
+  .sort((x,y)=>(y.pct===null?-1e9:y.pct)-(x.pct===null?-1e9:x.pct)); }
+/* The chart sheet's line: first session against the best in the last 4
+   weeks, as real sets -- Compare's "All time" row for this lift. Empty for a
+   lift with one session, or none in the last 4 weeks. */
+function sinceStartedLine(k){ const r=liftThenNow(k,'all'); if(!r||!r.was||r.pct===null) return '';
+ return '<div class="ck-line then-now '+(r.pct>0.02?'good':r.pct<-0.02?'warn':'')+'">Since you started: '+
+  setTxt(bestSet(r.was))+' <small>'+atTxt(r.was)+'</small> → <b>'+setTxt(bestSet(r.now))+'</b> <small>'+atTxt(r.now)+'</small> · '+pctTxt(r.pct)+'</div>'; }
 function pctTxt(p){ const n=Math.round(p*100); return (n>0?'+':n<0?'−':'±')+Math.abs(n)+'%'; }
 function deltaTag(a,b){ if(!a) return ''; const p=(b-a)/a;
  return '<em class="'+(p>0.02?'up':p<-0.02?'down':'flat')+'">'+pctTxt(p)+'</em>'; }

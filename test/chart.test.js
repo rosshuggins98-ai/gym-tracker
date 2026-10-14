@@ -139,6 +139,35 @@ test('chartNum shortens big volumes; the first dot clears the y labels',async()=
  }
 });
 
+/* --- Since you started (backlog item 3) --- */
+test('since-you-started line matches Compare\'s All time row',async()=>{
+ const {app,set}=await load(), td=app.today(), d=n=>app.addDays(td,-n);
+ set('hist',{
+  dbbench:[{date:d(60),top:16,reps:10,sets:S(16,10,9)},{date:d(20),top:20,reps:12,sets:S(20,12)},{date:d(3),top:22,reps:12,sets:S(22,12,10),at:'home'}],
+  csrow:[{date:d(50),top:80},{date:d(45),top:60,reps:10,sets:S(60,10)},{date:d(3),top:66,reps:10,sets:S(66,10)}],
+  legpress:[{date:d(2),top:160,reps:12}],                  /* one session: nothing to compare */
+  legcurl:[{date:d(90),top:40,reps:10},{date:d(60),top:45,reps:10}]});  /* not in the last 4 weeks */
+ const rows=app.liftRows('all');
+ for(const k of ['dbbench','csrow']){
+  const r=rows.find(x=>x.k===k), t=app.liftThenNow(k,'all');
+  deq(t,plain(r),k+': the same row');
+  const line=app.sinceStartedLine(k);
+  assert.ok(line.indexOf(app.setTxt(app.bestSet(r.was)))>0&&line.indexOf(app.setTxt(app.bestSet(r.now)))>0,k+': shows both sets');
+  assert.ok(line.indexOf(app.pctTxt(r.pct))>0,k+': and the same %');
+ }
+ assert.equal(app.liftThenNow('csrow','all').was.top,60,'weight-only first session skipped for a rep-logged one');
+ assert.ok(app.sinceStartedLine('dbbench').indexOf('home')>0,'home sessions labelled');
+ assert.equal(app.sinceStartedLine('legpress'),'','one session: no line');
+ assert.equal(app.sinceStartedLine('legcurl'),'','not trained in the last 4 weeks: no line');
+ assert.equal(app.sinceStartedLine('nothing'),'');
+});
+
+test('liftRows is unchanged by the refactor (order and rows)',async()=>{
+ const {app,set}=await load(), td=app.today(), d=n=>app.addDays(td,-n);
+ set('hist',{a:[{date:d(10),top:10,reps:10},{date:d(2),top:12,reps:10}],b:[{date:d(9),top:10,reps:10},{date:d(1),top:15,reps:10}],c:[{date:d(1),top:5,reps:5}]});
+ deq(app.liftRows('1w').map(r=>r.k),['b','a','c'],'biggest gain first, new last');
+});
+
 test('openChart renders for every range and metric, including empty ones',async()=>{
  const {app,set}=await withHist();
  for(const m of ['top','e1rm','vol','reps']) for(const s of ['4w','3m','all']){ set('chartMetric',m); set('chartSpan',s); app.openChart('dbbench'); }
