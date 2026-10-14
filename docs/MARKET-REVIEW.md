@@ -7,6 +7,11 @@ end), not on hands-on testing. Feature claims are the vendors' own.
 **Everything under "Proposals" is a suggestion, not agreed work.** Agreed work lives
 in `docs/BACKLOG.md`. Confirm an item with Ross before building it, then move it there.
 
+**Update 2026-10-14:** after a review against the code, Ross agreed a phased plan
+built from these proposals. It is in `docs/BACKLOG.md` under "Next up", along with
+what was decided or parked. That code review corrected two points below: the
+warm-up rows and the chart's point limit.
+
 The review is organised around the three things Ross values most:
 **designing effective workouts**, **tracking progression**, and **visualising
 progress**.
@@ -93,10 +98,10 @@ Priority: **P1** is the clearest gap for what Ross values, **P2** is worth doing
 - **P1. Per-set history editing, and per-set CSV** *(backlog, loose ends)*. All the
   leaders let you correct any past set. Today, editing changes only `top`/`reps`
   and the two can disagree with `sets`.
-- **P2. Suggested warm-up weights.** Fill the warm-up rows with a ramp up to the
+- **P3. Suggested warm-up weights.** Fill the warm-up rows with a ramp up to the
   working weight (e.g. ~50% and ~75%), snapped to the kit's jumps. Strong and Hevy
-  both offer this. Today the rows start blank, which costs typing on every
-  exercise.
+  both offer this. *Corrected 2026-10-14:* the rows already prefill from last
+  session's warm-ups, so this only helps right after a weight jump. Parked.
 - **P2. Session note** *(backlog E)*.
 - **P2. Place-aware PBs** *(backlog, gym/home leftover)*. A home dumbbell
   shouldn't count as a gym PB.
@@ -107,8 +112,10 @@ Priority: **P1** is the clearest gap for what Ross values, **P2** is worth doing
 
 - **P1. Time range on the exercise chart.** Add chips for 4 weeks, 3 months and
   all time, reusing `SPANS` from `63-compare.js`. The hand-rolled SVG is noted as
-  "fine to ~20 points". At three sessions a week since mid-August, the main lifts
-  are at that limit now. Hevy offers the same ranges.
+  "fine to ~20 points". At three sessions a week since mid-August, the most
+  frequent lifts are approaching that limit. *Found 2026-10-14:* the chart also
+  spaces sessions evenly rather than by date, so gaps in training don't show.
+  Hevy offers the same ranges.
 - **P1. Metric switch on the exercise chart.** Choose top set (the default, as
   Ross picked it), estimated 1RM, session volume, or best reps. Hevy and Alpha
   Progression both let you choose. The data is already in each history entry.

@@ -216,6 +216,8 @@ New module: pick a free number, end the file with a newline.
   snaps the weight onto `rackAt(PLACE)`, the dumbbells logged there. `lastSrc()`
   skips a prev from the other place once this place has history. PBs, the
   check-in and Compare are still place-blind (Compare labels home sessions).
+  For PBs that is deliberate: on 2026-10-14 Ross chose one record across both
+  places, so don't make PBs place-aware.
   Past sessions are re-tagged a whole date at a time (`tagDate`).
 - **Home kit** (`57-place`): home is adjustable dumbbells + an adjustable bench.
   At home `swaps` is a computed map (`homeSwapMap()`, marked `__home`) and the gym
@@ -272,25 +274,26 @@ finish a session, open Progress, export a backup, re-import it.
 | File | What it is |
 |---|---|
 | `docs/BACKLOG.md` | Agreed work, in order. The source of truth for what's next. |
-| `docs/MARKET-REVIEW.md` | October 2026 review of Hevy, Strong, Alpha Progression, Fitbod, Boostcamp, Liftosaur, RP Hypertrophy and JEFIT, with prioritised proposals. Not agreed yet. |
+| `docs/MARKET-REVIEW.md` | October 2026 review of Hevy, Strong, Alpha Progression, Fitbod, Boostcamp, Liftosaur, RP Hypertrophy and JEFIT. The proposals Ross agreed are now in the backlog; the rest are background. |
 | `docs/TRAINING-PLAN.md` | Programme history, progression rules, and what Ross has disliked. |
 | `docs/full-body-plan.json` | Source of record for `FULL_BODY_PLAN()`. |
 | `docs/ARCHITECTURE.md` | Data model, storage keys, migration. **Partly stale:** the key table is missing `gt4_incs`, `gt4_place`, `gt4_effort` and `gt4_homeswaps`; it says there are two presets (there are three); and "Known rough edges" still says there are no tests and no supersets. Fix it the next time you touch storage. |
 | `docs/ROADMAP.md` | The original September brief, now delivered. **Historical only:** its cache-first service worker and "stop after item 3" instructions are superseded by this file. |
 
 ## Product direction
-From `docs/MARKET-REVIEW.md`. Logging and progression coaching are already as
-good as the leading apps. The thinnest areas are **visualisation**, then **plan
-design**. The P1 proposals are:
+Logging and progression coaching are already as good as the leading apps (see
+`docs/MARKET-REVIEW.md`). The thinnest areas are **visualisation**, then **plan
+design**. The plan agreed on 2026-10-14 is in `docs/BACKLOG.md` under "Next up",
+in phases:
 
-- **Visualising progress:** time-range chips (4 weeks / 3 months / all time) on the
-  exercise chart, since the SVG is only comfortable to ~20 points and the main
-  lifts are there now; a metric switch (top set by default, then est. 1RM, session
-  volume, best reps); the then-vs-now line on the chart sheet (backlog C).
-- **Designing workouts:** weekly sets per muscle group shown live in the plan
-  editor (reuse `plannedByGroup()`), and finer muscle groups with secondary
-  muscles (backlog D) so those numbers are honest.
-- **Tracking progression:** per-set history editing and per-set CSV (backlog loose
-  ends), so a mis-logged set can be corrected properly.
+0. Tidy the docs.
+1. **See your progress:** chart ranges spaced by date, a metric switch, and a
+   then-vs-now line.
+2. **Design plans with feedback:** weekly sets per muscle group in the editor,
+   then finer muscle groups with secondary muscles.
+3. **Fix the record:** per-set history editing, per-set CSV, and a session note.
+4. **Motivation over months:** a training calendar, muscle-group sets over
+   time, and milestones with a monthly report.
 
-The full list, with P2/P3 items, what to skip and sources, is in the review.
+Work through it in that order. Each item says which code it touches, its tests,
+and when it's done.
