@@ -302,6 +302,12 @@
  .bal .bar i{display:block;height:100%;background:var(--done);border-radius:99px}
  .bal.low .bar i{background:var(--warn)}
  .bal .n{font-weight:800;color:var(--muted);font-size:12px}
+ .bal.wk{grid-template-columns:minmax(0,1.3fr) 2fr 2.6em} .bal.wk .n{text-align:right}
+ .bal.wk .bar{position:relative}
+ .bal.wk .bar s,.bal.wk .bar i,.bal.wk .bar b{position:absolute;top:0;bottom:0;left:0;display:block}
+ .bal.wk .bar s{background:var(--line);border-radius:0}
+ .bal.wk .bar i{background:var(--accent);opacity:.4;border-radius:99px}
+ .bal.wk .bar b{background:var(--accent);border-radius:99px}
  .todo{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:14px 2px 0;font-size:11.5px}
  .todo .lbl{font-weight:700;color:var(--muted);margin-right:2px}
  .todo .chip{font-weight:700;border-radius:7px;padding:4px 8px;background:var(--card2);color:var(--text)}

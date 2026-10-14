@@ -21,10 +21,20 @@ function nextDay(){ const dn=daysDoneThisWeek(); let id=null, at=null;
 /* A swap that resolves to a real exercise has its group; an alt:: name falls
    back to the slot's own exercise when there is one. */
 function groupFor(k,exId){ return groupOf(k)||(exId&&LIB[exId]?LIB[exId].g:null); }
-function plannedByGroup(){ const g={};
- PLAN.days.forEach(d=>d.items.forEach(it=>{ if(it.extra) return;
-  const gr=groupFor(hkey(it.ex,swaps[it.ex]||null),it.ex); if(gr) g[gr]=(g[gr]||0)+it.sets; }));
+/* Planned working sets per group across the plan (every day once), or for
+   one day when onlyDay is given. Today-only extras don't count. */
+function plannedByGroup(onlyDay){ const g={};
+ PLAN.days.forEach(d=>{ if(onlyDay&&d.id!==onlyDay) return; d.items.forEach(it=>{ if(it.extra) return;
+  const gr=groupFor(hkey(it.ex,swaps[it.ex]||null),it.ex); if(gr) g[gr]=(g[gr]||0)+it.sets; }); });
  return g; }
+/* The plan editor's weekly view: [{g, n, day}] -- each group's sets a week
+   across the whole plan, and how many of them come from the day being
+   edited. Most sets first. WEEK_BAND is the guidance band drawn behind the
+   bars (a common range for building muscle), never a target the app enforces. */
+const WEEK_BAND=[10,20];
+function plannedWeekRows(dayId){ const all=plannedByGroup(), mine=plannedByGroup(dayId);
+ return Object.keys(all).map(g=>({g,n:all[g],day:mine[g]||0}))
+  .sort((a,b)=>b.n-a.n||(a.g<b.g?-1:1)); }
 /* Planned sets for a history key, as the fallback count for entries from
    before per-set history. */
 function plannedSetsFor(k){ let n=0;

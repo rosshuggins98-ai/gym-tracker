@@ -16,6 +16,20 @@ test('planned sets per group come from the plan, extras excluded',async()=>{
  deq(app.plannedByGroup(),{Chest:3,Legs:6,Back:3});
 });
 
+test('plan editor: sets per group per week, with the edited day\'s share',async()=>{
+ const {app,set}=await load(); plan(app,set);
+ deq(app.plannedByGroup('a'),{Chest:3,Legs:3},'one day only');
+ deq(app.plannedWeekRows('b'),[{g:'Legs',n:6,day:3},{g:'Back',n:3,day:3},{g:'Chest',n:3,day:0}],'most sets first, ties by name');
+ const html=app.weekVolBlock(app.day('a'));
+ for(const g of ['Legs','Back','Chest']) assert.ok(html.indexOf('>'+g+'<')>0,g+' row');
+ assert.ok(html.indexOf('10–20 sets a week')>0,'the guidance band is explained');
+ /* an edit on one day shows up in the week at once */
+ app.day('a').items[0].sets=5;
+ deq(app.plannedWeekRows('a').find(r=>r.g==='Chest'),{g:'Chest',n:5,day:5});
+ set('PLAN',{name:'E',days:[{id:'a',name:'A',tag:'',av:'--a1',items:[]}]});
+ assert.equal(app.weekVolBlock(app.day('a')),'','empty plan: nothing drawn');
+});
+
 test('sets per group: working sets only, older entries fall back to planned sets, live session optional',async()=>{
  const {app,set}=await load(); plan(app,set);
  const mon=app.mondayISO(), next=app.addDays(mon,7);
