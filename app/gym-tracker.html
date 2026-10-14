@@ -438,6 +438,7 @@
  <p id="storeStatus" class="small"></p>
  <button class="dbtn" onclick="exportJSON()">Download full backup (.json)</button>
  <button class="dbtn" onclick="exportCSV()">Export history to spreadsheet (.csv)</button>
+ <button class="dbtn" onclick="exportSetsCSV()">Export every set to spreadsheet (.csv)</button>
  <div class="exportout" id="exportOut"><textarea id="exportText" readonly></textarea>
   <div class="row"><button class="cancel" id="copyBtn" onclick="copyExport(this)">Copy text</button></div>
   <div class="note" id="exportNote"></div></div>
@@ -644,7 +645,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-10-14f";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-10-14g";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -2533,6 +2534,26 @@ function csvText(){
 }
 function exportCSV(){
  const t=csvText(), n='gym-history-'+today()+'.csv';
+ if(t===null){ showExport('No history yet — finish a session first.',n); return; }
+ dl(n,t,'text/csv'); showExport(t,n);
+}
+/* Every set, one row each, for working in a spreadsheet: sets are numbered
+   in the order they were done, warm-ups included and named in Type.
+   Sessions from before 2026-09-23 only kept their top set, so each is one
+   row typed "top set only". The per-session CSV above stays as it was. */
+function csvSetsText(){
+ const rows=[];
+ Object.keys(hist).forEach(k=>{ const nm=keyName(k);
+  (hist[k]||[]).forEach(h=>{ const pl=PLACES[placeOf(h)];
+   if(Array.isArray(h.sets)&&h.sets.length) h.sets.forEach((s,j)=>rows.push([h.date,nm,j+1,s.w,s.r!=null?s.r:'',typeLabel(s.t)||'working',pl]));
+   else rows.push([h.date,nm,1,h.top,h.reps!=null?h.reps:'','top set only',pl]); }); });
+ if(!rows.length) return null;
+ rows.sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:a[1]<b[1]?-1:a[1]>b[1]?1:a[2]-b[2]);
+ return [['Date','Exercise','Set','Weight (kg)','Reps','Type','Place'].map(cell).join(',')]
+  .concat(rows.map(r=>r.map(cell).join(','))).join('\r\n');
+}
+function exportSetsCSV(){
+ const t=csvSetsText(), n='gym-sets-'+today()+'.csv';
  if(t===null){ showExport('No history yet — finish a session first.',n); return; }
  dl(n,t,'text/csv'); showExport(t,n);
 }

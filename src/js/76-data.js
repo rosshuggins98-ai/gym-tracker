@@ -48,6 +48,26 @@ function exportCSV(){
  if(t===null){ showExport('No history yet — finish a session first.',n); return; }
  dl(n,t,'text/csv'); showExport(t,n);
 }
+/* Every set, one row each, for working in a spreadsheet: sets are numbered
+   in the order they were done, warm-ups included and named in Type.
+   Sessions from before 2026-09-23 only kept their top set, so each is one
+   row typed "top set only". The per-session CSV above stays as it was. */
+function csvSetsText(){
+ const rows=[];
+ Object.keys(hist).forEach(k=>{ const nm=keyName(k);
+  (hist[k]||[]).forEach(h=>{ const pl=PLACES[placeOf(h)];
+   if(Array.isArray(h.sets)&&h.sets.length) h.sets.forEach((s,j)=>rows.push([h.date,nm,j+1,s.w,s.r!=null?s.r:'',typeLabel(s.t)||'working',pl]));
+   else rows.push([h.date,nm,1,h.top,h.reps!=null?h.reps:'','top set only',pl]); }); });
+ if(!rows.length) return null;
+ rows.sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:a[1]<b[1]?-1:a[1]>b[1]?1:a[2]-b[2]);
+ return [['Date','Exercise','Set','Weight (kg)','Reps','Type','Place'].map(cell).join(',')]
+  .concat(rows.map(r=>r.map(cell).join(','))).join('\r\n');
+}
+function exportSetsCSV(){
+ const t=csvSetsText(), n='gym-sets-'+today()+'.csv';
+ if(t===null){ showExport('No history yet — finish a session first.',n); return; }
+ dl(n,t,'text/csv'); showExport(t,n);
+}
 function copyExport(btn){ const ta=document.getElementById('exportText'); ta.focus(); ta.select();
  let ok=false; try{ ok=document.execCommand('copy'); }catch(e){}
  if(!ok&&navigator.clipboard){ navigator.clipboard.writeText(ta.value); ok=true; }
