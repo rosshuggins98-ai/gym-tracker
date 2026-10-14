@@ -113,6 +113,7 @@ function openProgress(){
     '<span class="nm">'+keyName(p.k)+'</span><span class="dt">'+p.txt+' · '+shortDate(p.date)+'</span></div>').join('');
    h+='<div class="note">'+totalPB+' personal best'+(totalPB===1?'':'s')+' since you started.</div>';
   }
+  h+=milestoneBlock();
   const tg=nextTargets();
   if(tg.length){
    const st=tg.filter(t=>t.co.kind==='stall').length;
