@@ -263,12 +263,20 @@ so the whole file boots and every top-level function/variable is reachable as
 in-memory fallback, so each `load()` is a clean slate. Sandbox values have their
 own prototypes — compare with `deq()` (JSON round-trip) not `assert.deepEqual`.
 Coverage: migration, PB detection, volume/trend/1RM, the coach, the finish-session
-flow, backup round-trip, presets, gym/home, effort, supersets, warm-ups, the build,
-the server and the launcher. Add a test whenever you touch any of those.
+flow, backup round-trip, presets, gym/home, effort, supersets, warm-ups, the chart
+(ranges, metrics, since-you-started), the build, the server and the launcher. Add a
+test whenever you touch any of those.
 
 The suite doesn't render anything, so still serve and click through after a UI
 change: log a set, swap an exercise, edit the plan, create a custom exercise,
 finish a session, open Progress, export a backup, re-import it.
+
+To see a UI change in the cloud dev container, install headless Chromium with
+`pip install --break-system-packages playwright && python3 -m playwright install
+chromium`. Serve `app/`, seed `localStorage` (`gt4_hist`, `gt4_theme`) with an
+init script, open the sheet with `page.evaluate` (e.g. `openChart('dbbench')`),
+and screenshot it at a 360px-wide viewport in both themes. Watch for console
+errors.
 
 ## Docs
 | File | What it is |
@@ -286,10 +294,10 @@ Logging and progression coaching are already as good as the leading apps (see
 design**. The plan agreed on 2026-10-14 is in `docs/BACKLOG.md` under "Next up",
 in phases:
 
-0. Tidy the docs.
+0. Tidy the docs. *Done 2026-10-14.*
 1. **See your progress:** chart ranges spaced by date, a metric switch, and a
-   then-vs-now line.
-2. **Design plans with feedback:** weekly sets per muscle group in the editor,
+   then-vs-now line. *Done 2026-10-14.*
+2. **Design plans with feedback** (next): weekly sets per muscle group in the editor,
    then finer muscle groups with secondary muscles.
 3. **Fix the record:** per-set history editing, per-set CSV, and a session note.
 4. **Motivation over months:** a training calendar, muscle-group sets over

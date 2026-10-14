@@ -13,46 +13,8 @@ gym and home**; **no 4th day planned**, so the day editor stays parked.
 Phases 1, 2 and 4 are UI only and don't change stored data. Phase 3 changes
 stored history, so write its tests first.
 
-### Phase 0: tidy the docs (no app change, no `BUILD` bump)
-
-0. `docs/ARCHITECTURE.md`: add `gt4_incs`, `gt4_place`, `gt4_effort` and
-   `gt4_homeswaps` to the key table; say there are three presets (add
-   `BEGINNER_PLAN()`); drop "No test coverage" and "supersets aren't implemented"
-   from Known rough edges; note that the chart spaces points by index. `README.md`:
-   the test command becomes `node --test 'test/*.test.js'`. Then remove the
-   "Partly stale" note from the docs table in `CLAUDE.md`.
-
-### Phase 1: see your progress
-
-1. **Chart ranges, spaced by date.** `68-chart.js`. Add range chips to the chart
-   sheet: 4 weeks / 3 months / All (default All, which is today's behaviour), with
-   the ids and labels taken from `SPANS` in `63-compare.js` (no 1-week chip).
-   `buildChart()` currently places points by index (`X=i=>…`), so a week off is
-   invisible. Place them by date instead, with the live "Today" point at today's
-   date. Past ~30 points, draw smaller dots. Labels stay on the best and latest
-   only, as now. Keep the chosen range in a variable, like `cmpSpan`, not in
-   storage.
-   Test: a pure `chartSeries(k, metric, span)` returning `[{date, val, home}]`;
-   range filtering; x positions increase with date.
-   Done when: a lift with 25+ sessions reads cleanly at 360px wide in both themes,
-   and a 10-day gap is visible.
-2. **Metric switch.** Same sheet. Top set (the default, as Ross chose top-set
-   weight as his progress metric), Est. 1RM, Volume, Reps.
-   - Volume uses `e.vol` and skips entries without it (before 2026-09-11), with a
-     one-line note. Don't use `entryVol()`'s estimate on a chart.
-   - Est. 1RM follows the `e1RMShown()` rule (sets of 10 reps or fewer); skip the
-     rest with a note.
-   - Reps is the reps at the top set. A bodyweight lift (`incFor(k)===0`) defaults
-     to Reps, since its weight is 0.
-   - Drop today's always-on second line (est. 1RM under top set): the switch
-     replaces it. The stat tiles follow the chosen metric.
-   Test: each metric's series against a fixture that includes entries without
-   `vol` and without `sets`.
-3. **Then vs now on the chart sheet** (from section C, still open). One line above
-   the chart: the first session against the best in the last 4 weeks, as real sets,
-   with % by `entryScore()`. That's the rule `liftRows('all')` in `63-compare.js`
-   already uses, so extract a per-key function from it rather than re-deriving.
-   Test: the chart line matches the Compare "All time" row for the same key.
+Phase 0 (docs) and Phase 1 (items 1–3, the chart sheet) are done: see "Done".
+**Next is Phase 2, item 4.**
 
 ### Phase 2: design plans with feedback
 
@@ -202,7 +164,10 @@ stored history, so write its tests first.
   some of this.)
 - **A tiny browser smoke test.** The vm harness can't render; even a script that
   opens the file in headless Chromium and checks for console errors would catch
-  what the stub DOM hides. No browser is installed in the dev container.
+  what the stub DOM hides. Headless Chromium does install in the cloud dev
+  container (`pip install --break-system-packages playwright && python3 -m
+  playwright install chromium`); Phase 1 was checked that way, with a seeded
+  history, at 360px in both themes. The script wasn't committed.
 - **Header wraps at phone width.** "GYM TRACKER" breaks onto two lines and the
   build badge squashes (seen in a 2026-09-23 screenshot).
 
@@ -240,3 +205,15 @@ stored history, so write its tests first.
   home-only. New library entry: Dumbbell Leg Curl. Slots with no home option are
   flagged "needs gym kit". Prefills only come from a prev logged as the same
   exercise (`prev._keys`).
+- 2026-10-14 `a345631`: **Phase 0.** ARCHITECTURE key table complete (incs,
+  place, effort, homeswaps), three presets, rough edges current; README test
+  command for Node 22+.
+- 2026-10-14 `34d13ad`: **Item 1, chart ranges.** 4 weeks / 3 months / All time
+  chips; points placed by date, so breaks show; smaller dots past 30 points; one
+  label per tied best (they used to stack). Compare's mini chart and the
+  bodyweight chart are date-spaced too.
+- 2026-10-14 `1db7d72`: **Item 2, metric switch.** Top set / Est. 1RM / Volume /
+  Reps; sessions a metric can't show honestly are left off with a note; bodyweight
+  lifts chart reps; tiles are best, latest and change; the dashed 1RM line is gone.
+- 2026-10-14 `b9f2db2`: **Item 3, since you started.** Compare's "All time" row
+  for the lift, shown above its chart (`liftThenNow()` shared by both).

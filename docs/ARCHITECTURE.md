@@ -106,8 +106,9 @@ this change merges rather than going dark.
   "Testing")
 - `innerHTML` throughout; safe because custom names/notes are stripped/escaped at
   input and render respectively
-- Hand-rolled SVG chart in `68-chart.js`, fine to ~20 points, with points spaced by
-  index rather than date (backlog item 1 changes this)
+- Hand-rolled SVG chart in `68-chart.js`. Points with a date are placed by date
+  and the dots shrink past 30, so a few months read fine; the range chips keep
+  longer histories readable. No zoom or tap-for-value
 - `app/sw.js` (see CLAUDE.md) caches the shell for offline use once loaded at least
   once over http://. It's network-first, so a brand new build shows as soon as the
   server has it; the cache only answers when the server can't be reached
