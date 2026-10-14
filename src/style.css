@@ -296,13 +296,14 @@
  .cmp-detail{margin-top:8px}
  .cmp-sess{display:flex;gap:10px;font-size:12px;padding:3px 0;color:var(--text)}
  .cmp-sess span{width:48px;flex-shrink:0;color:var(--muted);font-weight:700}
- .bal{display:grid;grid-template-columns:minmax(0,1.3fr) 2fr auto;gap:10px;align-items:center;padding:5px 0;font-size:12.5px}
+ .bal{display:grid;grid-template-columns:minmax(0,1.3fr) 2fr 5.6em;gap:10px;align-items:center;padding:5px 0;font-size:12.5px}
  .bal .nm{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .bal .nm .flag{display:block;font-size:10.5px;font-weight:700;color:var(--warn)}
  .bal .bar{height:7px;background:var(--card2);border-radius:99px;overflow:hidden}
  .bal .bar i{display:block;height:100%;background:var(--done);border-radius:99px}
  .bal.low .bar i{background:var(--warn)}
- .bal .n{font-weight:800;color:var(--muted);font-size:12px}
- .bal.wk{grid-template-columns:minmax(0,1.3fr) 2fr 2.6em} .bal.wk .n{text-align:right}
+ .bal .n{font-weight:800;color:var(--muted);font-size:12px;text-align:right;white-space:nowrap}
+ .bal.wk{grid-template-columns:minmax(0,1.3fr) 2fr 2.6em}
  .bal.wk .bar{position:relative}
  .bal.wk .bar s,.bal.wk .bar i,.bal.wk .bar b{position:absolute;top:0;bottom:0;left:0;display:block}
  .bal.wk .bar s{background:var(--line);border-radius:0}
@@ -313,4 +314,5 @@
  .todo .chip{font-weight:700;border-radius:7px;padding:4px 8px;background:var(--card2);color:var(--text)}
  .todo .chip.top{background:var(--warns);color:var(--warn)}
  .todo .chip.ok{background:var(--dones);color:var(--done)}
+ .todo .chip.more{background:transparent;color:var(--muted);padding-left:2px}
  .todo .nudge{flex-basis:100%;color:var(--warn);font-weight:600}

@@ -47,11 +47,13 @@ test('weekVolume sums this week\'s history volume plus live sets, and ignores ol
  assert.equal(app.weekVolume(),900);
 });
 
-test('groupLastTrained comes from finished history only',async()=>{
+test('groupLastTrained comes from finished history only, per muscle',async()=>{
  const {app,set}=await load();
+ /* bench trains chest (main) plus triceps and shoulders (helpers); the
+    alt:: key counts as the exercise that lists it (Dumbbell Fly: chest) */
  set('hist',{bench:[{date:'2026-09-01',top:50},{date:'2026-09-08',top:50}],'alt::pec-deck':[{date:'2026-09-15',top:50}]});
  set('cur',{legs:{squat:[{w:'60',r:'5'}]}});
- deq(app.groupLastTrained(),{Chest:'2026-09-08'});
+ deq(app.groupLastTrained(),{chest:'2026-09-15',triceps:'2026-09-08',shoulders:'2026-09-08'});
 });
 
 test('weekVolume leaves out unfinished sets from days that are no longer in the plan',async()=>{

@@ -309,13 +309,14 @@
  .cmp-detail{margin-top:8px}
  .cmp-sess{display:flex;gap:10px;font-size:12px;padding:3px 0;color:var(--text)}
  .cmp-sess span{width:48px;flex-shrink:0;color:var(--muted);font-weight:700}
- .bal{display:grid;grid-template-columns:minmax(0,1.3fr) 2fr auto;gap:10px;align-items:center;padding:5px 0;font-size:12.5px}
+ .bal{display:grid;grid-template-columns:minmax(0,1.3fr) 2fr 5.6em;gap:10px;align-items:center;padding:5px 0;font-size:12.5px}
  .bal .nm{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .bal .nm .flag{display:block;font-size:10.5px;font-weight:700;color:var(--warn)}
  .bal .bar{height:7px;background:var(--card2);border-radius:99px;overflow:hidden}
  .bal .bar i{display:block;height:100%;background:var(--done);border-radius:99px}
  .bal.low .bar i{background:var(--warn)}
- .bal .n{font-weight:800;color:var(--muted);font-size:12px}
- .bal.wk{grid-template-columns:minmax(0,1.3fr) 2fr 2.6em} .bal.wk .n{text-align:right}
+ .bal .n{font-weight:800;color:var(--muted);font-size:12px;text-align:right;white-space:nowrap}
+ .bal.wk{grid-template-columns:minmax(0,1.3fr) 2fr 2.6em}
  .bal.wk .bar{position:relative}
  .bal.wk .bar s,.bal.wk .bar i,.bal.wk .bar b{position:absolute;top:0;bottom:0;left:0;display:block}
  .bal.wk .bar s{background:var(--line);border-radius:0}
@@ -326,6 +327,7 @@
  .todo .chip{font-weight:700;border-radius:7px;padding:4px 8px;background:var(--card2);color:var(--text)}
  .todo .chip.top{background:var(--warns);color:var(--warn)}
  .todo .chip.ok{background:var(--dones);color:var(--done)}
+ .todo .chip.more{background:transparent;color:var(--muted);padding-left:2px}
  .todo .nudge{flex-basis:100%;color:var(--warn);font-weight:600}
 </style>
 </head>
@@ -431,99 +433,111 @@
 <script>
 /* ============ EXERCISE LIBRARY ============
    History is keyed by these ids. Move an exercise between days,
-   change its sets, or drop and re-add it — the history follows the id. */
+   change its sets, or drop and re-add it — the history follows the id.
+   g is the coarse group (Chest / Back / Shoulders / Arms / Legs) used to
+   sort lists; m is what the exercise trains, for the weekly muscle views:
+   1 for the main muscle, .5 for one that helps (a bench set counts as half
+   a set for triceps and shoulders). Keys are MUSCLES ids. */
 const LIB={
- bench:{n:"Bench Press",g:"Chest",alts:["Dumbbell Bench","Machine Chest Press","Push-ups"],
+ bench:{n:"Bench Press",g:"Chest",m:{chest:1,triceps:.5,shoulders:.5},alts:["Dumbbell Bench","Machine Chest Press","Push-ups"],
   c:["Set up with shoulder blades pulled back and down into the bench — this protects the shoulder and gives you a stable base.","Lower the bar to the lower chest, not the neck. Elbows roughly 45° from your body, not flared straight out.","Keep both feet planted and don't bounce the bar off your chest."]},
- dbbench:{n:"Dumbbell Bench",g:"Chest",alts:["Machine Chest Press","Bench Press","Push-ups"],
+ dbbench:{n:"Dumbbell Bench",g:"Chest",m:{chest:1,triceps:.5,shoulders:.5},alts:["Machine Chest Press","Bench Press","Push-ups"],
   c:["Kick the dumbbells up off your knees as you lie back, rather than lifting them from the floor.","Lower until the handles are level with your chest, elbows about 45° from your body, then press up and slightly in.","Each arm works on its own, so the weaker side shows up — let it set the pace, and add weight only when both hit the reps."]},
- mchest:{n:"Machine Chest Press",g:"Chest",alts:["Dumbbell Bench","Bench Press","Push-ups"],
+ mchest:{n:"Machine Chest Press",g:"Chest",m:{chest:1,triceps:.5,shoulders:.5},alts:["Dumbbell Bench","Bench Press","Push-ups"],
   c:["Set the seat so the handles line up with the middle of your chest, not your shoulders.","Keep your shoulder blades pinned back against the pad as you press — don't let the shoulders roll forward at the end.","The machine keeps you safe near failure, so this is a good one to push hard on the last set."]},
- incline:{n:"Dumbbell Incline",g:"Chest",alts:["Bench Press","Machine Chest Press","Incline Push-ups"],
+ incline:{n:"Dumbbell Incline",g:"Chest",m:{chest:1,shoulders:.5,triceps:.5},alts:["Bench Press","Machine Chest Press","Incline Push-ups"],
   c:["Set the bench to about 30°. Steeper than that shifts the work to your shoulders instead of your upper chest.","Press up and slightly inward, stopping short of clanging the dumbbells together.","Control the lowering — that's where most of the muscle growth happens."]},
- decline:{n:"Dumbbell Decline",g:"Chest",alts:["Dumbbell Bench","Push-ups","Machine Chest Press"],
+ decline:{n:"Dumbbell Decline",g:"Chest",m:{chest:1,triceps:.5},alts:["Dumbbell Bench","Push-ups","Machine Chest Press"],
   c:["Lock your legs in securely before you take the dumbbells.","Lower to the lower chest with a slow, controlled tempo.","Ask for a hand passing the dumbbells up if they're heavy."]},
- dbfly:{n:"Dumbbell Fly",g:"Chest",alts:["Cable Fly","Pec Deck","Machine Fly"],
+ dbfly:{n:"Dumbbell Fly",g:"Chest",m:{chest:1},alts:["Cable Fly","Pec Deck","Machine Fly"],
   c:["Keep a soft, fixed bend in the elbows throughout — the angle shouldn't change as you lower.","Go light. This is a stretch exercise, not a pressing one.","Stop the lowering when you feel a strong stretch across the chest, not when your arms are as wide as they'll go."]},
- pecdeck:{n:"Pec Deck",g:"Chest",alts:["Dumbbell Fly","Cable Fly","Machine Fly"],
+ pecdeck:{n:"Pec Deck",g:"Chest",m:{chest:1},alts:["Dumbbell Fly","Cable Fly","Machine Fly"],
   c:["Set the seat so the handles are at chest height and your elbows sit just below your shoulders.","Keep a slight bend in the elbows and bring the handles together by squeezing your chest, not by pulling with your hands.","Let the arms come back until you feel a stretch across the chest, under control — no bouncing off the stack."]},
- pushup:{n:"Push-ups",g:"Chest",alts:["Incline Push-ups","Dumbbell Bench","Machine Chest Press"],
+ pushup:{n:"Push-ups",g:"Chest",m:{chest:1,triceps:.5,shoulders:.5},alts:["Incline Push-ups","Dumbbell Bench","Machine Chest Press"],
   c:["Keep a straight line from head to heels — no sagging hips.","Elbows at roughly 45°, not flared to the sides.","Too easy? Elevate your feet. Too hard? Hands on a bench."]},
- ohp:{n:"Barbell Shoulder Press",g:"Shoulders",alts:["DB Shoulder Press","Machine Shoulder Press","Landmine Press"],
+ ohp:{n:"Barbell Shoulder Press",g:"Shoulders",m:{shoulders:1,triceps:.5},alts:["DB Shoulder Press","Machine Shoulder Press","Landmine Press"],
   c:["Brace your abs and squeeze your glutes — this stops the lower back arching as you press.","Move your head back slightly so the bar travels straight up past your face.","Finish with the bar over the middle of your foot, not out in front."]},
- dbshoulder:{n:"DB Shoulder Press",g:"Shoulders",alts:["Barbell Shoulder Press","Machine Shoulder Press","Landmine Press"],
+ dbshoulder:{n:"DB Shoulder Press",g:"Shoulders",m:{shoulders:1,triceps:.5},alts:["Barbell Shoulder Press","Machine Shoulder Press","Landmine Press"],
   c:["Start with the dumbbells at ear height, elbows slightly forward rather than straight out to the sides.","Press up without letting your lower back arch.","Seated with a back support is the easier place to start."]},
- mshoulder:{n:"Machine Shoulder Press",g:"Shoulders",alts:["DB Shoulder Press","Barbell Shoulder Press","Landmine Press"],
+ mshoulder:{n:"Machine Shoulder Press",g:"Shoulders",m:{shoulders:1,triceps:.5},alts:["DB Shoulder Press","Barbell Shoulder Press","Landmine Press"],
   c:["Adjust the seat so the handles start at about shoulder height.","Keep your back against the pad and press straight up without shrugging.","Lower until your hands are near shoulder level, then press again — full range every rep."]},
- lateral:{n:"Lateral Raises",g:"Shoulders",alts:["Cable Lateral Raise","Machine Lateral Raise","Band Lateral Raise"],
+ lateral:{n:"Lateral Raises",g:"Shoulders",m:{shoulders:1},alts:["Cable Lateral Raise","Machine Lateral Raise","Band Lateral Raise"],
   c:["Go deliberately light — this is the exercise people most often ruin with too much weight.","Lead with your elbows, raising to shoulder height and no higher.","No swinging. If your body is moving to get the weight up, drop the weight."]},
- frontraise:{n:"Plate / Front Raises",g:"Shoulders",alts:["DB Front Raise","Landmine Raise","Cable Front Raise"],
+ frontraise:{n:"Plate / Front Raises",g:"Shoulders",m:{shoulders:1},alts:["DB Front Raise","Landmine Raise","Cable Front Raise"],
   c:["Raise to about eye level with a controlled tempo.","Keep your torso still — resist leaning back to help the weight up.","Light weight, high control."]},
- facepull:{n:"Face Pulls",g:"Shoulders",alts:["Reverse Pec Deck","Band Pull-Apart","Rear Delt Fly"],
+ facepull:{n:"Face Pulls",g:"Shoulders",m:{shoulders:1,back:.5},alts:["Reverse Pec Deck","Band Pull-Apart","Rear Delt Fly"],
   c:["Set the cable at roughly face height and pull towards your forehead, not your chin.","Aim to finish with your hands beside your ears and elbows high.","This one's for shoulder health — prioritise the squeeze over the weight."]},
- bbrow:{n:"Barbell Row",g:"Back",alts:["Single-arm DB Row","Chest-Supported Row","T-Bar Row"],
+ bbrow:{n:"Barbell Row",g:"Back",m:{back:1,biceps:.5},alts:["Single-arm DB Row","Chest-Supported Row","T-Bar Row"],
   c:["Hinge to about 45° with a flat back — the spine stays neutral throughout, never rounded.","Pull the bar to your lower ribs or belly button, leading with your elbows.","Don't jerk with your lower back to move the weight. If you have to, it's too heavy."]},
- latpulldown:{n:"Lat Pulldown",g:"Back",alts:["Assisted Pull Ups","Band-Assisted Pull Ups","DB Pullover"],
+ latpulldown:{n:"Lat Pulldown",g:"Back",m:{back:1,biceps:.5},alts:["Assisted Pull Ups","Band-Assisted Pull Ups","DB Pullover"],
   c:["Pull the bar to your upper chest, not behind your neck.","Start each rep by driving your shoulders down, then pull your elbows down towards your back pockets — think elbows, not hands.","Feeling it in your forearms? Wrap your thumbs over the bar alongside your fingers and treat your hands as hooks, or use lifting straps.","Lean back slightly and hold that angle — don't rock back and forth. Drop the weight until you can feel your lats doing the work."]},
- cablerow:{n:"Cable Row",g:"Back",alts:["Single-arm DB Row","Chest-Supported Row","Inverted Row"],
+ cablerow:{n:"Cable Row",g:"Back",m:{back:1,biceps:.5},alts:["Single-arm DB Row","Chest-Supported Row","Inverted Row"],
   c:["Sit tall with a slight knee bend and keep your chest up.","Pull to your stomach, squeezing the shoulder blades together at the end.","Let the weight stretch your lats on the return, but don't let your back round."]},
- dbrow:{n:"Single-arm DB Row",g:"Back",alts:["Cable Row","Chest-Supported Row","Inverted Row"],
+ dbrow:{n:"Single-arm DB Row",g:"Back",m:{back:1,biceps:.5},alts:["Cable Row","Chest-Supported Row","Inverted Row"],
   c:["Knee and hand on a bench, back flat and roughly parallel to the floor.","Pull the dumbbell to your hip, not straight up to your shoulder.","Avoid twisting your torso to get extra range."]},
- csrow:{n:"Chest-Supported Row",g:"Back",alts:["T-Bar Row","Cable Row","Single-arm DB Row"],
+ csrow:{n:"Chest-Supported Row",g:"Back",m:{back:1,biceps:.5},alts:["T-Bar Row","Cable Row","Single-arm DB Row"],
   c:["Chest stays glued to the pad for every rep — if it lifts off, the weight is too heavy.","Pull the elbows back and squeeze the shoulder blades together at the top.","Let the arms straighten fully at the bottom for a stretch, without letting the shoulders roll forward."]},
- pullup:{n:"Assisted Pull Ups",g:"Back",alts:["Lat Pulldown","Band-Assisted Pull Ups","Inverted Row"],
+ pullup:{n:"Assisted Pull Ups",g:"Back",m:{back:1,biceps:.5},alts:["Lat Pulldown","Band-Assisted Pull Ups","Inverted Row"],
   c:["Start from a full hang with shoulders engaged, not fully slack.","Pull until your chin clears the bar, then lower under control.","Use as little assistance as you can manage while still hitting the reps."]},
- pullover:{n:"DB Pullover",g:"Back",alts:["Lat Pulldown","Cable Pullover","Assisted Pull Ups"],
+ pullover:{n:"DB Pullover",g:"Back",m:{back:1,chest:.5},alts:["Lat Pulldown","Cable Pullover","Assisted Pull Ups"],
   c:["Keep the elbows slightly bent and fixed.","Lower until you feel the stretch through the lats and ribs, then pull back over.","Keep your ribs down rather than letting the back arch."]},
- squat:{n:"Barbell Squat",g:"Legs",alts:["Goblet Squat","Leg Press","Bulgarian Split Squat"],
+ squat:{n:"Barbell Squat",g:"Legs",m:{quads:1,glutes:.5},alts:["Goblet Squat","Leg Press","Bulgarian Split Squat"],
   c:["Brace as though about to be punched in the stomach, and hold that through the rep.","Push your knees out in line with your toes — don't let them cave in.","Descend to at least parallel if your mobility allows, keeping your heels planted throughout."]},
- goblet:{n:"Goblet Squat",g:"Legs",alts:["Barbell Squat","Leg Press","Bulgarian Split Squat"],
+ goblet:{n:"Goblet Squat",g:"Legs",m:{quads:1,glutes:.5},alts:["Barbell Squat","Leg Press","Bulgarian Split Squat"],
   c:["Hold the weight at chest height, elbows tucked in.","Sit down between your hips and keep your chest tall.","A great place to learn squat depth without a bar on your back."]},
- frontsquat:{n:"Front Squat",g:"Legs",alts:["Goblet Squat","Leg Press","Barbell Squat"],
+ frontsquat:{n:"Front Squat",g:"Legs",m:{quads:1,glutes:.5},alts:["Goblet Squat","Leg Press","Barbell Squat"],
   c:["Bar sits on the front of the shoulders, elbows driven high so the upper arms stay near parallel to the floor.","Stay upright — if your elbows drop, the bar rolls forward. This is a quad and upper-back exercise as much as a squat.","Lighter than your back squat is normal. Start well under it and build."]},
- legpress:{n:"Leg Press",g:"Legs",alts:["Hack Squat","Goblet Squat","Walking Lunges"],
+ legpress:{n:"Leg Press",g:"Legs",m:{quads:1,glutes:.5},alts:["Hack Squat","Goblet Squat","Walking Lunges"],
   c:["Start lighter than you think and add weight each set — the first set is a build-up.","Lower until your knees reach about 90°. Don't let your lower back peel off the pad.","Never lock the knees out hard at the top."]},
- lunge:{n:"Walking Lunges",g:"Legs",alts:["Bulgarian Split Squat","Goblet Squat","Leg Press"],
+ lunge:{n:"Walking Lunges",g:"Legs",m:{quads:1,glutes:.5},alts:["Bulgarian Split Squat","Goblet Squat","Leg Press"],
   c:["Take a long enough step that your front shin stays fairly vertical.","Drop the back knee towards the floor rather than lunging forward.","Keep your torso upright and start bodyweight-only."]},
- bulgarian:{n:"Bulgarian Split Squat",g:"Legs",alts:["Walking Lunges","Goblet Squat","Leg Press"],
+ bulgarian:{n:"Bulgarian Split Squat",g:"Legs",m:{quads:1,glutes:.5},alts:["Walking Lunges","Goblet Squat","Leg Press"],
   c:["Rear foot on a bench, front foot far enough forward to keep the shin vertical.","Go straight down, not forward.","Brutal for how light it feels — start with bodyweight."]},
- deadlift:{n:"Deadlift",g:"Legs",alts:["Trap Bar Deadlift","RDLs","Rack Pull"],
+ deadlift:{n:"Deadlift",g:"Legs",m:{hamstrings:1,glutes:1,back:.5},alts:["Trap Bar Deadlift","RDLs","Rack Pull"],
   c:["Bar over the middle of your foot, shins close to it, hips higher than your knees and lower than your shoulders.","Take the slack out of the bar and brace hard before it leaves the floor. Push the floor away rather than pulling with your back.","Lock out by standing tall — don't lean back. Lower under control; don't drop it and don't bounce the next rep."]},
- rdl:{n:"RDLs",g:"Legs",alts:["Dumbbell RDL","Single-leg RDL","Good Mornings"],
+ rdl:{n:"RDLs",g:"Legs",m:{hamstrings:1,glutes:.5},alts:["Dumbbell RDL","Single-leg RDL","Good Mornings"],
   c:["Push your hips back rather than bending your knees — this is a hinge, not a squat.","Keep the bar close to your legs, almost dragging down the thighs.","Stop when you feel a strong hamstring stretch. Back stays flat the whole way; never round it."]},
- dbrdl:{n:"Dumbbell RDL",g:"Legs",alts:["Leg Curls","Single-leg RDL","RDLs"],
+ dbrdl:{n:"Dumbbell RDL",g:"Legs",m:{hamstrings:1,glutes:.5},alts:["Leg Curls","Single-leg RDL","RDLs"],
   c:["Dumbbells in front of your thighs, soft knees. Push your hips back — it's a hinge, not a squat.","Keep the dumbbells brushing your legs on the way down, back flat the whole time.","Stop at a strong hamstring stretch (usually around mid-shin), then drive the hips forward to stand tall."]},
- legcurl:{n:"Leg Curls",g:"Legs",alts:["Single-leg RDL","Hip Thrust","Good Mornings"],
+ legcurl:{n:"Leg Curls",g:"Legs",m:{hamstrings:1},alts:["Single-leg RDL","Hip Thrust","Good Mornings"],
   c:["Keep your hips pressed into the pad throughout.","Squeeze at the top and lower slowly — resist the weight on the way back.","Don't let the weight stack slam down between reps."]},
- dblegcurl:{n:"Dumbbell Leg Curl",g:"Legs",alts:["Leg Curls","Single-leg RDL","Dumbbell RDL"],
+ dblegcurl:{n:"Dumbbell Leg Curl",g:"Legs",m:{hamstrings:1},alts:["Leg Curls","Single-leg RDL","Dumbbell RDL"],
   c:["Lie face down on the bench with your knees just off the end and a dumbbell held between your feet.","Curl your heels towards your glutes, keeping your hips pressed into the bench.","Start light and lower slowly. Grip the dumbbell firmly between your feet, as it can slip if you rush."]},
- legext:{n:"Leg Extensions",g:"Legs",alts:["Goblet Squat","Walking Lunges","Leg Press"],
+ legext:{n:"Leg Extensions",g:"Legs",m:{quads:1},alts:["Goblet Squat","Walking Lunges","Leg Press"],
   c:["Line the machine's pivot up with your knee before you start.","Pause briefly at the top with the quads squeezed.","Moderate weight — jerking heavy loads here is hard on the knees."]},
- hipthrust:{n:"Hip Thrust",g:"Legs",alts:["Glute Bridge","RDLs","Single-leg RDL"],
+ hipthrust:{n:"Hip Thrust",g:"Legs",m:{glutes:1,hamstrings:.5},alts:["Glute Bridge","RDLs","Single-leg RDL"],
   c:["Shoulder blades on the bench, chin tucked slightly.","Drive through your heels and squeeze the glutes hard at the top.","Stop at a flat torso — don't over-arch the lower back."]},
- calf:{n:"Calf Raises",g:"Legs",alts:["Seated Calf Raise","Leg Press Calf Raise","Single-leg Calf Raise"],
+ calf:{n:"Calf Raises",g:"Legs",m:{calves:1},alts:["Seated Calf Raise","Leg Press Calf Raise","Single-leg Calf Raise"],
   c:["Full range: deep stretch at the bottom, high squeeze at the top.","Pause a beat at both ends rather than bouncing.","Calves respond well to higher reps."]},
- pushdown:{n:"Tricep Pushdown",g:"Arms",alts:["Overhead Extension","Rope Pushdown","Close-Grip Push-ups"],
+ pushdown:{n:"Tricep Pushdown",g:"Arms",m:{triceps:1},alts:["Overhead Extension","Rope Pushdown","Close-Grip Push-ups"],
   c:["Keep your elbows pinned to your sides — only the forearms move.","Fully straighten the arms and squeeze at the bottom.","Stand slightly back from the stack, torso still."]},
- ohext:{n:"Overhead Extension",g:"Arms",alts:["Skull Crusher","Rope Pushdown","Tricep Pushdown"],
+ ohext:{n:"Overhead Extension",g:"Arms",m:{triceps:1},alts:["Skull Crusher","Rope Pushdown","Tricep Pushdown"],
   c:["Keep your elbows pointing forward and close to your head.","Lower behind your head until you feel the stretch, then extend.","Ribs down — don't let the lower back arch."]},
- skull:{n:"Skull Crusher",g:"Arms",alts:["Overhead Extension","Rope Pushdown","Close-Grip Bench"],
+ skull:{n:"Skull Crusher",g:"Arms",m:{triceps:1},alts:["Overhead Extension","Rope Pushdown","Close-Grip Bench"],
   c:["Light weight and strict form — this one punishes ego lifting and elbows.","Lower to just above your forehead or slightly behind it, elbows steady.","An EZ bar is kinder on the wrists than a straight bar."]},
- dips:{n:"Dips",g:"Arms",alts:["Bench Dips","Close-Grip Push-ups","Rope Pushdown"],
+ dips:{n:"Dips",g:"Arms",m:{triceps:1,chest:.5,shoulders:.5},alts:["Bench Dips","Close-Grip Push-ups","Rope Pushdown"],
   c:["Lean forward to bias the chest; stay upright to bias the triceps.","Lower until your upper arms reach about parallel — no deeper if your shoulders complain.","Use the assisted machine if bodyweight is too much for now."]},
- hammer:{n:"Hammer Curl",g:"Arms",alts:["Dumbbell Curl","Cable Curl","Incline DB Curl"],
+ hammer:{n:"Hammer Curl",g:"Arms",m:{biceps:1},alts:["Dumbbell Curl","Cable Curl","Incline DB Curl"],
   c:["Palms face each other throughout — thumbs up, like holding a hammer.","Keep your elbows at your sides and don't swing.","Lower slowly rather than dropping the weight."]},
- dbcurl:{n:"Dumbbell Curl",g:"Arms",alts:["Hammer Curl","Cable Curl","Barbell Curl"],
+ dbcurl:{n:"Dumbbell Curl",g:"Arms",m:{biceps:1},alts:["Hammer Curl","Cable Curl","Barbell Curl"],
   c:["Elbows stay pinned at your sides.","Supinate — turn your palm up — as you curl.","No body English; if you're rocking, go lighter."]},
- bbcurl:{n:"Barbell Curl",g:"Arms",alts:["Dumbbell Curl","Cable Curl","Preacher Curl"],
+ bbcurl:{n:"Barbell Curl",g:"Arms",m:{biceps:1},alts:["Dumbbell Curl","Cable Curl","Preacher Curl"],
   c:["Stand tall with elbows tucked in.","Curl without swinging your torso back.","An EZ bar is easier on the wrists if a straight bar aggravates them."]},
- preacher:{n:"Preacher Curl",g:"Arms",alts:["Concentration Curl","Cable Curl","Barbell Curl"],
+ preacher:{n:"Preacher Curl",g:"Arms",m:{biceps:1},alts:["Concentration Curl","Cable Curl","Barbell Curl"],
   c:["Armpits snug against the top of the pad.","Don't fully snap the elbow straight at the bottom — keep slight tension.","Control the lowering; this position makes the stretch intense."]},
- cablecurl:{n:"Cable Curl",g:"Arms",alts:["Hammer Curl","Dumbbell Curl","Preacher Curl"],
+ cablecurl:{n:"Cable Curl",g:"Arms",m:{biceps:1},alts:["Hammer Curl","Dumbbell Curl","Preacher Curl"],
   c:["Constant tension is the advantage here — don't rest at the bottom.","Elbows fixed at your sides.","Squeeze hard at the top of each rep."]},
- concentration:{n:"Concentration Curl",g:"Arms",alts:["Preacher Curl","Dumbbell Curl","Cable Curl"],
+ concentration:{n:"Concentration Curl",g:"Arms",m:{biceps:1},alts:["Preacher Curl","Dumbbell Curl","Cable Curl"],
   c:["Elbow braced against the inside of your thigh.","Curl slowly and squeeze at the top.","One arm at a time, no swinging."]}
 };
+/* The muscle groups the weekly views count, in display order. */
+const MUSCLES={chest:'Chest',back:'Back',shoulders:'Shoulders',biceps:'Biceps',triceps:'Triceps',
+ quads:'Quads',hamstrings:'Hamstrings',glutes:'Glutes',calves:'Calves'};
+/* A custom exercise has only its coarse group, so it gets this split. Legs
+   and Arms are shared between their muscles because the name alone can't
+   say which; Other isn't counted. */
+const MUSCLE_DEFAULT={Chest:{chest:1},Back:{back:1},Shoulders:{shoulders:1},
+ Arms:{biceps:.5,triceps:.5},Legs:{quads:.5,hamstrings:.5,glutes:.5}};
 
 /* ============ STARTER PLAN — beginner PPL ============ */
 function DEFAULT_PLAN(){ return {
@@ -614,7 +628,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-10-14d";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-10-14e";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -1494,22 +1508,19 @@ function liveVolume(){
  return liveDays().reduce((s,id)=>
   s+Object.values(cur[id]||{}).reduce((s2,a)=>s2+exVolume(a),0),0);
 }
-/* A key merged into a real library exercise (no swap, or swapped to a name
-   that matched one) resolves to a muscle group; a synthetic alt:: key has no
-   group of its own -- it was never a tracked exercise, just a name. */
-function groupOf(k){ return (k.indexOf('::')<0&&LIB[k])?LIB[k].g:null; }
 function weekVolume(){
  const mon=mondayISO(); let v=0;
  Object.values(hist).forEach(a=>(a||[]).forEach(e=>{ if(e.date>=mon) v+=(e.vol||0); }));
  return Math.round(v+liveVolume());
 }
-/* Most recent trained date per muscle group, from history only -- a group
-   only entered live today doesn't count as "trained" until the session is
-   finished, same as everywhere else PB/top-set logic works. */
+/* Most recent trained date per muscle (musclesFor in 61-week, helpers
+   included), from history only -- a muscle only entered live today doesn't
+   count as "trained" until the session is finished, same as everywhere else
+   PB/top-set logic works. */
 function groupLastTrained(){
  const last={};
- Object.keys(hist).forEach(k=>{ const g=groupOf(k); if(!g) return;
-  (hist[k]||[]).forEach(e=>{ if(!last[g]||e.date>last[g]) last[g]=e.date; }); });
+ Object.keys(hist).forEach(k=>{ const m=musclesFor(k,null); if(!m) return;
+  (hist[k]||[]).forEach(e=>Object.keys(m).forEach(g=>{ if(!last[g]||e.date>last[g]) last[g]=e.date; })); });
  return last;
 }
 /* Epley estimated 1RM: w * (1 + reps/30). Falls back to the raw weight when
@@ -1589,8 +1600,9 @@ function openProgress(){
   if(bal.length){
    h+='<h5>This week: sets per muscle group</h5>'+balanceRows(bal.map(r=>{
     const last=glt[r.g], dd=last?Math.floor((new Date(today())-new Date(last))/864e5):null;
-    return Object.assign({},r,{g:r.g+((dd===null||dd>=7)?' <span class="trend down">⚠ '+(dd===null?'never':dd+'d ago')+'</span>':'')}); }));
-   h+='<div class="note">Working sets done this week (warm-ups not counted) against what your plan asks for when every day is done once. Flagged if nothing in that group has been logged in 7+ days.</div>';
+    return Object.assign({},r,{flag:(dd===null||dd>=7)?'<small class="flag">⚠ '+(dd===null?'never trained':dd+'d ago')+'</small>':''}); }));
+   h+='<div class="note">Working sets done this week (warm-ups not counted) against what your plan asks for when every day is done once. '+
+    'A set counts fully for the main muscle and half for a muscle that helps. Flagged if nothing that trains a muscle has been logged in 7+ days.</div>';
   }
   if(ds.some(x=>x<mon)) h+='<h5>Last week</h5>'+checkinBody(checkin());
  }
@@ -1623,14 +1635,28 @@ function nextDay(){ const dn=daysDoneThisWeek(); let id=null, at=null;
  PLAN.days.forEach(d=>{ if(dn[d.id]) return; const dt=(prev[d.id]&&prev[d.id]._date)||'';
   if(id===null||dt<at){ id=d.id; at=dt; } });
  return id; }
-/* A swap that resolves to a real exercise has its group; an alt:: name falls
-   back to the slot's own exercise when there is one. */
-function groupFor(k,exId){ return groupOf(k)||(exId&&LIB[exId]?LIB[exId].g:null); }
-/* Planned working sets per group across the plan (every day once), or for
+/* What a history key trains, as {muscle: weight} (see MUSCLES in 10-lib):
+   its library entry's m, or for a custom exercise without one, the default
+   for its coarse group. An alt:: name has no entry of its own, so it counts
+   as the slot's exercise when there is one (exId), else as the library
+   exercise that lists it as an alternative. null when nothing fits. */
+function musclesOf(id){ const L=LIB[id]; return L?(L.m||MUSCLE_DEFAULT[L.g]||null):null; }
+function musclesFor(k,exId){
+ if(k.indexOf('::')<0) return musclesOf(k)||(exId?musclesOf(exId):null);
+ if(exId&&LIB[exId]) return musclesOf(exId);
+ const s=k.slice(k.indexOf('::')+2), base=Object.keys(LIB).find(id=>(LIB[id].alts||[]).some(a=>slug(a)===s));
+ return base?musclesOf(base):null; }
+/* Adds n sets of key k to a {muscle: sets} tally, weighted by musclesFor. */
+function addSets(g,k,exId,n){ const m=musclesFor(k,exId); if(!m||!n) return;
+ Object.keys(m).forEach(mu=>{ g[mu]=(g[mu]||0)+n*m[mu]; }); }
+/* Fractional set counts for display: halves stay (7.5), the rest is rounded. */
+function fmtSets(n){ return String(Math.round(n*2)/2); }
+function muscleName(g){ return MUSCLES[g]||g; }
+/* Planned working sets per muscle across the plan (every day once), or for
    one day when onlyDay is given. Today-only extras don't count. */
 function plannedByGroup(onlyDay){ const g={};
  PLAN.days.forEach(d=>{ if(onlyDay&&d.id!==onlyDay) return; d.items.forEach(it=>{ if(it.extra) return;
-  const gr=groupFor(hkey(it.ex,swaps[it.ex]||null),it.ex); if(gr) g[gr]=(g[gr]||0)+it.sets; }); });
+  addSets(g,hkey(it.ex,swaps[it.ex]||null),it.ex,it.sets); }); });
  return g; }
 /* The plan editor's weekly view: [{g, n, day}] -- each group's sets a week
    across the whole plan, and how many of them come from the day being
@@ -1648,13 +1674,10 @@ function plannedSetsFor(k){ let n=0;
 /* Working sets per group logged in [from, to), plus the live session(s) when
    live is set. */
 function setsByGroup(from,to,live){ const g={};
- Object.keys(hist).forEach(k=>{ const gr=groupOf(k); if(!gr) return;
-  (hist[k]||[]).forEach(e=>{ if(e.date<from||e.date>=to) return;
-   const n=Array.isArray(e.sets)&&e.sets.length?e.sets.filter(s=>s.t!=='warm').length:plannedSetsFor(k);
-   g[gr]=(g[gr]||0)+n; }); });
+ Object.keys(hist).forEach(k=>(hist[k]||[]).forEach(e=>{ if(e.date<from||e.date>=to) return;
+  addSets(g,k,null,Array.isArray(e.sets)&&e.sets.length?e.sets.filter(s=>s.t!=='warm').length:plannedSetsFor(k)); }));
  if(live) liveDays().forEach(id=>Object.keys(cur[id]||{}).forEach(exId=>{
-  const gr=groupFor(hkey(exId,swaps[exId]||null),exId); if(!gr) return;
-  const n=(cur[id][exId]||[]).filter(x=>x&&x.done&&x.t!=='warm').length; if(n) g[gr]=(g[gr]||0)+n; }));
+  addSets(g,hkey(exId,swaps[exId]||null),exId,(cur[id][exId]||[]).filter(x=>x&&x.done&&x.t!=='warm').length); }));
  return g; }
 /* [{g, done, planned}] for every group the plan trains, least-covered first. */
 function weekBalance(from,to,live){ const p=plannedByGroup(), s=setsByGroup(from,to,live);
@@ -1691,10 +1714,11 @@ function checkin(){ const to=mondayISO(), from=addDays(to,-7);
  const sessions=allSessionDates().filter(x=>x>=from&&x<to).length;
  return {from,sessions,target:WEEKTARGET,balance:weekBalance(from,to,false),
   neglected:neglected(10),stuck:stuckLifts(),gain:bestGain(from,to)}; }
+/* r.flag is optional HTML after the name (Progress adds "⚠ 9d ago"). */
 function balanceRows(rows){
  return rows.map(r=>{ const pct=Math.min(100,Math.round(r.done/r.planned*100));
-  return '<div class="bal'+(r.done<r.planned/2?' low':'')+'"><span class="nm">'+r.g+'</span>'+
-   '<span class="bar"><i style="width:'+pct+'%"></i></span><span class="n">'+r.done+' / '+r.planned+'</span></div>'; }).join(''); }
+  return '<div class="bal'+(r.done<r.planned/2?' low':'')+'"><span class="nm">'+muscleName(r.g)+(r.flag||'')+'</span>'+
+   '<span class="bar"><i style="width:'+pct+'%"></i></span><span class="n">'+fmtSets(r.done)+' / '+fmtSets(r.planned)+'</span></div>'; }).join(''); }
 function checkinBody(C){
  let h='<div class="ck-sub">'+C.sessions+' of '+C.target+' sessions · working sets vs the plan</div>'+balanceRows(C.balance);
  if(C.neglected.length) h+='<div class="ck-line warn">Not done lately: '+C.neglected.slice(0,4).map(n=>n.nm+' ('+(n.days===null?'never':n.days+' days')+')').join(', ')+'</div>';
@@ -1710,17 +1734,23 @@ function checkinCard(){
  c.innerHTML='<div class="ck-head"><b>Last week</b><button class="ck-ok">Got it</button></div>'+checkinBody(checkin());
  c.querySelector('.ck-ok').addEventListener('click',async()=>{ checkinSeen=mon; await Store.set('gt4_checkin',mon); render(); });
  return c; }
+/* Rows of weekBalance still owed at least one whole set this week, most left
+   first -- half a set left from a helper muscle isn't worth a chip. */
+function todoRows(rows){ return rows.filter(r=>r.planned-r.done>=1).sort((a,b)=>(b.planned-b.done)-(a.planned-a.done)); }
+/* The strip shows this many muscles; the rest fold into "+N more" so it
+   stays one or two lines on the workout screen. Progress has the full list. */
+const TODO_MAX=4;
 /* "Still to do this week": planned sets left per group, most left first, and
    a nudge when today's session has nothing for the group furthest behind. */
 function todoStrip(d){
  if(!allSessionDates().length) return null;
- const mon=mondayISO(), rows=weekBalance(mon,addDays(mon,7),true).filter(r=>r.done<r.planned)
-  .sort((a,b)=>(b.planned-b.done)-(a.planned-a.done));
+ const mon=mondayISO(), rows=todoRows(weekBalance(mon,addDays(mon,7),true));
  const c=document.createElement('div'); c.className='todo';
  if(!rows.length){ c.innerHTML='<span class="lbl">This week</span><span class="chip ok">Every planned set done ✓</span>'; return c; }
- const g=rows[0].g, hasG=d.items.some(it=>!it.skip&&groupFor(hkey(it.ex,swaps[it.ex]||null),it.ex)===g);
- c.innerHTML='<span class="lbl">Still to do this week</span>'+rows.map((r,i)=>'<span class="chip'+(i?'':' top')+'">'+r.g+' '+(r.planned-r.done)+'</span>').join('')+
-  (hasG?'':'<span class="nudge">Nothing for '+g+' today — add one with + Add an exercise</span>');
+ const g=rows[0].g, hasG=d.items.some(it=>!it.skip&&(musclesFor(hkey(it.ex,swaps[it.ex]||null),it.ex)||{})[g]);
+ c.innerHTML='<span class="lbl">Still to do this week</span>'+rows.slice(0,TODO_MAX).map((r,i)=>'<span class="chip'+(i?'':' top')+'">'+muscleName(r.g)+' '+fmtSets(r.planned-r.done)+'</span>').join('')+
+  (rows.length>TODO_MAX?'<span class="chip more">+'+(rows.length-TODO_MAX)+' more</span>':'')+
+  (hasG?'':'<span class="nudge">Nothing for '+muscleName(g).toLowerCase()+' today — add one with + Add an exercise</span>');
  return c; }
 /* ============ CUES ============ */
 function openCue(exId){
@@ -2299,10 +2329,11 @@ function drawEdit(){
 function weekVolBlock(d){ const rows=plannedWeekRows(d.id); if(!rows.length) return '';
  const max=Math.max(WEEK_BAND[1],...rows.map(r=>r.n)), pct=v=>Math.round(Math.min(100,v/max*100)*10)/10;
  const band='<s style="left:'+pct(WEEK_BAND[0])+'%;width:'+(pct(WEEK_BAND[1])-pct(WEEK_BAND[0]))+'%"></s>';
- return '<h5>Sets per muscle group, per week</h5>'+rows.map(r=>'<div class="bal wk"><span class="nm">'+r.g+'</span>'+
+ return '<h5>Sets per muscle group, per week</h5>'+rows.map(r=>'<div class="bal wk"><span class="nm">'+muscleName(r.g)+'</span>'+
    '<span class="bar">'+band+'<i style="width:'+pct(r.n)+'%"></i><b style="width:'+pct(r.day)+'%"></b></span>'+
-   '<span class="n">'+r.n+'</span></div>').join('')+
-  '<div class="note">Your whole plan with every day done once. The darker part of each bar comes from '+d.name+
+   '<span class="n">'+fmtSets(r.n)+'</span></div>').join('')+
+  '<div class="note">Your whole plan with every day done once. A set counts fully for the main muscle and half for '+
+  'a muscle that helps (a bench set is half a set for triceps and shoulders). The darker part of each bar comes from '+d.name+
   '. The shaded band is '+WEEK_BAND[0]+'–'+WEEK_BAND[1]+' sets a week, a common range for building muscle — fewer is fine while you build the habit.</div>'; }
 function savePlan(){ Store.set('gt4_plan',PLAN); mirrorHash(); }
 function sameDays(a,b){ return JSON.stringify(a)===JSON.stringify(b); }
