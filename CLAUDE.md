@@ -131,7 +131,8 @@ One script scope; later modules call earlier ones. `src/js/`:
 (gym / home) → `58-coach` → `59-effort` → `60-progress` → `61-week` (sets per
 muscle group, check-in, still-to-do strip, days done this week) → `62-cues` →
 `63-compare` (Progress "How you're doing": span vs the span before) → `64-swap` →
-`66-plates` → `68-chart` → `70-editor` → `72-routines` → `74-theme` → `76-data`
+`66-plates` → `67-histedit` (editing past sets) → `68-chart` → `70-editor` →
+`72-routines` → `74-theme` → `76-data`
 (export/import) → `78-onthefly` (today-only extras, skips) → `80-bodyweight` →
 `82-summary` → `84-autobackup` → `86-actions` (finish) → `90-migrate` → `99-boot`.
 New module: pick a free number, end the file with a newline.
@@ -176,6 +177,15 @@ New module: pick a free number, end the file with a newline.
 - **History entries**: `{date, top, reps, vol, sets}`. `sets` (every ticked set as
   `{w, r, t?}`, warm-ups included and flagged) exists from 2026-09-23 on; older
   entries only have the top set, so every reader must fall back to `top`/`reps`.
+  When an entry has `sets`, `top`/`reps`/`vol` are derived: `entryFromSets(sets)`
+  is the only rule, used by `doNewSession()` and by every edit in `67-histedit`
+  (`histEditSet`, `histToggleWarm`, `histDeleteSet`). Never write `top`/`reps` on
+  such an entry directly. Only entries without `sets` are edited by their top set
+  (`histEditTop`). An edit never leaves a session without a working set; deleting
+  its only set deletes the session.
+- **Session note**: one per date in `sessNotes` (`gt4_sessnote`, `sessNotes` in
+  backups), typed on the summary sheet beside the effort rating. Stored as typed and
+  shown through `escHTML()`, unlike exercise names, which are stripped at input.
 - **Rep ranges**: `it.reps` is the top of the range per set, `it.lo` the bottom.
   `lo` is optional — `loFor(it)` defaults it from the top (10 → 8, 12 → 8,
   15 → 12, else ~¾), which is the migration for every pre-2026-10-07 plan, so
@@ -272,8 +282,10 @@ in-memory fallback, so each `load()` is a clean slate. Sandbox values have their
 own prototypes — compare with `deq()` (JSON round-trip) not `assert.deepEqual`.
 Coverage: migration, PB detection, volume/trend/1RM, the coach, the finish-session
 flow, backup round-trip, presets, gym/home, effort, supersets, warm-ups, the chart
-(ranges, metrics, since-you-started), the build, the server and the launcher. Add a
-test whenever you touch any of those.
+(ranges, metrics, since-you-started), muscles and the weekly views, history editing,
+the per-set CSV, the session note, the build, the server and the launcher. Add a
+test whenever you touch any of those, and write it first when the change touches
+stored history.
 
 The suite doesn't render anything, so still serve and click through after a UI
 change: log a set, swap an exercise, edit the plan, create a custom exercise,
@@ -307,8 +319,9 @@ in phases:
    then-vs-now line. *Done 2026-10-14.*
 2. **Design plans with feedback:** weekly sets per muscle group in the editor,
    then finer muscle groups with secondary muscles. *Done 2026-10-14.*
-3. **Fix the record** (next): per-set history editing, per-set CSV, and a session note.
-4. **Motivation over months:** a training calendar, muscle-group sets over
+3. **Fix the record:** per-set history editing, per-set CSV, and a session note.
+   *Done 2026-10-14.*
+4. **Motivation over months** (next): a training calendar, muscle-group sets over
    time, and milestones with a monthly report.
 
 Work through it in that order. Each item says which code it touches, its tests,

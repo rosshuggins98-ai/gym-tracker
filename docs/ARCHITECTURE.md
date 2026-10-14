@@ -68,6 +68,7 @@ legacy weights. So a new preset shows real numbers from its first session.
 | `gt4_place` | `'gym'` or `'home'`, where today's session is; stays on the last pick. In backups (`place`) |
 | `gt4_effort` | `{date: 'easy'\|'solid'\|'hard'\|'off'}`, one rating per session date. In backups (`effort`) |
 | `gt4_homeswaps` | `{exId: altName}`, swaps chosen at home (`''` = keep the planned exercise); the gym map stays in `gt4_swaps`. In backups (`homeSwaps`) |
+| `gt4_sessnote` | `{date: text}`, one short note per session date (≤140 chars, stored as typed, escaped when shown). In backups (`sessNotes`); a backup without it loads with none |
 | `gt4_active`, `gt4_theme` | UI state |
 
 ## Storage modes

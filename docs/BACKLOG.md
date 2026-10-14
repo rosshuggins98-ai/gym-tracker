@@ -13,34 +13,9 @@ gym and home**; **no 4th day planned**, so the day editor stays parked.
 Phases 1, 2 and 4 are UI only and don't change stored data. Phase 3 changes
 stored history, so write its tests first.
 
-Phase 0 (docs), Phase 1 (items 1–3, the chart sheet) and Phase 2 (items 4–5,
-plan design and muscle groups) are done: see "Done". **Next is Phase 3, item 6.**
-Before it, consider backlog F (copying backups off the phone): Phase 3 is the
-first work that changes stored history.
-
-### Phase 3: fix the record (changes stored history: tests first)
-
-6. **Edit individual past sets** (was the loose end "History editing only edits
-   the top set"). On the chart sheet, a history row expands to its `sets`, where a
-   set's kg and reps can be edited, the set deleted, or toggled as a warm-up. Add
-   one pure function, `entryFromSets(sets)` → `{top, reps, vol}`, working sets
-   only, ties going to more reps (the same rules as `topWithReps()` and
-   `exVolume()`). Use it in both the editor and `doNewSession()`, so the two can't
-   drift. Entries without `sets` (before 2026-09-23) keep today's top/reps
-   editing. Deleting the last set deletes the entry.
-   Tests: for the same sets, the rebuilt entry matches what `doNewSession()`
-   writes; warm-ups are excluded; old entries are untouched; backup round-trip.
-7. **Per-set CSV** (was the loose end "CSV export has no per-set data"). Add a
-   second export, "CSV, every set": one row per set with date, exercise, set number,
-   kg, reps, type and place. Leave the current CSV unchanged. Entries without
-   `sets` export their top set as one row.
-   Test: row count equals sets logged, plus one per old entry.
-8. **Session note** (from section E). A text box on the summary sheet beside the
-   effort rating, one note per date, stored in `gt4_sessnote` as `{date: text}`.
-   Cap it at ~140 characters and strip it like `cleanName()`, because it renders
-   through innerHTML. Show it on chart history rows and in "Where you trained".
-   Add it to `backup()`/`applyImport()` and the ARCHITECTURE key table, with a
-   round-trip test. Re-run `autoBackup()` after an edit, as the effort rating does.
+Phases 0–3 are done (items 0–8): see "Done". **Next is Phase 4, item 9.**
+Backlog F (copying backups off the phone) is still unscheduled. It was raised with
+Ross on 2026-10-14, and he chose to go straight to Phase 3.
 
 ### Phase 4: motivation over months
 
@@ -104,7 +79,7 @@ first work that changes stored history.
 - **Reps in reserve (RIR) on the last set** as an optional alternative. A more
   precise signal, but it's another tap per exercise, so only add it if the
   effort rating proves too coarse.
-- Short session note: now item 8.
+- ~~Short session note~~: done 2026-10-14 as item 8 (see "Done").
 
 ## F. Data safety
 
@@ -116,8 +91,8 @@ first work that changes stored history.
 
 ## Loose ends from A and B
 
-- Per-set CSV: now item 7.
-- Per-set history editing: now item 6.
+- ~~Per-set CSV~~: done 2026-10-14 as item 7.
+- ~~Per-set history editing~~: done 2026-10-14 as item 6.
 - **"vs last time" in the session summary** still compares against `prev` (the
   last session on that day). It could compare set by set from history instead,
   which also works when the exercise was last done on a different day.
@@ -177,7 +152,7 @@ first work that changes stored history.
 - 2026-10-08: **Effort rating.** Easy / Solid / Hard / Off day on the summary
   sheet, per date; off-day sessions are left out of the coach's judgement (no
   "drop back" or stall from a bad day). Shown on chart history rows and in
-  "Where you trained". The session note is now item 8.
+  "Where you trained". The session note followed on 2026-10-14 (item 8).
 - 2026-10-08: **Home kit.** At home each planned exercise that needs gym kit is
   swapped for a dumbbells-and-bench one (gym swap if it works at home, else a
   preferred stand-in, else the first workable alt); picks made at home stay
@@ -203,3 +178,13 @@ first work that changes stored history.
   (helpers at .5), custom defaults by group, `alt::` keys inherit; the week
   balance, check-in, still-to-do strip (now capped at four plus "+N more"),
   Progress and the editor all count muscles. Balance rows line up.
+- 2026-10-14 `2b3eadb`: **Item 6, edit past sets.** A session's top set on the chart
+  sheet opens its sets: edit kg/reps, mark a warm-up, delete. Top/reps/vol are
+  rebuilt by `entryFromSets()`, which finishing a session uses too; the last working
+  set can't go; older sessions keep top-set editing (`67-histedit.js`).
+- 2026-10-14 `ee21cf5`: **Item 7, per-set CSV.** "Export every set to spreadsheet"
+  in the Data panel; the per-session CSV is unchanged.
+- 2026-10-14 `59abf3a`: **Item 8, session note.** On the summary sheet, per date
+  (`gt4_sessnote`, in backups), shown on chart rows and in "Where you trained".
+  Escaped when shown rather than stripped like `cleanName()` (the plan's
+  wording), so apostrophes survive.
