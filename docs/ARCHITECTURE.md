@@ -4,12 +4,20 @@
 
 ```js
 PLAN = { name, startedISO, days: [ { id, name, tag, av, warm, items:[ {ex, sets, reps[], lo?, wu?, rest?, super?} ] } ] }
-LIB  = { exerciseId: { n, g: group, alts: [...], c: [form cues], custom?: true } }
+LIB  = { exerciseId: { n, g: group, m?: {muscle: 1|.5}, alts: [...], c: [form cues], custom?: true } }
 ```
 
 `reps[]` is the top of the rep range per set and `lo` the bottom (absent: a default
 from the top, see `loFor()`); `wu` is the number of warm-up rows shown above set 1,
 which are not planned sets.
+
+`g` is the coarse group (Chest / Back / Shoulders / Arms / Legs, or Other for a
+custom exercise), used to sort lists. `m` is what the exercise trains, keyed by
+`MUSCLES` ids (chest, back, shoulders, biceps, triceps, quads, hamstrings, glutes,
+calves): 1 for the main muscle, .5 for a helper. Every built-in entry has one;
+custom exercises don't (nothing stored changed when `m` arrived), so
+`musclesFor()` gives them `MUSCLE_DEFAULT[g]`, and gives an `alt::` key the
+muscles of the slot's exercise, or of the library exercise that lists it.
 
 The plan references exercises by id. **All logged data is keyed by exercise id**, so
 moving an exercise between days, reordering, removing, or re-adding preserves

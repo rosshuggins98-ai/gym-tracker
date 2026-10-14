@@ -205,9 +205,17 @@ New module: pick a free number, end the file with a newline.
   taps per set stays), but a slot only gets `rt` once its reps are typed or
   stepped. Without it the row is flagged, and `finishChecks()` lists untyped sets
   and exercises identical to their last entry on the finish sheet.
-- **Week balance** (`61-week`): working sets per muscle group against the plan's
+- **Week balance** (`61-week`): working sets per muscle against the plan's
   weekly sets (every day once), not kg. Only plan days count from `cur`
   (`liveDays()`) — a previous plan's unfinished sets stay in `cur` indefinitely.
+  Muscles come from `musclesFor(k, exId)`: `LIB[id].m` (1 for the main muscle,
+  .5 for a helper), a custom exercise's `MUSCLE_DEFAULT[g]`, and for an `alt::`
+  key the slot's exercise or the library exercise that lists it. Counts are
+  fractional; show them with `fmtSets()` and names with `muscleName()`. The coarse
+  `g` only sorts lists. Every tally goes through `addSets()`, so a new view
+  should too. The same model feeds the plan editor's weekly block
+  (`weekVolBlock`), the still-to-do strip (four muscles, then "+N more") and
+  Progress.
 - **Gym / home** (`57-place`): `PLACE` (`gt4_place`, in backups) is where today's
   session is and stays on whatever was picked last. Finishing stamps `at` on each
   history entry and `_at` on `prev`; no `at` means gym (everything before
@@ -297,9 +305,9 @@ in phases:
 0. Tidy the docs. *Done 2026-10-14.*
 1. **See your progress:** chart ranges spaced by date, a metric switch, and a
    then-vs-now line. *Done 2026-10-14.*
-2. **Design plans with feedback** (next): weekly sets per muscle group in the editor,
-   then finer muscle groups with secondary muscles.
-3. **Fix the record:** per-set history editing, per-set CSV, and a session note.
+2. **Design plans with feedback:** weekly sets per muscle group in the editor,
+   then finer muscle groups with secondary muscles. *Done 2026-10-14.*
+3. **Fix the record** (next): per-set history editing, per-set CSV, and a session note.
 4. **Motivation over months:** a training calendar, muscle-group sets over
    time, and milestones with a monthly report.
 

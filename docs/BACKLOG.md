@@ -13,32 +13,10 @@ gym and home**; **no 4th day planned**, so the day editor stays parked.
 Phases 1, 2 and 4 are UI only and don't change stored data. Phase 3 changes
 stored history, so write its tests first.
 
-Phase 0 (docs) and Phase 1 (items 1–3, the chart sheet) are done: see "Done".
-**Next is Phase 2, item 4.**
-
-### Phase 2: design plans with feedback
-
-4. **Weekly sets per muscle group in the plan editor.** `70-editor.js`. Under the
-   per-session `volNote`, add bars in the `balanceRows()` style from
-   `plannedByGroup()` (the whole plan, every day once), redrawn on every edit. This
-   is guidance only, with no enforced target. A reference band (~10–20 sets per
-   group per week, as Fitbod uses) may be shown as guidance.
-   Done when: changing sets on one day updates the weekly numbers at once.
-5. **Finer muscle groups, with secondary muscles** (from section D). `10-lib.js`:
-   add `m` to every `LIB` entry, e.g. dumbbell bench `{chest:1, triceps:.5,
-   shoulders:.5}`. Groups: chest, back, shoulders, biceps, triceps, quads,
-   hamstrings, glutes, calves. Keep `g` for coarse views. Custom exercises
-   (`gt4_custom`) get a default `m` from their `g` when read, so no stored data
-   changes. Swap alternates under `alt::` keys take the slot's exercise, as
-   `groupFor()` already does for `g`. Then move week balance, the check-in, the
-   still-to-do strip and item 4 to fine groups, counting secondary muscles as
-   fractional sets (rounded for display).
-   Tests: every `LIB` entry has `m` with one primary at 1; the custom default;
-   fractional sums. On each day of `BEGINNER_PLAN()`, built on the rule of one
-   quad-led and one hamstring-led lift per day (`docs/TRAINING-PLAN.md`), both
-   quads and hamstrings come out above 0.
-   Risk: numbers change on several screens at once, so check the check-in card and
-   the strip by eye.
+Phase 0 (docs), Phase 1 (items 1–3, the chart sheet) and Phase 2 (items 4–5,
+plan design and muscle groups) are done: see "Done". **Next is Phase 3, item 6.**
+Before it, consider backlog F (copying backups off the phone): Phase 3 is the
+first work that changes stored history.
 
 ### Phase 3: fix the record (changes stored history: tests first)
 
@@ -94,8 +72,9 @@ Phase 0 (docs) and Phase 1 (items 1–3, the chart sheet) are done: see "Done".
   needs a fallback for them (`workSets(e)` in `58-coach.js` already does this).
 - Only ticked sets are recorded, and warm-ups are kept but flagged `t:'warm'`.
 - Bodyweight is logged per day (`bodyweight`, `80-bodyweight.js`).
-- Muscle groups are coarse: `LIB[id].g` is one of Chest / Back / Shoulders / Arms /
-  Legs (custom exercises can also use Other). Item 5 adds finer ones.
+- Muscles: `musclesFor(k, exId)` gives `{muscle: 1|.5}` for any history key
+  (nine muscles, helpers at half). `LIB[id].g` is still the coarse group for
+  sorting lists.
 
 ## C. The long view
 
@@ -116,8 +95,8 @@ Phase 0 (docs) and Phase 1 (items 1–3, the chart sheet) are done: see "Done".
 
 - ~~Hard sets per muscle per week~~: done 2026-10-07 against the plan's own
   weekly sets rather than a fixed 10–20 range (see "Done").
-- Finer muscle groups with secondary muscles, and `alt::` keys inheriting the
-  slot's group: now item 5.
+- ~~Finer muscle groups with secondary muscles, and `alt::` keys inheriting the
+  slot's group~~: done 2026-10-14 as item 5 (see "Done").
 
 ## E. Context on sessions
 
@@ -217,3 +196,10 @@ Phase 0 (docs) and Phase 1 (items 1–3, the chart sheet) are done: see "Done".
   lifts chart reps; tiles are best, latest and change; the dashed 1RM line is gone.
 - 2026-10-14 `b9f2db2`: **Item 3, since you started.** Compare's "All time" row
   for the lift, shown above its chart (`liftThenNow()` shared by both).
+- 2026-10-14 `7448285`: **Item 4, weekly sets in the plan editor.** Bars per
+  muscle for the whole plan, redrawn on every edit, the edited day's share darker,
+  a 10–20 sets guidance band behind.
+- 2026-10-14 `8373985`: **Item 5, nine muscle groups.** `LIB[id].m` on every entry
+  (helpers at .5), custom defaults by group, `alt::` keys inherit; the week
+  balance, check-in, still-to-do strip (now capped at four plus "+N more"),
+  Progress and the editor all count muscles. Balance rows line up.
