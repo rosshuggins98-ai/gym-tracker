@@ -105,6 +105,7 @@ function openProgress(){
    (wk>=3?'Three this week — that is the target hit.':wk===2?'One more this week hits the target.':
     wk===1?'Two more this week hits the target.':'Nothing logged this week yet.')+'</div>'+
    '<div class="note">This week: <b>'+weekVolume()+'kg</b> total volume moved (working sets only).</div>';
+  h+='<div id="calBox">'+calendarBlock()+'</div>';
   h+='<h5>How you\'re doing</h5><div id="cmpBox">'+compareBlock()+'</div>';
   const pbs=recentPBs(6);
   if(pbs.length){
@@ -134,7 +135,7 @@ function openProgress(){
  if(ds.length) h+='<div id="placeBox">'+placeBlock()+'</div>';
  h+='<div class="hr"></div>'+bodyweightBlock();
  document.getElementById('progBody').innerHTML=h;
- wireBodyweight(openProgress); wireCompare(); wirePlace();
+ wireBodyweight(openProgress); wireCompare(); wirePlace(); wireCalendar();
  document.getElementById('progbg').classList.add('show');
 }
 function closeProgress(){ document.getElementById('progbg').classList.remove('show'); }
