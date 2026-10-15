@@ -700,7 +700,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-10-15b";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-10-15c";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -824,6 +824,19 @@ function slot(dId,exId,i,t){ if(!cur[dId])cur[dId]={}; if(!cur[dId][exId])cur[dI
   if(t==='warm') cur[dId][exId][i].t='warm';
  }
  return cur[dId][exId][i]; }
+/* Once a working set is ticked, the sets after it take its weight, so a
+   weight changed once carries through the exercise (asked for 2026-10-15).
+   Ticked sets, weights typed or stepped by hand (wt), warm-up rows and drop
+   sets keep theirs; nothing carries from a warm-up row or a drop set. n is
+   how many rows are on screen (a slot left over from an older plan is not).
+   Returns the row indexes that changed. */
+function carryWeight(dId,exId,ri,n){ const a=(cur[dId]&&cur[dId][exId])||[], x=a[ri], out=[];
+ if(!x||!x.done||x.t==='warm'||x.t==='drop'||String(x.w==null?'':x.w).trim()==='') return out;
+ const end=Math.min(a.length,n==null?a.length:n);
+ for(let j=ri+1;j<end;j++){ const y=a[j];
+  if(!y||y.done||y.wt||y.t==='warm'||y.t==='drop'||y.w===x.w) continue;
+  y.w=x.w; out.push(j); }
+ return out; }
 /* A ticked working set whose reps were never typed or stepped (s.rt) is the
    prefill or the target, not a count -- flagged on screen and at finish. */
 function repsUnconfirmed(x){ return !!(x&&x.done&&x.t!=='warm'&&!x.rt); }
@@ -1117,7 +1130,7 @@ function card(it,d,idx){
    '<button class="tick'+(x.done?' on':'')+'">'+I.tick+'</button>';
   const wI=row.querySelector('[data-k="w"]'),rI=row.querySelector('[data-k="r"]'),tk=row.querySelector('.tick');
   const markTyped=y=>{ if(!y.rt){ y.rt=true; row.classList.remove('unconf'); row.querySelectorAll('.last')[1].textContent=''; } };
-  wI.addEventListener('input',()=>{ slot(d.id,exId,ri).w=wI.value; queueSave(); pills(c,it,d); });
+  wI.addEventListener('input',()=>{ const y=slot(d.id,exId,ri); y.w=wI.value; y.wt=true; queueSave(); pills(c,it,d); });
   wI.addEventListener('blur',flush);
   rI.addEventListener('input',()=>{ const y=slot(d.id,exId,ri); y.r=rI.value; markTyped(y); queueSave(); });
   rI.addEventListener('blur',flush);
@@ -1127,12 +1140,15 @@ function card(it,d,idx){
     let v=parseFloat(f==='w'?y.w:y.r); if(isNaN(v))v=0;
     v=Math.max(0,Math.round((v+delta)*100)/100);
     const sv=f==='w'?String(v):String(Math.round(v));
-    if(f==='w'){ y.w=sv; wI.value=sv; } else { y.r=sv; rI.value=sv; markTyped(y); }
+    if(f==='w'){ y.w=sv; wI.value=sv; y.wt=true; } else { y.r=sv; rI.value=sv; markTyped(y); }
     queueSave(); flush(); pills(c,it,d);
    });
   });
   tk.addEventListener('click',()=>{ const y=slot(d.id,exId,ri); y.done=!y.done; tk.classList.toggle('on',y.done);
-   if(y.done) noteTick(d.id);
+   if(y.done){ noteTick(d.id);
+    /* the sets after this one take its weight (carryWeight), on screen too */
+    const wIs=s.querySelectorAll('.set [data-k="w"]');
+    carryWeight(d.id,exId,ri,wu+reps.length).forEach(j=>{ if(wIs[j]) wIs[j].value=cur[d.id][exId][j].w; }); }
    if(y.done&&!y.r&&tt&&tt!=='max'){ y.r=String(tt); rI.value=tt; }
    row.classList.toggle('unconf',repsUnconfirmed(y)); row.querySelectorAll('.last')[1].textContent=repsUnconfirmed(y)?'not typed':'';
    if(y.done){ const sec=restAfter(d,idx); if(sec) restStart(sec); else restCue(vName(partner.ex,swaps[partner.ex]||null)); }
@@ -1263,11 +1279,11 @@ let PLACE='gym';
 function placeOf(e){ return e&&e.at==='home'?'home':'gym'; }
 /* Switching place swaps the plan to the home kit or back (see below), and
    re-prefills the active day's untouched sets (not ticked,
-   reps not typed), so the "last" weights come from the right place. */
+   reps and weight not typed), so the "last" weights come from the right place. */
 async function setPlace(p){ if(!PLACES[p]||p===PLACE) return;
  if(p==='home'){ PLACE=p; enterPlace(); } else { PLACE=p; swaps=gymSwaps; }
  const c=cur[ACTIVE];
- if(c) Object.keys(c).forEach(exId=>{ (c[exId]||[]).forEach((x,i)=>{ if(x&&!x.done&&!x.rt) c[exId][i]=null; }); });
+ if(c) Object.keys(c).forEach(exId=>{ (c[exId]||[]).forEach((x,i)=>{ if(x&&!x.done&&!x.rt&&!x.wt) c[exId][i]=null; }); });
  /* a workout under way today moves with the switch; one left from another
     day stays where it was trained */
  PLAN.days.forEach(d=>{ if(sessionStart[d.id]&&ticked(d.id)&&sessionDate(d.id)===today()) sessionAt[d.id]=PLACE; });

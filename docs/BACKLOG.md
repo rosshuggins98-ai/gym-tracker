@@ -206,3 +206,6 @@ below.
   - A workout still unsaved on a later day gets a card: "Save as <date>", or
     Discard with a second tap.
   - Two finishes on one date now keep both sets of sets.
+- 2026-10-15: **Weight carries forward** (Ross asked).
+  - Ticking a set gives the sets after it its weight.
+  - A weight typed by hand, a warm-up row or a drop set keeps its own.

@@ -103,6 +103,19 @@ function slot(dId,exId,i,t){ if(!cur[dId])cur[dId]={}; if(!cur[dId][exId])cur[dI
   if(t==='warm') cur[dId][exId][i].t='warm';
  }
  return cur[dId][exId][i]; }
+/* Once a working set is ticked, the sets after it take its weight, so a
+   weight changed once carries through the exercise (asked for 2026-10-15).
+   Ticked sets, weights typed or stepped by hand (wt), warm-up rows and drop
+   sets keep theirs; nothing carries from a warm-up row or a drop set. n is
+   how many rows are on screen (a slot left over from an older plan is not).
+   Returns the row indexes that changed. */
+function carryWeight(dId,exId,ri,n){ const a=(cur[dId]&&cur[dId][exId])||[], x=a[ri], out=[];
+ if(!x||!x.done||x.t==='warm'||x.t==='drop'||String(x.w==null?'':x.w).trim()==='') return out;
+ const end=Math.min(a.length,n==null?a.length:n);
+ for(let j=ri+1;j<end;j++){ const y=a[j];
+  if(!y||y.done||y.wt||y.t==='warm'||y.t==='drop'||y.w===x.w) continue;
+  y.w=x.w; out.push(j); }
+ return out; }
 /* A ticked working set whose reps were never typed or stepped (s.rt) is the
    prefill or the target, not a count -- flagged on screen and at finish. */
 function repsUnconfirmed(x){ return !!(x&&x.done&&x.t!=='warm'&&!x.rt); }

@@ -102,7 +102,7 @@ function card(it,d,idx){
    '<button class="tick'+(x.done?' on':'')+'">'+I.tick+'</button>';
   const wI=row.querySelector('[data-k="w"]'),rI=row.querySelector('[data-k="r"]'),tk=row.querySelector('.tick');
   const markTyped=y=>{ if(!y.rt){ y.rt=true; row.classList.remove('unconf'); row.querySelectorAll('.last')[1].textContent=''; } };
-  wI.addEventListener('input',()=>{ slot(d.id,exId,ri).w=wI.value; queueSave(); pills(c,it,d); });
+  wI.addEventListener('input',()=>{ const y=slot(d.id,exId,ri); y.w=wI.value; y.wt=true; queueSave(); pills(c,it,d); });
   wI.addEventListener('blur',flush);
   rI.addEventListener('input',()=>{ const y=slot(d.id,exId,ri); y.r=rI.value; markTyped(y); queueSave(); });
   rI.addEventListener('blur',flush);
@@ -112,12 +112,15 @@ function card(it,d,idx){
     let v=parseFloat(f==='w'?y.w:y.r); if(isNaN(v))v=0;
     v=Math.max(0,Math.round((v+delta)*100)/100);
     const sv=f==='w'?String(v):String(Math.round(v));
-    if(f==='w'){ y.w=sv; wI.value=sv; } else { y.r=sv; rI.value=sv; markTyped(y); }
+    if(f==='w'){ y.w=sv; wI.value=sv; y.wt=true; } else { y.r=sv; rI.value=sv; markTyped(y); }
     queueSave(); flush(); pills(c,it,d);
    });
   });
   tk.addEventListener('click',()=>{ const y=slot(d.id,exId,ri); y.done=!y.done; tk.classList.toggle('on',y.done);
-   if(y.done) noteTick(d.id);
+   if(y.done){ noteTick(d.id);
+    /* the sets after this one take its weight (carryWeight), on screen too */
+    const wIs=s.querySelectorAll('.set [data-k="w"]');
+    carryWeight(d.id,exId,ri,wu+reps.length).forEach(j=>{ if(wIs[j]) wIs[j].value=cur[d.id][exId][j].w; }); }
    if(y.done&&!y.r&&tt&&tt!=='max'){ y.r=String(tt); rI.value=tt; }
    row.classList.toggle('unconf',repsUnconfirmed(y)); row.querySelectorAll('.last')[1].textContent=repsUnconfirmed(y)?'not typed':'';
    if(y.done){ const sec=restAfter(d,idx); if(sec) restStart(sec); else restCue(vName(partner.ex,swaps[partner.ex]||null)); }

@@ -252,6 +252,13 @@ New module: pick a free number, end the file with a newline.
   sets. They're a plan property (kept by `endOfSession` and `cleanDays`), so
   `prev` lines up row for row. Anything indexing working sets in `cur` must offset
   by `wuOf(it)`: `done`, `updateProgress`, `applyCoach`, `removeSet`.
+- **Weight carries forward** (2026-10-15, Ross asked): ticking a working set
+  gives the sets after it its weight (`carryWeight()`), on screen and in `cur`.
+  - Ticked sets, weights typed or stepped by hand (`wt` on the slot), warm-up
+    rows and drop sets keep their own weight.
+  - Nothing carries from a warm-up row or a drop set, which is why a lighter
+    build-up set belongs in the warm-up row.
+  - Only the rows on screen change.
 - **Unconfirmed reps**: ticking a set with empty reps still fills the target (two
   taps per set stays), but a slot only gets `rt` once its reps are typed or
   stepped. Without it the row is flagged, and `finishChecks()` lists untyped sets
