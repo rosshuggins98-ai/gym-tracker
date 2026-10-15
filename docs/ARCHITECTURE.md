@@ -52,7 +52,7 @@ legacy weights. So a new preset shows real numbers from its first session.
 | `gt4_barweight` | plate calculator's bar weight, kg (default 20) |
 | `gt4_notes` | `{historyKey: text}`, per-exercise persistent notes (machine settings, bench angle, grip width) |
 | `gt4_prev` | last completed session per day `{dayId: {exId: [{w,r,done,t?}], _date}}`, drives the "last" hint; `_date` (from 2026-09-16) ranks days when `lastSrc()` falls back to another day |
-| `gt4_hist` | `{historyKey: [{date, top, reps, vol?, sets?}]}` -- `vol` (sets x reps x kg, working sets only) is present from 2026-09-11 onward; older entries lack it and count as 0 toward volume stats rather than being guessed at. `sets` (every ticked set, `{w, r, t?}`) from 2026-09-23 |
+| `gt4_hist` | `{historyKey: [{date, top, reps, vol?, sets?, at?}]}`: one entry per lift per date, in date order (`addHistEntry`) -- `vol` (sets x reps x kg, working sets only) is present from 2026-09-11 onward; older entries lack it and count as 0 toward volume stats rather than being guessed at. `sets` (every ticked set, `{w, r, t?}`) from 2026-09-23 |
 | `gt4_dedupe1` | set once the one-off duplicate-session clean-up (`dropDupeDays`) has run |
 | `gt4_checkin` | Monday (ISO date) of the week whose check-in card was dismissed |
 | `gt4_monthseen` | `YYYY-MM` of the monthly review card last dismissed (UI state, like `gt4_checkin`; not in backups) |
@@ -63,7 +63,8 @@ legacy weights. So a new preset shows real numbers from its first session.
 | `gt4_legacylast` | weights recovered from older versions |
 | `gt4_warm` | warmup ticked, per day per date |
 | `gt4_bodyweight` | `[{date, kg}]`, one reading per day, sorted; logged from Progress or the post-session summary; in backup and CSV (as an exercise row named "Body weight") |
-| `gt4_start` | `{dayId: ms}`, when the first set of the in-progress session was ticked; only feeds the summary's minutes, cleared on finish |
+| `gt4_start` | `{dayId: ms}`, when the first set of the in-progress workout was ticked. It dates the workout when it is finished, flags it as unsaved on a later day (`85-unsaved`), and feeds the summary's minutes. Restarted when the only ticked set is a new one; cleared on finish or discard. Not in backups |
+| `gt4_startat` | `{dayId: 'gym'\|'home'}`, where that first set was ticked. A workout saved on a later day keeps this place and its swaps; one finished the same day uses the current place. Moves with a mid-workout place switch; cleared with `gt4_start`. Not in backups |
 | `gt4_autobackup` | `{date, file}` of the last successful POST to `/api/save` (see `serve.py`); shown in the Data panel |
 | `gt4_incs` | `{historyKey: kg}`, per-exercise weight jump overriding the kit default (`incFor()`); 0 = bodyweight, reps only. In backups (`incs`) |
 | `gt4_place` | `'gym'` or `'home'`, where today's session is; stays on the last pick. In backups (`place`) |

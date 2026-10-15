@@ -3,18 +3,19 @@
    PBs and "vs last time" compare against what was there, not what was just
    saved. Pure data in; showSummary() only renders it. */
 function summarise(d){
- const td=today(), c=cur[d.id]||{}, p=prev[d.id]||{};
+ const td=sessionDate(d.id), stale=td<today(), at=sessionPlace(d.id), sw=swapsFor(at), c=cur[d.id]||{}, p=prev[d.id]||{};
  let setsDone=0, setsPlanned=setCount(d), vol=0, prevVol=0; const pbs=[], tops=[];
  d.items.forEach(it=>{
-  const a=c[it.ex]||[], k=hkey(it.ex,swaps[it.ex]||null), nm=vName(it.ex,swaps[it.ex]||null);
+  const a=c[it.ex]||[], k=hkey(it.ex,sw[it.ex]||null), nm=vName(it.ex,sw[it.ex]||null);
   a.forEach(x=>{ if(x&&x.done&&x.t!=='warm') setsDone++; });
   vol+=exVolume(a); if(Array.isArray(p[it.ex])) prevVol+=exVolume(p[it.ex]);
   const e=topWithReps(d.id,it.ex);
   if(e){ tops.push({nm,top:e.top,reps:e.reps});
    const pb=pbCheck(d.id,it.ex,k); if(pb&&pb.kind!=='first') pbs.push({nm,kind:pb.kind,n:pb.n,top:e.top,reps:e.reps}); }
  });
- const start=sessionStart[d.id]||null;
- return {day:d.name+' — '+d.tag+(PLACE==='home'?' · at home':''),date:td,setsDone,setsPlanned,vol:Math.round(vol),prevVol:Math.round(prevVol),pbs,tops,
+ /* no duration for a workout saved on a later day */
+ const start=stale?null:(sessionStart[d.id]||null);
+ return {day:d.name+' — '+d.tag+(at==='home'?' · at home':''),date:td,setsDone,setsPlanned,vol:Math.round(vol),prevVol:Math.round(prevVol),pbs,tops,
   mins:start?Math.max(1,Math.round((Date.now()-start)/60000)):null};
 }
 function showSummary(S){

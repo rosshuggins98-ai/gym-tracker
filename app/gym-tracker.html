@@ -312,6 +312,11 @@
  .ck-sub{font-size:11.5px;color:var(--muted);font-weight:600;margin:3px 0 6px}
  .ck-line{font-size:12.5px;line-height:1.45;margin-top:7px;font-weight:600}
  .ck-line.warn{color:var(--warn)} .ck-line.good{color:var(--done)}
+ .checkin.unsaved{border-color:var(--warn)}
+ .uns+.uns{border-top:1px solid var(--line);margin-top:12px;padding-top:12px}
+ .ck-btns{display:flex;gap:8px;margin-top:10px} .ck-btns .ck-ok{flex:1;padding:9px 10px;font-size:12.5px}
+ .ck-btns .ck-save{background:var(--accent);border-color:var(--accent);color:var(--onfill)}
+ .ck-btns .ck-discard.armed{border-color:var(--warn);color:var(--warn)}
  .cmp-spans{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--card2);padding:4px;border-radius:11px;margin:4px 0 8px}
  .cmp-spans button{border:0;background:transparent;color:var(--muted);font-family:inherit;font-weight:700;font-size:12px;padding:8px 2px;border-radius:8px;cursor:pointer}
  .cmp-spans button.on{background:var(--accent);color:var(--onfill)}
@@ -695,7 +700,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-10-15a";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-10-15b";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -718,7 +723,8 @@ const Store=(function(){
 let PLAN=null, ACTIVE=null, THEME='dark', DIRTY=false;
 let cur={}, prev={}, hist={}, swaps={}, warmDone={}, notes={};
 let bodyweight=[];   /* [{date, kg}], one per day, sorted */
-let sessionStart={}; /* dayId -> ms of the first ticked set, for the summary's duration */
+let sessionStart={}; /* dayId -> ms of the first ticked set: the workout's date, and the summary's duration */
+let sessionAt={};    /* dayId -> where that first set was ticked (gym/home); see 85-unsaved */
 let WEEKTARGET=3;   /* sessions/week; configurable via the weekgoal strip, default matches the plan */
 
 function day(id){ return PLAN.days.filter(d=>d.id===id)[0]||PLAN.days[0]; }
@@ -1035,8 +1041,9 @@ function render(){
   await Store.set('gt4_weektarget',WEEKTARGET); render(); };
  const app=document.getElementById('app'); app.innerHTML='';
  app.appendChild(placeBar(d));
- /* one card at a time: last month's review first, then the weekly check-in */
- const ck=monthCard()||checkinCard(); if(ck) app.appendChild(ck);
+ /* one card at a time: a workout left unsaved on an earlier day first, then
+    last month's review, then the weekly check-in */
+ const ck=staleCard()||monthCard()||checkinCard(); if(ck) app.appendChild(ck);
  const td=todoStrip(d); if(td) app.appendChild(td);
  if(d.warm){
   const w=document.createElement('div'); w.className='warm'+(warmDone[d.id]===today()?' on':'');
@@ -1125,7 +1132,7 @@ function card(it,d,idx){
    });
   });
   tk.addEventListener('click',()=>{ const y=slot(d.id,exId,ri); y.done=!y.done; tk.classList.toggle('on',y.done);
-   if(y.done&&!sessionStart[d.id]){ sessionStart[d.id]=Date.now(); Store.set('gt4_start',sessionStart); }
+   if(y.done) noteTick(d.id);
    if(y.done&&!y.r&&tt&&tt!=='max'){ y.r=String(tt); rI.value=tt; }
    row.classList.toggle('unconf',repsUnconfirmed(y)); row.querySelectorAll('.last')[1].textContent=repsUnconfirmed(y)?'not typed':'';
    if(y.done){ const sec=restAfter(d,idx); if(sec) restStart(sec); else restCue(vName(partner.ex,swaps[partner.ex]||null)); }
@@ -1261,7 +1268,10 @@ async function setPlace(p){ if(!PLACES[p]||p===PLACE) return;
  if(p==='home'){ PLACE=p; enterPlace(); } else { PLACE=p; swaps=gymSwaps; }
  const c=cur[ACTIVE];
  if(c) Object.keys(c).forEach(exId=>{ (c[exId]||[]).forEach((x,i)=>{ if(x&&!x.done&&!x.rt) c[exId][i]=null; }); });
- await Store.set('gt4_place',PLACE); queueSave(); flush(); }
+ /* a workout under way today moves with the switch; one left from another
+    day stays where it was trained */
+ PLAN.days.forEach(d=>{ if(sessionStart[d.id]&&ticked(d.id)&&sessionDate(d.id)===today()) sessionAt[d.id]=PLACE; });
+ await Promise.all([Store.set('gt4_place',PLACE),Store.set('gt4_startat',sessionAt)]); queueSave(); flush(); }
 /* Every entry on a date, across all lifts, to one place. */
 async function tagDate(date,p){
  Object.keys(hist).forEach(k=>(hist[k]||[]).forEach(e=>{ if(e.date===date) e.at=p; }));
@@ -3001,18 +3011,19 @@ function wireBodyweight(rerender){
    PBs and "vs last time" compare against what was there, not what was just
    saved. Pure data in; showSummary() only renders it. */
 function summarise(d){
- const td=today(), c=cur[d.id]||{}, p=prev[d.id]||{};
+ const td=sessionDate(d.id), stale=td<today(), at=sessionPlace(d.id), sw=swapsFor(at), c=cur[d.id]||{}, p=prev[d.id]||{};
  let setsDone=0, setsPlanned=setCount(d), vol=0, prevVol=0; const pbs=[], tops=[];
  d.items.forEach(it=>{
-  const a=c[it.ex]||[], k=hkey(it.ex,swaps[it.ex]||null), nm=vName(it.ex,swaps[it.ex]||null);
+  const a=c[it.ex]||[], k=hkey(it.ex,sw[it.ex]||null), nm=vName(it.ex,sw[it.ex]||null);
   a.forEach(x=>{ if(x&&x.done&&x.t!=='warm') setsDone++; });
   vol+=exVolume(a); if(Array.isArray(p[it.ex])) prevVol+=exVolume(p[it.ex]);
   const e=topWithReps(d.id,it.ex);
   if(e){ tops.push({nm,top:e.top,reps:e.reps});
    const pb=pbCheck(d.id,it.ex,k); if(pb&&pb.kind!=='first') pbs.push({nm,kind:pb.kind,n:pb.n,top:e.top,reps:e.reps}); }
  });
- const start=sessionStart[d.id]||null;
- return {day:d.name+' — '+d.tag+(PLACE==='home'?' · at home':''),date:td,setsDone,setsPlanned,vol:Math.round(vol),prevVol:Math.round(prevVol),pbs,tops,
+ /* no duration for a workout saved on a later day */
+ const start=stale?null:(sessionStart[d.id]||null);
+ return {day:d.name+' — '+d.tag+(at==='home'?' · at home':''),date:td,setsDone,setsPlanned,vol:Math.round(vol),prevVol:Math.round(prevVol),pbs,tops,
   mins:start?Math.max(1,Math.round((Date.now()-start)/60000)):null};
 }
 function showSummary(S){
@@ -3114,6 +3125,56 @@ function sumBackupLine(file,o,now){
  return phone+(o.error?' Not on GitHub yet: '+escHTML(o.error):' GitHub copy still sending.'); }
 async function loadOffsiteNote(){ const o=await offsiteStatus(), el=document.getElementById('offsiteNote');
  if(el&&o){ el.innerHTML='<br><br>'+offsiteText(o); } return o; }
+/* ============ UNSAVED WORKOUTS ============
+   A workout is only saved when Finish is tapped. Until then its ticked sets
+   wait in cur[dayId], with sessionStart[dayId] (ms of the first tick) and
+   sessionAt[dayId] (where it was). Finishing dates the workout by that first
+   tick, not by the day Finish is tapped, and files it under the swaps of the
+   place it was trained. A workout still unsaved on a later day gets a card
+   on the workout screen: save it as that day, or discard it. (Found
+   2026-10-15: workouts closed without Finish were never saved, or were
+   saved days later under the wrong date.) */
+function tickedCount(dId){ return Object.values(cur[dId]||{}).reduce((n,a)=>n+(Array.isArray(a)?a.filter(x=>x&&x.done).length:0),0); }
+function ticked(dId){ return tickedCount(dId)>0; }
+function sessionDate(dId){ const t=sessionStart[dId], td=today();
+ if(!t||!ticked(dId)) return td;
+ const d=new Date(t).toISOString().slice(0,10); return d<td?d:td; }
+/* Where a workout from another day was trained; a workout from today is
+   wherever "Training at" says now, as it always was. */
+function sessionPlace(dId){ return (sessionDate(dId)<today()&&PLACES[sessionAt[dId]])?sessionAt[dId]:PLACE; }
+/* The swap map in force at a place, without switching to it -- so a home
+   workout saved at the gym is filed under the home exercises. */
+function swapsFor(p){ if(p===PLACE) return swaps;
+ if(p==='gym') return gymSwapMap();
+ const keep=gymSwaps; gymSwaps=gymSwapMap(); const m=homeSwapMap(); gymSwaps=keep; return m; }
+/* On every tick. The first ticked set starts the clock; if it's the only
+   ticked set (everything else was cleared), the clock restarts, so an
+   abandoned start doesn't date a later workout. */
+function noteTick(dId){ if(sessionStart[dId]&&tickedCount(dId)>1) return;
+ sessionStart[dId]=Date.now(); sessionAt[dId]=PLACE;
+ Store.set('gt4_start',sessionStart); Store.set('gt4_startat',sessionAt); }
+function staleDays(){ return PLAN.days.filter(d=>sessionStart[d.id]&&ticked(d.id)&&sessionDate(d.id)<today()); }
+function weekdayOf(iso){ return new Date(iso).toLocaleString('en-GB',{weekday:'short',timeZone:'UTC'}); }
+/* Shown above the monthly and weekly cards. Discard takes a second tap. */
+function staleCard(){ const ds=staleDays(); if(!ds.length) return null;
+ const c=document.createElement('div'); c.className='checkin unsaved';
+ c.innerHTML=ds.map(d=>{ const dt=sessionDate(d.id), n=tickedCount(d.id), at=sessionAt[d.id];
+  return '<div class="uns" data-day="'+d.id+'"><div class="ck-head"><b>'+escHTML(d.name)+' from '+weekdayOf(dt)+' '+shortDate(dt)+' isn\'t saved</b></div>'+
+   '<div class="ck-line">'+n+' set'+(n===1?'':'s')+' ticked'+(at==='home'?' at home':at==='gym'?' at the gym':'')+
+   '. Save it as '+shortDate(dt)+', or discard it if it was a mistake.</div>'+
+   '<div class="ck-btns"><button class="ck-ok ck-save">Save as '+shortDate(dt)+'</button><button class="ck-ok ck-discard">Discard</button></div></div>'; }).join('');
+ c.querySelectorAll('.uns').forEach(el=>{ const id=el.dataset.day, x=el.querySelector('.ck-discard');
+  el.querySelector('.ck-save').addEventListener('click',()=>doNewSession(id));
+  x.addEventListener('click',()=>{ if(x.dataset.armed){ discardSession(id); return; }
+   const n=tickedCount(id); x.dataset.armed='1'; x.classList.add('armed');
+   x.textContent='Tap again to delete '+n+' set'+(n===1?'':'s'); }); });
+ return c; }
+/* The ticked sets, today-only extras and skips, the warm-up tick and the
+   clock go; history is not touched. */
+async function discardSession(dId){ const d=PLAN.days.find(x=>x.id===dId); if(!d) return;
+ endOfSession(d); cur[dId]={}; delete warmDone[dId]; delete sessionStart[dId]; delete sessionAt[dId];
+ await Promise.all([Store.set('gt4_cur',cur),Store.set('gt4_warm',warmDone),Store.set('gt4_start',sessionStart),Store.set('gt4_startat',sessionAt)]);
+ mirrorHash(); render(); }
 /* ============ ACTIONS ============ */
 function switchDay(id){ if(id===ACTIVE)return; flush(); ACTIVE=id; Store.set('gt4_active',id); render(); window.scrollTo({top:0}); }
 function openSheet(){ applyAccent();
@@ -3145,29 +3206,42 @@ function finishPlace(){ const el=document.getElementById('finishPlace');
  el.querySelectorAll('button').forEach(b=>b.addEventListener('click',async()=>{ await setPlace(b.dataset.p); finishPlace(); render(); })); }
 function closeSheet(){ document.getElementById('sheetbg').classList.remove('show'); }
 document.getElementById('sheetbg').addEventListener('click',e=>{ if(e.target.id==='sheetbg')closeSheet(); });
-async function doNewSession(){
- const d=day(ACTIVE), td=today();
+/* One entry per lift per date, in date order. A second finish on the same
+   date (a forgotten exercise, or two workouts sharing a lift) adds its sets
+   to that day's entry and entryFromSets works out top/reps/vol again; an
+   older entry with no per-set record keeps the better top set. A workout
+   saved days later slots in by date, so the last entry stays the latest. */
+function addHistEntry(k,ne){ const h=hist[k]||(hist[k]=[]), same=h.find(e=>e.date===ne.date);
+ if(same){
+  if(Array.isArray(same.sets)&&same.sets.length){ same.sets=same.sets.concat(ne.sets);
+   const r=entryFromSets(same.sets); if(r){ same.top=r.top; same.reps=r.reps; same.vol=r.vol; } }
+  else { if(ne.top>same.top||(ne.top===same.top&&(ne.reps||0)>(same.reps||0))){ same.top=ne.top; same.reps=ne.reps; }
+   same.vol=ne.vol; same.sets=ne.sets; }
+  same.at=ne.at; return same; }
+ let i=h.length; while(i>0&&h[i-1].date>ne.date) i--; h.splice(i,0,ne); return ne; }
+/* Finish a day's workout: the active day (the Finish sheet), or another day
+   left unsaved (the card in 85-unsaved). Dated by its first ticked set and
+   filed under the swaps of the place it was trained. */
+async function doNewSession(dId){
+ const d=day((typeof dId==='string'&&PLAN.days.some(x=>x.id===dId))?dId:ACTIVE);
+ const td=sessionDate(d.id), at=sessionPlace(d.id), sw=swapsFor(at);
  const S=summarise(d);
  d.items.forEach(it=>{ if(it.skip) return;
   /* An exercise is recorded when a working set with a weight was ticked
      (topWithReps); its top / reps / vol come from entryFromSets, the same
      function that rebuilds an entry after a past set is edited. */
   const a=cur[d.id]&&cur[d.id][it.ex], sets=doneSets(a), e=topWithReps(d.id,it.ex)?entryFromSets(sets):null;
-  if(e){ const k=hkey(it.ex,swaps[it.ex]||null); if(!hist[k])hist[k]=[];
-   const lastE=hist[k][hist[k].length-1];
-   if(lastE&&lastE.date===td){ /* same-day re-finish: keep the better one, don't duplicate the point */
-    if(e.top>lastE.top||(e.top===lastE.top&&(e.reps||0)>(lastE.reps||0))){ lastE.top=e.top; lastE.reps=e.reps; }
-    lastE.vol=e.vol; lastE.sets=sets; lastE.at=PLACE;
-   } else hist[k].push({date:td,top:e.top,reps:e.reps,vol:e.vol,sets,at:PLACE}); } });
+  if(e) addHistEntry(hkey(it.ex,sw[it.ex]||null),{date:td,top:e.top,reps:e.reps,vol:e.vol,sets,at}); });
  if(cur[d.id]&&Object.keys(cur[d.id]).length){ prev[d.id]=JSON.parse(JSON.stringify(cur[d.id]));
   /* _date is read by lastSrc() to pick the most recent day when the same
      exercise has a prev on more than one. It sits beside the exercise ids
      (never a valid id itself); older prev blobs have none and lose ties. */
-  prev[d.id]._date=td; prev[d.id]._at=PLACE;
-  prev[d.id]._keys={}; d.items.forEach(it=>{ prev[d.id]._keys[it.ex]=hkey(it.ex,swaps[it.ex]||null); }); }
+  prev[d.id]._date=td; prev[d.id]._at=at;
+  prev[d.id]._keys={}; d.items.forEach(it=>{ prev[d.id]._keys[it.ex]=hkey(it.ex,sw[it.ex]||null); }); }
  endOfSession(d);
- cur[d.id]={}; delete warmDone[d.id]; delete sessionStart[d.id];
- await Promise.all([Store.set('gt4_hist',hist),Store.set('gt4_prev',prev),Store.set('gt4_cur',cur),Store.set('gt4_warm',warmDone),Store.set('gt4_start',sessionStart)]);
+ cur[d.id]={}; delete warmDone[d.id]; delete sessionStart[d.id]; delete sessionAt[d.id];
+ await Promise.all([Store.set('gt4_hist',hist),Store.set('gt4_prev',prev),Store.set('gt4_cur',cur),Store.set('gt4_warm',warmDone),
+  Store.set('gt4_start',sessionStart),Store.set('gt4_startat',sessionAt)]);
  DIRTY=false; mirrorHash(); closeSheet(); render(); window.scrollTo({top:0});
  showSummary(S);
  autoBackup().then(async r=>{ const el=document.getElementById('sumBackup'); if(!el) return;
@@ -3290,6 +3364,7 @@ document.getElementById('progBtn').innerHTML=I.chart;
  lastAuto=(await Store.get('gt4_autobackup'))||null;
  bodyweight=(await Store.get('gt4_bodyweight'))||[];
  sessionStart=(await Store.get('gt4_start'))||{};
+ sessionAt=(await Store.get('gt4_startat'))||{};
  checkinSeen=(await Store.get('gt4_checkin'))||null;
  monthSeen=(await Store.get('gt4_monthseen'))||null;
  ACTIVE=(a&&PLAN.days.some(d=>d.id===a))?a:PLAN.days[0].id;

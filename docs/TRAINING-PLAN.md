@@ -41,7 +41,7 @@ show; at home the app picks dumbbell versions.
   face pulls.
 - Ross is keeping three days a week. A two-day A/B plan was considered and
   dropped, partly because the data understated how often he trains: unfinished
-  workouts never reach history (see BACKLOG, loose ends).
+  workouts never reached history (fixed the same day, see BACKLOG "Done").
 
 ## Previous: Full Body Beginner, first version (2026-09-23 to 2026-10-15)
 Written because the barbell plan kept getting rebuilt on the gym floor: barbell

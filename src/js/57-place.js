@@ -16,7 +16,10 @@ async function setPlace(p){ if(!PLACES[p]||p===PLACE) return;
  if(p==='home'){ PLACE=p; enterPlace(); } else { PLACE=p; swaps=gymSwaps; }
  const c=cur[ACTIVE];
  if(c) Object.keys(c).forEach(exId=>{ (c[exId]||[]).forEach((x,i)=>{ if(x&&!x.done&&!x.rt) c[exId][i]=null; }); });
- await Store.set('gt4_place',PLACE); queueSave(); flush(); }
+ /* a workout under way today moves with the switch; one left from another
+    day stays where it was trained */
+ PLAN.days.forEach(d=>{ if(sessionStart[d.id]&&ticked(d.id)&&sessionDate(d.id)===today()) sessionAt[d.id]=PLACE; });
+ await Promise.all([Store.set('gt4_place',PLACE),Store.set('gt4_startat',sessionAt)]); queueSave(); flush(); }
 /* Every entry on a date, across all lifts, to one place. */
 async function tagDate(date,p){
  Object.keys(hist).forEach(k=>(hist[k]||[]).forEach(e=>{ if(e.date===date) e.at=p; }));

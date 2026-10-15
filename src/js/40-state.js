@@ -2,7 +2,8 @@
 let PLAN=null, ACTIVE=null, THEME='dark', DIRTY=false;
 let cur={}, prev={}, hist={}, swaps={}, warmDone={}, notes={};
 let bodyweight=[];   /* [{date, kg}], one per day, sorted */
-let sessionStart={}; /* dayId -> ms of the first ticked set, for the summary's duration */
+let sessionStart={}; /* dayId -> ms of the first ticked set: the workout's date, and the summary's duration */
+let sessionAt={};    /* dayId -> where that first set was ticked (gym/home); see 85-unsaved */
 let WEEKTARGET=3;   /* sessions/week; configurable via the weekgoal strip, default matches the plan */
 
 function day(id){ return PLAN.days.filter(d=>d.id===id)[0]||PLAN.days[0]; }
