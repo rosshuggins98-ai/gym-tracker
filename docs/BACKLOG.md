@@ -72,17 +72,6 @@ below.
 
 ## Loose ends from A and B
 
-- **Unfinished workouts never reach history** (found 2026-10-15). Sets are saved
-  only when Finish is tapped, and dated the day it is tapped. The 15 Oct backup
-  holds ticked sets from three Push/Pull/Legs workouts that were never finished,
-  and 14 Oct has A (home) and B (gym) finished together, so A was likely trained
-  earlier. Ross thinks he trains 3 a week; history shows about 2.
-  - Proposed fix, raised with Ross on 2026-10-15 and not yet agreed: when the app
-    opens with ticked sets from an earlier day, ask to save the workout or
-    discard it. Date every saved workout by its first ticked set (`gt4_start`),
-    not by when Finish was tapped.
-- ~~Per-set CSV~~: done 2026-10-14 as item 7.
-- ~~Per-set history editing~~: done 2026-10-14 as item 6.
 - **"vs last time" in the session summary** still compares against `prev` (the
   last session on that day). It could compare set by set from history instead,
   which also works when the exercise was last done on a different day.
@@ -209,3 +198,11 @@ below.
   - The glute bridge is a new library entry.
   - Lifts that appear on more than one day have the same sets and reps.
   - See TRAINING-PLAN.md.
+- 2026-10-15 `b7151a5`: **Unsaved workouts.**
+  - The problem: a workout closed without Finish was never saved, or was saved
+    days later under the wrong date. The 15 Oct backup had three like that.
+  - A workout is now dated by its first ticked set, and keeps the place and
+    swaps it was trained with.
+  - A workout still unsaved on a later day gets a card: "Save as <date>", or
+    Discard with a second tap.
+  - Two finishes on one date now keep both sets of sets.

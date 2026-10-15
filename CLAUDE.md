@@ -157,7 +157,8 @@ muscle group, check-in, still-to-do strip, days done this week) → `62-cues` �
 sets) → `68-chart` → `69-milestones` (milestones, monthly review) → `70-editor` →
 `72-routines` → `74-theme` → `76-data`
 (export/import) → `78-onthefly` (today-only extras, skips) → `80-bodyweight` →
-`82-summary` → `84-autobackup` → `86-actions` (finish) → `90-migrate` → `99-boot`.
+`82-summary` → `84-autobackup` → `85-unsaved` (dating a workout, the unsaved-workout card) →
+`86-actions` (finish) → `90-migrate` → `99-boot`.
 New module: pick a free number, end the file with a newline.
 
 ## Key concepts
@@ -201,11 +202,28 @@ New module: pick a free number, end the file with a newline.
   `{w, r, t?}`, warm-ups included and flagged) exists from 2026-09-23 on; older
   entries only have the top set, so every reader must fall back to `top`/`reps`.
   When an entry has `sets`, `top`/`reps`/`vol` are derived: `entryFromSets(sets)`
-  is the only rule, used by `doNewSession()` and by every edit in `67-histedit`
+  is the only rule, used by `doNewSession()` (through `addHistEntry`) and by every edit in `67-histedit`
   (`histEditSet`, `histToggleWarm`, `histDeleteSet`). Never write `top`/`reps` on
   such an entry directly. Only entries without `sets` are edited by their top set
   (`histEditTop`). An edit never leaves a session without a working set; deleting
   its only set deletes the session.
+- **Unsaved workouts** (`85-unsaved`, 2026-10-15): a workout is saved only when
+  Finish is tapped.
+  - Its date is the day of its first ticked set (`sessionDate()`, from
+    `sessionStart` / `gt4_start`), not the day Finish is tapped.
+  - A workout from an earlier day keeps the place it was trained
+    (`sessionAt` / `gt4_startat`) and is filed under that place's swaps
+    (`swapsFor()`). A same-day finish uses `PLACE`, as before.
+  - A plan day with ticks from an earlier day gets a card on the workout
+    screen (`staleCard()`, shown before the monthly and weekly cards): save it
+    as that date, or discard it with a second tap (`discardSession()`, which
+    never touches history).
+  - `noteTick()` restarts the clock when the only ticked set is a new one.
+  - History holds one entry per lift per date, inserted in date order by
+    `addHistEntry()`. A second finish on the same date appends its sets and
+    derives the entry again with `entryFromSets`; an entry without `sets`
+    keeps the better top set.
+  - Anything new that writes history goes through `addHistEntry()`.
 - **Session note**: one per date in `sessNotes` (`gt4_sessnote`, `sessNotes` in
   backups), typed on the summary sheet beside the effort rating. Stored as typed and
   shown through `escHTML()`, unlike exercise names, which are stripped at input.
@@ -326,7 +344,7 @@ Coverage: migration, PB detection, volume/trend/1RM, the coach, the finish-sessi
 flow, backup round-trip, presets, gym/home, effort, supersets, warm-ups, the chart
 (ranges, metrics, since-you-started), muscles and the weekly views (week by week
 too), history editing, the per-set CSV, the session note, the calendar, milestones,
-the monthly review, the build, the server, the GitHub copy and the launcher. Add a
+the monthly review, unsaved workouts, the build, the server, the GitHub copy and the launcher. Add a
 test whenever you touch any of those, and write it first when the change touches
 stored history.
 
