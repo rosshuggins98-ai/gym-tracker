@@ -14,10 +14,13 @@ test('finishing a session writes top set + volume to history and clears the day'
   sets:[{w:20,r:10,t:'warm'},{w:50,r:8},{w:52.5,r:6}],at:'gym'}],'every ticked set is kept, warm-up flagged');
  assert.equal(app.hist.ohp,undefined,'an exercise with nothing logged leaves no entry');
  assert.equal(app.prev.push.bench[1].w,'50','prev keeps the full session for next time\'s prefill');
- /* the day is cleared, then re-rendered: every slot is back to not-done and
-    pre-filled from what was just finished */
+ /* the day is cleared, then re-rendered: every slot is back to not-done, and
+    (since 2026-10-15) every working set starts at the coach's target for
+    next time rather than last time's number */
  assert.ok(app.cur.push.bench.every(s=>s.done===false));
- assert.equal(app.cur.push.bench[1].w,'50');
+ const co=app.coach('bench',app.day('push').items.find(i=>i.ex==='bench'));
+ assert.ok(co&&co.w>0);
+ assert.ok(app.cur.push.bench.every(s=>s.w===String(co.w)),'all at the target: '+co.kind+' '+co.w);
 });
 
 test('finishing twice on the same day adds to that day\'s entry, never a duplicate point',async()=>{

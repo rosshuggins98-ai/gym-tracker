@@ -166,6 +166,19 @@ function coachText(c){
  return 'Last time: '+last+'. Stay at '+(c.w>0?c.w+'kg':'bodyweight')+(c.why?'. '+c.why:' and beat those reps.');
 }
 /* Tap the coach pill: put its weight in every unticked working set. */
+/* Before a workout starts (nothing ticked on the day), every working set
+   starts at the coach's target for this session -- "Go 26kg", "Stay 24kg" --
+   rather than last time's number (asked for 2026-10-15). Called by render().
+   Weights typed by hand (wt), warm-up rows and drop sets keep theirs; once a
+   set is ticked the day is left alone and carryWeight takes over. Returns
+   how many sets changed. */
+function applyTargets(d){ if(ticked(d.id)) return 0; let n=0;
+ d.items.forEach(it=>{ if(it.skip) return;
+  const co=coach(hkey(it.ex,swaps[it.ex]||null),it); if(!co||co.w==null||isNaN(+co.w)) return;
+  const wu=wuOf(it), w=String(co.w);
+  repsFor(it).forEach((_,i)=>{ const y=slot(d.id,it.ex,wu+i);
+   if(y.done||y.wt||y.t==='warm'||y.t==='drop'||y.w===w) return; y.w=w; n++; }); });
+ return n; }
 function applyCoach(d,it,w){ const wu=wuOf(it);
  repsFor(it).forEach((_,i)=>{ const y=slot(d.id,it.ex,wu+i); if(!y.done&&y.t!=='warm') y.w=String(w); });
  queueSave(); flush(); render(); }

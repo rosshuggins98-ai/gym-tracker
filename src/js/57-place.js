@@ -11,11 +11,11 @@ let PLACE='gym';
 function placeOf(e){ return e&&e.at==='home'?'home':'gym'; }
 /* Switching place swaps the plan to the home kit or back (see below), and
    re-prefills the active day's untouched sets (not ticked,
-   reps not typed), so the "last" weights come from the right place. */
+   reps and weight not typed), so the "last" weights come from the right place. */
 async function setPlace(p){ if(!PLACES[p]||p===PLACE) return;
  if(p==='home'){ PLACE=p; enterPlace(); } else { PLACE=p; swaps=gymSwaps; }
  const c=cur[ACTIVE];
- if(c) Object.keys(c).forEach(exId=>{ (c[exId]||[]).forEach((x,i)=>{ if(x&&!x.done&&!x.rt) c[exId][i]=null; }); });
+ if(c) Object.keys(c).forEach(exId=>{ (c[exId]||[]).forEach((x,i)=>{ if(x&&!x.done&&!x.rt&&!x.wt) c[exId][i]=null; }); });
  /* a workout under way today moves with the switch; one left from another
     day stays where it was trained */
  PLAN.days.forEach(d=>{ if(sessionStart[d.id]&&ticked(d.id)&&sessionDate(d.id)===today()) sessionAt[d.id]=PLACE; });

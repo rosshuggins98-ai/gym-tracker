@@ -249,9 +249,26 @@ New module: pick a free number, end the file with a newline.
   (`e1RMShown`); `trendFor`/`stalled` still use raw Epley because they only compare
   an exercise with itself.
 - **Warm-up rows**: `it.wu` rows above set 1, always typed `'warm'`, not planned
-  sets. They're a plan property (kept by `endOfSession` and `cleanDays`), so
+  sets. They prefill (and show "last") only from a past warm-up (`warmLast()`):
+  the same row last time if it was a warm-up, otherwise the latest session with
+  one, otherwise empty. Never a working weight. Loading a preset or routine
+  rebuilds every untouched prefill (`refreshPrefills()`), so a newly added
+  warm-up row never inherits the old plan's set 1. They're a plan property (kept by `endOfSession` and `cleanDays`), so
   `prev` lines up row for row. Anything indexing working sets in `cur` must offset
   by `wuOf(it)`: `done`, `updateProgress`, `applyCoach`, `removeSet`.
+- **Start at the target** (2026-10-15, Ross asked): before a workout starts
+  (nothing ticked on the day), `render()` calls `applyTargets(d)`, which sets
+  every working set to the coach's weight for this session (`coach().w`) instead
+  of last time's. Weights typed by hand, warm-up rows and drop sets keep theirs.
+  Once a set is ticked the day is left alone and carryWeight takes over. The
+  "last" hint under each set still shows last time's weight.
+- **Weight carries forward** (2026-10-15, Ross asked): ticking a working set
+  gives the sets after it its weight (`carryWeight()`), on screen and in `cur`.
+  - Ticked sets, weights typed or stepped by hand (`wt` on the slot), warm-up
+    rows and drop sets keep their own weight.
+  - Nothing carries from a warm-up row or a drop set, which is why a lighter
+    build-up set belongs in the warm-up row.
+  - Only the rows on screen change.
 - **Unconfirmed reps**: ticking a set with empty reps still fills the target (two
   taps per set stays), but a slot only gets `rt` once its reps are typed or
   stepped. Without it the row is flagged, and `finishChecks()` lists untyped sets

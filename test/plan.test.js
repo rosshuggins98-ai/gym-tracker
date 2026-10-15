@@ -93,3 +93,20 @@ test('Barbell Glute Bridge: glutes first, hamstrings helping, a dumbbell version
  assert.equal(app.homeAuto('gbridge'),'Dumbbell Glute Bridge');
  assert.equal(app.incFor('gbridge'),2.5);
 });
+
+test('switching plan rebuilds untouched prefills: a new warm-up row is a warm-up, not last plan\'s set 1',async()=>{
+ const {app,set,tick}=await load();
+ await app.loadPreset('beginner'); await tick();
+ /* C before the 2026-10-15 revision: DB bench without a warm-up row, its three prefills waiting in cur */
+ const old=app.BEGINNER_PLAN(); delete old.days[2].items[0].wu; set('PLAN',old);
+ set('hist',{dbbench:[{date:'2026-10-09',top:24,reps:12,vol:720,sets:[{w:24,r:12},{w:24,r:10},{w:24,r:8}],at:'gym'}]});
+ set('PLACE','gym'); set('swaps',{});
+ set('cur',{bgC:{dbbench:[{w:'24',r:'12',done:false},{w:'24',r:'10',done:false},{w:'24',r:'8',done:false}]},
+  bgA:{latpulldown:[{w:'60',r:'10',done:true},{w:'55',r:'',done:false,wt:true},{w:'60',r:'',done:false}]}});
+ await app.loadPreset('beginner'); await tick();
+ set('ACTIVE','bgC'); app.render();
+ const b=app.cur.bgC.dbbench;
+ assert.equal(b[0].t,'warm','row 0 is now a warm-up slot'); deq(b.slice(1).map(x=>x.w),['26','26','26']);
+ assert.equal(app.cur.bgA.latpulldown[0].done,true,'a ticked set stays'); assert.equal(app.cur.bgA.latpulldown[1].w,'55','a typed weight stays');
+ deq(app.cur.bgA.latpulldown[2],{w:'',r:'',done:false},'an untouched one is rebuilt (A is drawn on load; no lat pulldown history here)');
+});

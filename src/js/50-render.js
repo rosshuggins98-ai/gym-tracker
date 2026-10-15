@@ -16,6 +16,7 @@ function renderTabs(){
 function render(){
  enterPlace(); applyAccent(); renderTabs();
  const d=day(ACTIVE);
+ if(applyTargets(d)) queueSave();   /* start at the coach's target (58-coach) */
  document.getElementById('plabel').textContent=setCount(d)+' sets planned';
  const wk=workoutsThisWeek(), streak=weekStreak();
  document.getElementById('weekTag').textContent='Week '+weekNo();
@@ -84,7 +85,7 @@ function card(it,d,idx){
  const stepW=incFor(k0)||2.5, wu=wuOf(it), rng=rangeLabel(it);
  for(let ri=0;ri<wu+reps.length;ri++){ const isW=ri<wu, i=ri-wu, tg=isW?null:reps[i];
   const x=slot(d.id,exId,ri,isW?'warm':undefined), tt=isW?'':(tg===null||tg==='max')?'max':tg;
-  const lw=lastW(d.id,exId,ri), lt=lw!==null?'last <b>'+lw+'</b>':'';
+  const lw=isW?warmLast(d.id,exId,ri,'w'):lastW(d.id,exId,ri), lt=lw!==null?'last <b>'+lw+'</b>':'';
   const typLbl=isW?'warm-up':typeLabel(x.t);
   const row=document.createElement('div'); row.className='set'+(x.t==='warm'?' warm':'')+(repsUnconfirmed(x)?' unconf':'');
   row.innerHTML='<div class="idx"><b>'+(isW?'W':(i+1))+'</b>'+(isW?'':'<small>×'+(rng&&tt!=='max'?rng:tt)+'</small>')+
@@ -102,7 +103,7 @@ function card(it,d,idx){
    '<button class="tick'+(x.done?' on':'')+'">'+I.tick+'</button>';
   const wI=row.querySelector('[data-k="w"]'),rI=row.querySelector('[data-k="r"]'),tk=row.querySelector('.tick');
   const markTyped=y=>{ if(!y.rt){ y.rt=true; row.classList.remove('unconf'); row.querySelectorAll('.last')[1].textContent=''; } };
-  wI.addEventListener('input',()=>{ slot(d.id,exId,ri).w=wI.value; queueSave(); pills(c,it,d); });
+  wI.addEventListener('input',()=>{ const y=slot(d.id,exId,ri); y.w=wI.value; y.wt=true; queueSave(); pills(c,it,d); });
   wI.addEventListener('blur',flush);
   rI.addEventListener('input',()=>{ const y=slot(d.id,exId,ri); y.r=rI.value; markTyped(y); queueSave(); });
   rI.addEventListener('blur',flush);
@@ -112,12 +113,15 @@ function card(it,d,idx){
     let v=parseFloat(f==='w'?y.w:y.r); if(isNaN(v))v=0;
     v=Math.max(0,Math.round((v+delta)*100)/100);
     const sv=f==='w'?String(v):String(Math.round(v));
-    if(f==='w'){ y.w=sv; wI.value=sv; } else { y.r=sv; rI.value=sv; markTyped(y); }
+    if(f==='w'){ y.w=sv; wI.value=sv; y.wt=true; } else { y.r=sv; rI.value=sv; markTyped(y); }
     queueSave(); flush(); pills(c,it,d);
    });
   });
   tk.addEventListener('click',()=>{ const y=slot(d.id,exId,ri); y.done=!y.done; tk.classList.toggle('on',y.done);
-   if(y.done) noteTick(d.id);
+   if(y.done){ noteTick(d.id);
+    /* the sets after this one take its weight (carryWeight), on screen too */
+    const wIs=s.querySelectorAll('.set [data-k="w"]');
+    carryWeight(d.id,exId,ri,wu+reps.length).forEach(j=>{ if(wIs[j]) wIs[j].value=cur[d.id][exId][j].w; }); }
    if(y.done&&!y.r&&tt&&tt!=='max'){ y.r=String(tt); rI.value=tt; }
    row.classList.toggle('unconf',repsUnconfirmed(y)); row.querySelectorAll('.last')[1].textContent=repsUnconfirmed(y)?'not typed':'';
    if(y.done){ const sec=restAfter(d,idx); if(sec) restStart(sec); else restCue(vName(partner.ex,swaps[partner.ex]||null)); }

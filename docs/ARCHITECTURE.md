@@ -48,7 +48,7 @@ legacy weights. So a new preset shows real numbers from its first session.
 | Key | Contents |
 |---|---|
 | `gt4_plan` | the editable plan |
-| `gt4_cur` | in-progress session `{dayId: {exId: [{w,r,done,t?,rt?}]}}` -- `t` is the set type: undefined ('work'), 'warm', 'amrap', or 'drop'; `rt` is true once the reps were typed or stepped (a ticked set without it is flagged as unconfirmed). An item with `wu` warm-up rows has them first, so working set i is at index `wu+i` |
+| `gt4_cur` | in-progress session `{dayId: {exId: [{w,r,done,t?,rt?}]}}` -- `t` is the set type: undefined ('work'), 'warm', 'amrap', or 'drop'; `rt` is true once the reps were typed or stepped (a ticked set without it is flagged as unconfirmed); `wt` is true once the weight was typed or stepped (a carried-forward weight never overwrites it, and a place switch keeps it). An item with `wu` warm-up rows has them first, so working set i is at index `wu+i` |
 | `gt4_barweight` | plate calculator's bar weight, kg (default 20) |
 | `gt4_notes` | `{historyKey: text}`, per-exercise persistent notes (machine settings, bench angle, grip width) |
 | `gt4_prev` | last completed session per day `{dayId: {exId: [{w,r,done,t?}], _date}}`, drives the "last" hint; `_date` (from 2026-09-16) ranks days when `lastSrc()` falls back to another day |

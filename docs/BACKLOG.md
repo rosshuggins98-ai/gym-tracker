@@ -206,3 +206,13 @@ below.
   - A workout still unsaved on a later day gets a card: "Save as <date>", or
     Discard with a second tap.
   - Two finishes on one date now keep both sets of sets.
+- 2026-10-15: **Weight carries forward** (Ross asked).
+  - Ticking a set gives the sets after it its weight.
+  - A weight typed by hand, a warm-up row or a drop set keeps its own.
+- 2026-10-15: **Start at the target** (Ross asked). Before a workout starts,
+  every working set shows the coach's weight for the session ("Go 26kg"),
+  not last time's.
+- 2026-10-15: **Prefills after a plan switch.** Loading a preset or routine
+  rebuilds the prefills nobody touched. Without this, the new plan's warm-up
+  rows held the old plan's set 1, which would have been logged as a working
+  set. Warm-up rows now prefill only from a past warm-up, or stay empty.

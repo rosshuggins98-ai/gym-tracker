@@ -13,7 +13,7 @@ async function saveRoutine(){
 async function loadRoutine(id){
  const r=routines.find(x=>x.id===id); if(!r) return;
  PLAN={name:r.label,startedISO:today(),days:JSON.parse(JSON.stringify(r.days))};
- ACTIVE=PLAN.days[0].id;
+ ACTIVE=PLAN.days[0].id; refreshPrefills(); queueSave();
  await Store.set('gt4_plan',PLAN); mirrorHash();
  drawEdit(); render();
 }

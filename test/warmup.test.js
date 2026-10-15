@@ -79,3 +79,23 @@ test('boot runs the duplicate clean-up once',async()=>{
  const {app}=await load();
  assert.equal(await app.Store.get('gt4_dedupe1'),1);
 });
+
+/* 2026-10-15: a warm-up row only ever prefills from a past warm-up, never a
+   working weight (Leg Press's new warm-up row was showing 160). */
+test('warm-up rows prefill from a past warm-up, else stay empty',async()=>{
+ const {app,set}=await load();
+ set('PLAN',app.BEGINNER_PLAN()); set('swaps',{}); set('PLACE','gym'); set('cur',{});
+ /* last C (gym) had no warm-up row: its row 0 is a working set */
+ set('prev',{bgC:{_date:'2026-10-09',_at:'gym',_keys:{dbbench:'dbbench'},dbbench:[{w:'24',r:'12',done:true},{w:'24',r:'10',done:true},{w:'24',r:'8',done:true}]}});
+ set('hist',{dbbench:[{date:'2026-10-06',top:24,reps:9,vol:600,sets:[{w:16,r:8,t:'warm'},{w:24,r:9},{w:24,r:8}],at:'gym'},
+                      {date:'2026-10-09',top:24,reps:12,vol:720,sets:[{w:24,r:12},{w:24,r:10},{w:24,r:8}],at:'gym'}],
+             legpress:[{date:'2026-09-30',top:160,reps:13,vol:4000,sets:[{w:160,r:12},{w:160,r:13}]}]});
+ const w=app.slot('bgA','dbbench',0,'warm');
+ deq([w.w,w.r,w.t],['16','8','warm'],'the most recent warm-up on record, not C\'s 24kg set 1');
+ assert.equal(app.slot('bgA','dbbench',1).w,'24','working rows still prefill as before');
+ const lp=app.slot('bgA','goblet',0,'warm');   /* no swap here: the goblet slot, no history */
+ deq([lp.w,lp.r],['',''],'never warmed up on record: empty');
+ set('swaps',{goblet:'Leg Press'});
+ const lp2=app.slot('bgB','goblet',0,'warm');
+ deq([lp2.w,lp2.r],['',''],'leg press has history but no warm-up: empty, not 160');
+});
