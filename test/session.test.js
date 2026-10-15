@@ -20,16 +20,21 @@ test('finishing a session writes top set + volume to history and clears the day'
  assert.equal(app.cur.push.bench[1].w,'50');
 });
 
-test('finishing twice on the same day keeps the better top set, never a duplicate point',async()=>{
+test('finishing twice on the same day adds to that day\'s entry, never a duplicate point',async()=>{
  const {app,set,tick}=await load();
  const td=app.today();
+ /* an entry with no per-set record (the pre-2026-09-23 shape) keeps the old
+    rule: the better top set stays, volume and sets come from the new finish */
  set('hist',{bench:[{date:td,top:50,reps:8,vol:400}]});
  set('cur',{push:{bench:[{w:'50',r:'6',done:true}]}});
  await app.doNewSession(); await tick();
  deq(app.hist.bench,[{date:td,top:50,reps:8,vol:300,sets:[{w:50,r:6}],at:'gym'}],'lower reps: top/reps kept, volume and sets refreshed');
+ /* with sets on record, a second finish adds its sets (cur is cleared by the
+    first, so only newly ticked sets come through) and entryFromSets works
+    out top, reps and volume from all of them */
  set('cur',{push:{bench:[{w:'50',r:'9',done:true}]}});
  await app.doNewSession(); await tick();
- deq(app.hist.bench,[{date:td,top:50,reps:9,vol:450,sets:[{w:50,r:9}],at:'gym'}]);
+ deq(app.hist.bench,[{date:td,top:50,reps:9,vol:750,sets:[{w:50,r:6},{w:50,r:9}],at:'gym'}]);
 });
 
 test('a swapped exercise is recorded under its swap key',async()=>{

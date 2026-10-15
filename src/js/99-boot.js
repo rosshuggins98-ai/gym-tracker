@@ -39,6 +39,7 @@ document.getElementById('progBtn').innerHTML=I.chart;
  lastAuto=(await Store.get('gt4_autobackup'))||null;
  bodyweight=(await Store.get('gt4_bodyweight'))||[];
  sessionStart=(await Store.get('gt4_start'))||{};
+ sessionAt=(await Store.get('gt4_startat'))||{};
  checkinSeen=(await Store.get('gt4_checkin'))||null;
  monthSeen=(await Store.get('gt4_monthseen'))||null;
  ACTIVE=(a&&PLAN.days.some(d=>d.id===a))?a:PLAN.days[0].id;

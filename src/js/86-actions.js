@@ -29,29 +29,42 @@ function finishPlace(){ const el=document.getElementById('finishPlace');
  el.querySelectorAll('button').forEach(b=>b.addEventListener('click',async()=>{ await setPlace(b.dataset.p); finishPlace(); render(); })); }
 function closeSheet(){ document.getElementById('sheetbg').classList.remove('show'); }
 document.getElementById('sheetbg').addEventListener('click',e=>{ if(e.target.id==='sheetbg')closeSheet(); });
-async function doNewSession(){
- const d=day(ACTIVE), td=today();
+/* One entry per lift per date, in date order. A second finish on the same
+   date (a forgotten exercise, or two workouts sharing a lift) adds its sets
+   to that day's entry and entryFromSets works out top/reps/vol again; an
+   older entry with no per-set record keeps the better top set. A workout
+   saved days later slots in by date, so the last entry stays the latest. */
+function addHistEntry(k,ne){ const h=hist[k]||(hist[k]=[]), same=h.find(e=>e.date===ne.date);
+ if(same){
+  if(Array.isArray(same.sets)&&same.sets.length){ same.sets=same.sets.concat(ne.sets);
+   const r=entryFromSets(same.sets); if(r){ same.top=r.top; same.reps=r.reps; same.vol=r.vol; } }
+  else { if(ne.top>same.top||(ne.top===same.top&&(ne.reps||0)>(same.reps||0))){ same.top=ne.top; same.reps=ne.reps; }
+   same.vol=ne.vol; same.sets=ne.sets; }
+  same.at=ne.at; return same; }
+ let i=h.length; while(i>0&&h[i-1].date>ne.date) i--; h.splice(i,0,ne); return ne; }
+/* Finish a day's workout: the active day (the Finish sheet), or another day
+   left unsaved (the card in 85-unsaved). Dated by its first ticked set and
+   filed under the swaps of the place it was trained. */
+async function doNewSession(dId){
+ const d=day((typeof dId==='string'&&PLAN.days.some(x=>x.id===dId))?dId:ACTIVE);
+ const td=sessionDate(d.id), at=sessionPlace(d.id), sw=swapsFor(at);
  const S=summarise(d);
  d.items.forEach(it=>{ if(it.skip) return;
   /* An exercise is recorded when a working set with a weight was ticked
      (topWithReps); its top / reps / vol come from entryFromSets, the same
      function that rebuilds an entry after a past set is edited. */
   const a=cur[d.id]&&cur[d.id][it.ex], sets=doneSets(a), e=topWithReps(d.id,it.ex)?entryFromSets(sets):null;
-  if(e){ const k=hkey(it.ex,swaps[it.ex]||null); if(!hist[k])hist[k]=[];
-   const lastE=hist[k][hist[k].length-1];
-   if(lastE&&lastE.date===td){ /* same-day re-finish: keep the better one, don't duplicate the point */
-    if(e.top>lastE.top||(e.top===lastE.top&&(e.reps||0)>(lastE.reps||0))){ lastE.top=e.top; lastE.reps=e.reps; }
-    lastE.vol=e.vol; lastE.sets=sets; lastE.at=PLACE;
-   } else hist[k].push({date:td,top:e.top,reps:e.reps,vol:e.vol,sets,at:PLACE}); } });
+  if(e) addHistEntry(hkey(it.ex,sw[it.ex]||null),{date:td,top:e.top,reps:e.reps,vol:e.vol,sets,at}); });
  if(cur[d.id]&&Object.keys(cur[d.id]).length){ prev[d.id]=JSON.parse(JSON.stringify(cur[d.id]));
   /* _date is read by lastSrc() to pick the most recent day when the same
      exercise has a prev on more than one. It sits beside the exercise ids
      (never a valid id itself); older prev blobs have none and lose ties. */
-  prev[d.id]._date=td; prev[d.id]._at=PLACE;
-  prev[d.id]._keys={}; d.items.forEach(it=>{ prev[d.id]._keys[it.ex]=hkey(it.ex,swaps[it.ex]||null); }); }
+  prev[d.id]._date=td; prev[d.id]._at=at;
+  prev[d.id]._keys={}; d.items.forEach(it=>{ prev[d.id]._keys[it.ex]=hkey(it.ex,sw[it.ex]||null); }); }
  endOfSession(d);
- cur[d.id]={}; delete warmDone[d.id]; delete sessionStart[d.id];
- await Promise.all([Store.set('gt4_hist',hist),Store.set('gt4_prev',prev),Store.set('gt4_cur',cur),Store.set('gt4_warm',warmDone),Store.set('gt4_start',sessionStart)]);
+ cur[d.id]={}; delete warmDone[d.id]; delete sessionStart[d.id]; delete sessionAt[d.id];
+ await Promise.all([Store.set('gt4_hist',hist),Store.set('gt4_prev',prev),Store.set('gt4_cur',cur),Store.set('gt4_warm',warmDone),
+  Store.set('gt4_start',sessionStart),Store.set('gt4_startat',sessionAt)]);
  DIRTY=false; mirrorHash(); closeSheet(); render(); window.scrollTo({top:0});
  showSummary(S);
  autoBackup().then(async r=>{ const el=document.getElementById('sumBackup'); if(!el) return;
