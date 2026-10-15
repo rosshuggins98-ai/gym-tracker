@@ -60,3 +60,36 @@ test('custom exercises get a safe unique id and a cleaned name',async()=>{
  const id2=await app.addCustom('Pendlay <b>Row</b>','Back',''); await tick();
  assert.equal(id2,'c_pendlay-brow-b-2');
 });
+
+/* --- Full Body Beginner, legs last (agreed with Ross 2026-10-15) --- */
+test('Beginner preset: two leg exercises a day, at the end, the heavy one last',async()=>{
+ const {app}=await load();
+ const P=app.BEGINNER_PLAN(), isLeg=it=>app.LIB[it.ex].g==='Legs';
+ const last=P.days.map(d=>d.items[d.items.length-1].ex);
+ deq(last,['goblet','dbrdl','gbridge'],'leg press (goblet slot), RDL (DB RDL slot), glute bridge');
+ P.days.forEach(d=>{
+  const legs=d.items.filter(isLeg);
+  assert.equal(legs.length,2,d.name+': never three leg exercises in a session');
+  deq(d.items.slice(-2).map(i=>i.ex),plain(legs.map(i=>i.ex)),d.name+': the leg work is the last two exercises');
+  assert.equal(d.items[d.items.length-1].wu,1,d.name+': the heavy leg lift has a warm-up row');
+ });
+ deq(P.days.map(d=>app.setCount(d)),[18,17,18],'working sets per day');
+ const byEx={}; P.days.forEach(d=>d.items.forEach(it=>(byEx[it.ex]=byEx[it.ex]||[]).push(it)));
+ Object.keys(byEx).forEach(ex=>{ const a=byEx[ex]; if(a.length<2) return;
+  a.forEach(it=>deq({sets:it.sets,reps:it.reps,lo:it.lo},plain({sets:a[0].sets,reps:a[0].reps,lo:a[0].lo}),
+   ex+': the same sets and reps wherever it appears, so the coach makes one call')); });
+ const it=(day,ex)=>P.days.find(d=>d.id===day).items.find(i=>i.ex===ex);
+ deq([it('bgA','goblet').reps[0],app.loFor(it('bgA','goblet'))],[10,8],'leg press 8-10');
+ assert.equal(it('bgB','dbrdl').reps[0],8,'RDL 3 x 8');
+ deq([it('bgC','gbridge').reps[0],app.loFor(it('bgC','gbridge'))],[12,10],'glute bridge 10-12');
+ deq([it('bgA','legcurl').reps[0],app.loFor(it('bgA','legcurl'))],[12,10],'machines 10-12');
+});
+
+test('Barbell Glute Bridge: glutes first, hamstrings helping, a dumbbell version at home',async()=>{
+ const {app}=await load();
+ deq(app.musclesFor('gbridge',null),{glutes:1,hamstrings:.5});
+ assert.equal(app.exName('gbridge'),'Barbell Glute Bridge');
+ assert.equal(app.homeOk('Barbell Glute Bridge'),false,'needs a barbell');
+ assert.equal(app.homeAuto('gbridge'),'Dumbbell Glute Bridge');
+ assert.equal(app.incFor('gbridge'),2.5);
+});

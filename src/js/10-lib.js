@@ -66,6 +66,8 @@ const LIB={
   c:["Push your hips back rather than bending your knees — this is a hinge, not a squat.","Keep the bar close to your legs, almost dragging down the thighs.","Stop when you feel a strong hamstring stretch. Back stays flat the whole way; never round it."]},
  dbrdl:{n:"Dumbbell RDL",g:"Legs",m:{hamstrings:1,glutes:.5},alts:["Leg Curls","Single-leg RDL","RDLs"],
   c:["Dumbbells in front of your thighs, soft knees. Push your hips back — it's a hinge, not a squat.","Keep the dumbbells brushing your legs on the way down, back flat the whole time.","Stop at a strong hamstring stretch (usually around mid-shin), then drive the hips forward to stand tall."]},
+ gbridge:{n:"Barbell Glute Bridge",g:"Legs",m:{glutes:1,hamstrings:.5},alts:["Dumbbell Glute Bridge","Single-leg Glute Bridge","Hip Thrust"],
+  c:["Lie on your back with knees bent and feet flat, about hip-width apart. Roll the bar over your hips and use a pad.","Drive through your heels and squeeze your glutes until your body is straight from knees to shoulders.","Lift with your hips, not by arching your lower back. Pause for a second at the top, then lower under control."]},
  legcurl:{n:"Leg Curls",g:"Legs",m:{hamstrings:1},alts:["Single-leg RDL","Hip Thrust","Good Mornings"],
   c:["Keep your hips pressed into the pad throughout.","Squeeze at the top and lower slowly — resist the weight on the way back.","Don't let the weight stack slam down between reps."]},
  dblegcurl:{n:"Dumbbell Leg Curl",g:"Legs",m:{hamstrings:1},alts:["Leg Curls","Single-leg RDL","Dumbbell RDL"],
