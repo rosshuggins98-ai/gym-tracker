@@ -26,15 +26,20 @@ function showSummary(S){
   '<div class="s"><b>'+S.vol+'</b><span>kg moved</span></div>'+
   '<div class="s"><b>'+(S.mins!==null?S.mins:'—')+'</b><span>Minutes</span></div></div>';
  if(dv!==null) h+='<div class="note">'+(dv>0?'+':'')+dv+'% volume vs last time on this day ('+S.prevVol+'kg).</div>';
+ /* showSummary runs after doNewSession has written history, so a milestone
+    this session reached is already there to find. */
+ const ms=milestonesOn(S.date);
+ if(ms.length) h+='<h5>Milestone'+(ms.length===1?'':'s')+' 🎉</h5>'+ms.map(msRow).join('');
  if(S.pbs.length) h+='<h5>Personal bests</h5>'+S.pbs.map(x=>'<div class="pbrow"><span class="tag">'+(x.kind==='weight'?'Weight':x.kind==='range'?x.n+'+ reps':'Reps')+'</span>'+
   '<span class="nm">'+x.nm+'</span><span class="dt">'+x.top+'kg'+(x.reps?' × '+x.reps:'')+'</span></div>').join('');
  if(S.tops.length) h+='<h5>Top sets</h5>'+S.tops.map(x=>'<div class="goal"><span class="nm">'+x.nm+'</span><span class="tg">'+x.top+'kg'+(x.reps?' × '+x.reps:'')+'</span></div>').join('');
  else h+='<div class="empty">Nothing was logged this session.</div>';
  h+='<div class="place effort" id="sumEffort">'+effortRow(S.date)+'</div>';
+ h+='<div class="sessnote">'+sessNoteRow(S.date)+'</div>';
  h+='<div class="hr"></div>'+bodyweightBlock()+
   '<div class="note" id="sumBackup">'+(typeof fetch==='function'&&/^https?:$/.test(location.protocol)?'Backing up…':'')+'</div>';
  body.innerHTML=h;
- wireBodyweight(()=>showSummary(S)); wireEffort(S.date);
+ wireBodyweight(()=>showSummary(S)); wireEffort(S.date); wireSessNote(S.date);
  applyAccent(); document.getElementById('sumbg').classList.add('show');
 }
 function closeSummary(){ document.getElementById('sumbg').classList.remove('show'); }

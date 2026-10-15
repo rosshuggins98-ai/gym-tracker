@@ -62,6 +62,7 @@
  <p class="small">Change sets and reps, reorder, remove, or add exercises. <b>Your logged history follows the exercise</b>, so nothing is lost when you rearrange a session.</p>
  <div id="editBody"></div>
  <div class="vol" id="volNote"></div>
+ <div id="weekVol"></div>
  <h5>Add an exercise</h5>
  <div id="addBody" class="addlist"></div>
  <div class="hr"></div>
@@ -89,6 +90,7 @@
  <p id="storeStatus" class="small"></p>
  <button class="dbtn" onclick="exportJSON()">Download full backup (.json)</button>
  <button class="dbtn" onclick="exportCSV()">Export history to spreadsheet (.csv)</button>
+ <button class="dbtn" onclick="exportSetsCSV()">Export every set to spreadsheet (.csv)</button>
  <div class="exportout" id="exportOut"><textarea id="exportText" readonly></textarea>
   <div class="row"><button class="cancel" id="copyBtn" onclick="copyExport(this)">Copy text</button></div>
   <div class="note" id="exportNote"></div></div>

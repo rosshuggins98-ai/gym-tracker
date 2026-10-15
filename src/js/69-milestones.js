@@ -1,0 +1,127 @@
+/* ============ MILESTONES ============
+   Worked out from history every time, never stored, so milestones reached
+   before this existed show too, and an edited or deleted session moves
+   them. Shown in Progress (the latest few and the nearest ones still to
+   reach) and on the summary sheet when a session reaches one. */
+const MS_SESSIONS=[10,25,50,75,100,150,200,300,500];
+const MS_STREAK=[4,8,12,26,52];
+const MS_DB=[10,15,20,25,30,35,40];                      /* kg per dumbbell */
+const MS_TONNES=[10000,25000,50000,100000,250000,500000,1000000];
+const MS_PBS=[10,25,50,100,250];
+/* Lifts against bodyweight, when bodyweight is logged. */
+const MS_BW=[{k:'legpress',x:[1,1.5,2],verb:'Leg pressed'},{k:'squat',x:[1,1.5],verb:'Squatted'},{k:'deadlift',x:[1,1.5,2],verb:'Deadlifted'}];
+const byDateAsc=(a,b)=>a.date<b.date?-1:a.date>b.date?1:0;
+function kgTxt(n){ return Math.round(n).toLocaleString('en-GB')+'kg'; }
+/* The bodyweight reading nearest a date, before or after. */
+function bwNear(date){ let best=null, gap=Infinity;
+ bodyweight.forEach(e=>{ const g=Math.abs(new Date(e.date)-new Date(date)); if(g<gap){ gap=g; best=e; } }); return best; }
+/* Every entry of every lift, oldest first, as {k, e}. */
+function allEntries(){ const out=[]; Object.keys(hist).forEach(k=>(hist[k]||[]).forEach(e=>out.push({k,e,date:e.date}))); return out.sort(byDateAsc); }
+function dumbbellKey(k){ return incDefault(k)===2; }
+/* [{id, label, date, what?}] for every milestone reached, oldest first. */
+function milestones(){ const out=[], ds=allSessionDates();
+ MS_SESSIONS.forEach(n=>{ if(ds.length>=n) out.push({id:'s'+n,label:n+' sessions',date:ds[n-1]}); });
+ /* week streaks: consecutive Monday-weeks with a session; dated by the
+    first session of the week that reached the length */
+ let run=0, prev=null; const seen={};
+ [...new Set(ds.map(mondayOf))].sort().forEach(w=>{ run=(prev&&addDays(prev,7)===w)?run+1:1; prev=w;
+  MS_STREAK.forEach(n=>{ if(run>=n&&!seen[n]) seen[n]=ds.find(d=>mondayOf(d)===w); }); });
+ MS_STREAK.forEach(n=>{ if(seen[n]) out.push({id:'w'+n,label:n+'-week streak',date:seen[n]}); });
+ const ents=allEntries();
+ MS_DB.forEach(n=>{ const f=ents.find(x=>dumbbellKey(x.k)&&(x.e.top||0)>=n);
+  if(f) out.push({id:'d'+n,label:'First '+n+'kg dumbbell set',date:f.date,what:keyName(f.k)}); });
+ if(bodyweight.length) MS_BW.forEach(b=>b.x.forEach(x=>{
+  const f=(hist[b.k]||[]).slice().sort(byDateAsc).find(e=>{ const bw=bwNear(e.date); return bw&&(e.top||0)>=x*bw.kg; });
+  if(f) out.push({id:'b'+b.k+x,label:b.verb+' '+(x===1?'your bodyweight':x+'× your bodyweight'),date:f.date}); }));
+ let tot=0, ti=0;
+ ents.forEach(x=>{ tot+=entryVol(x.k,x.e); while(ti<MS_TONNES.length&&tot>=MS_TONNES[ti]){ out.push({id:'t'+MS_TONNES[ti],label:kgTxt(MS_TONNES[ti])+' lifted',date:x.date}); ti++; } });
+ const pbs=recentPBs(1e9).slice().reverse();
+ MS_PBS.forEach(n=>{ if(pbs.length>=n) out.push({id:'p'+n,label:n+' personal bests',date:pbs[n-1].date}); });
+ return out.sort(byDateAsc); }
+/* The nearest ones not reached yet, closest first: [{label, left, f}] where
+   f is how far along (0-1). */
+function nextMilestones(){ const out=[], ds=allSessionDates(), ents=allEntries();
+ const ns=MS_SESSIONS.find(n=>n>ds.length); if(ns&&ds.length) out.push({label:ns+' sessions',left:(ns-ds.length)+' to go',f:ds.length/ns});
+ const st=weekStreak(), nw=MS_STREAK.find(n=>n>st);
+ if(st&&nw) out.push({label:nw+'-week streak',left:(nw-st)+' more week'+(nw-st===1?'':'s'),f:st/nw});
+ const db=ents.filter(x=>dumbbellKey(x.k)).reduce((m,x)=>Math.max(m,x.e.top||0),0), nd=MS_DB.find(n=>n>db);
+ if(db&&nd) out.push({label:nd+'kg dumbbells',left:(Math.round((nd-db)*10)/10)+'kg to go',f:db/nd});
+ const tot=ents.reduce((s,x)=>s+entryVol(x.k,x.e),0), nt=MS_TONNES.find(n=>n>tot);
+ if(tot&&nt) out.push({label:kgTxt(nt)+' lifted',left:kgTxt(nt-tot)+' to go',f:tot/nt});
+ const np=recentPBs(1e9).length, npb=MS_PBS.find(n=>n>np);
+ if(np&&npb) out.push({label:npb+' personal bests',left:(npb-np)+' to go',f:np/npb});
+ return out.sort((a,b)=>b.f-a.f).slice(0,3); }
+function msRow(m){ return '<div class="msrow"><span class="star">★</span><span class="nm">'+m.label+(m.what?' <small>'+escHTML(m.what)+'</small>':'')+'</span>'+
+ '<span class="dt">'+shortDate(m.date)+'</span></div>'; }
+/* Progress: the latest four reached, newest first, then the nearest three. */
+function milestoneBlock(){ const got=milestones().reverse(), nx=nextMilestones();
+ if(!got.length&&!nx.length) return '';
+ return '<h5>Milestones</h5>'+(got.length?got.slice(0,4).map(msRow).join(''):'<div class="note">None yet — the first is 10 sessions.</div>')+
+  (got.length>4?'<div class="note">'+got.length+' reached so far.</div>':'')+
+  (nx.length?'<div class="ck-sub" style="margin-top:12px">Next up</div>'+nx.map(n=>'<div class="msnext"><span class="nm">'+n.label+'</span>'+
+   '<span class="bar"><i style="width:'+Math.round(n.f*100)+'%"></i></span><span class="n">'+n.left+'</span></div>').join(''):''); }
+/* Summary sheet: any milestone this session's date reached. */
+function milestonesOn(date){ return milestones().filter(m=>m.date===date); }
+
+/* ============ MONTHLY REPORT ============
+   The month just gone, in one card: sessions against the weekly target,
+   PBs (all three kinds pbCheck celebrates live), the biggest gains, lifts
+   trained at least twice without beating their best, bodyweight change and
+   milestones. Shown on the workout screen in a new month until dismissed
+   (monthSeen, gt4_monthseen -- UI state like gt4_checkin, not backed up),
+   and kept in Progress as "Last month". */
+let monthSeen=null;
+function monthBounds(ym){ const y=+ym.slice(0,4), m=+ym.slice(5,7)-1;
+ return {from:isoOf(y,m,1),to:isoOf(y,m+1,1),days:new Date(Date.UTC(y,m+1,0)).getUTCDate(),
+  name:new Date(Date.UTC(y,m,1)).toLocaleString('en-GB',{month:'long',timeZone:'UTC'})}; }
+function lastMonthYM(){ const t=today(); return isoOf(+t.slice(0,4),+t.slice(5,7)-2,1).slice(0,7); }
+/* Every PB, oldest first: [{k, date, kind}] -- weight (heavier), reps (more
+   reps at the best weight) or range (heaviest yet for N+ reps, beating an
+   earlier set at N+). One per lift per session; a lift's first session
+   sets the baseline. */
+function pbEvents(){ const out=[];
+ Object.keys(hist).forEach(k=>{ const h=(hist[k]||[]).slice().sort(byDateAsc); let bw=null, br=null; const rec={};
+  h.forEach(e=>{ const mx={};
+   workSets(e).forEach(s=>{ if(!s.r) return; REP_BUCKETS.forEach(n=>{ if(s.r>=n&&(mx[n]===undefined||s.w>mx[n])) mx[n]=s.w; }); });
+   let kind=null;
+   if(bw!==null){
+    if(e.top>bw) kind='weight';
+    else if(e.top===bw&&e.reps&&br&&e.reps>br) kind='reps';
+    else if(REP_BUCKETS.some(n=>mx[n]!==undefined&&rec[n]!==undefined&&mx[n]>rec[n])) kind='range'; }
+   if(kind) out.push({k,date:e.date,kind});
+   if(bw===null||e.top>bw){ bw=e.top; br=e.reps||null; } else if(e.top===bw&&e.reps&&(!br||e.reps>br)) br=e.reps;
+   REP_BUCKETS.forEach(n=>{ if(mx[n]!==undefined&&(rec[n]===undefined||mx[n]>rec[n])) rec[n]=mx[n]; }); }); });
+ return out.sort(byDateAsc); }
+function monthReport(ym){ const B=monthBounds(ym), inM=d=>d>=B.from&&d<B.to;
+ const pbs=pbEvents().filter(p=>inM(p.date)), kinds={weight:0,reps:0,range:0}; pbs.forEach(p=>kinds[p.kind]++);
+ const lifts=[];
+ Object.keys(hist).forEach(k=>{ const h=hist[k]||[], m=h.filter(e=>inM(e.date)), before=h.filter(e=>e.date<B.from);
+  if(!m.length) return; const now=topEntry(m);
+  if(!before.length){ lifts.push({k,nm:keyName(k),now,was:null,pct:null,n:m.length}); return; }
+  const rp=before.filter(withReps), was=topEntry(rp.length?rp:before), byW=!(withReps(was)&&withReps(now));
+  const a=byW?was.top:entryScore(was), b=byW?now.top:entryScore(now);
+  lifts.push({k,nm:keyName(k),now,was,pct:a>0?(b-a)/a:null,n:m.length}); });
+ const bw=bodyweight.filter(e=>inM(e.date));
+ return {ym,name:B.name,sessions:allSessionDates().filter(inM).length,target:Math.round(WEEKTARGET*B.days/7),
+  pbs:pbs.length,kinds,
+  gains:lifts.filter(l=>l.pct!==null&&l.pct>0.02).sort((a,b)=>b.pct-a.pct).slice(0,3),
+  stuck:lifts.filter(l=>l.pct!==null&&l.pct<=0&&l.n>=2),
+  bwd:bw.length>1?Math.round((bw[bw.length-1].kg-bw[0].kg)*10)/10:null,bwFrom:bw[0]||null,bwTo:bw[bw.length-1]||null,
+  ms:milestones().filter(m=>inM(m.date))}; }
+function monthBody(R){
+ const kinds=[['weight','heavier'],['reps','more reps'],['range','rep-range']].filter(x=>R.kinds[x[0]]).map(x=>R.kinds[x[0]]+' '+x[1]);
+ let h='<div class="ck-sub">'+R.sessions+' of about '+R.target+' sessions · '+R.pbs+' personal best'+(R.pbs===1?'':'s')+
+  (kinds.length?' ('+kinds.join(', ')+')':'')+'</div>';
+ if(R.gains.length) h+='<div class="ck-line good">Biggest gains:</div>'+R.gains.map(g=>'<div class="mgain"><div><span class="nm">'+escHTML(g.nm)+'</span><em>'+pctTxt(g.pct)+'</em></div>'+
+  '<small>'+setTxt(bestSet(g.was))+' → <b>'+setTxt(bestSet(g.now))+'</b></small></div>').join('');
+ if(R.stuck.length) h+='<div class="ck-line warn">No gain this month: '+R.stuck.map(s=>escHTML(s.nm)).join(', ')+'.</div>';
+ if(R.bwd!==null) h+='<div class="ck-line">Bodyweight '+R.bwFrom.kg+' → '+R.bwTo.kg+'kg ('+(R.bwd>0?'+':R.bwd<0?'−':'±')+Math.abs(R.bwd)+'kg).</div>';
+ if(R.ms.length) h+='<div class="ck-line good">Milestones: '+R.ms.map(m=>m.label).join(', ')+' 🎉</div>';
+ return h; }
+/* The workout screen's card for last month, or null. */
+function monthCard(){ const ym=lastMonthYM(); if(monthSeen===ym) return null;
+ const R=monthReport(ym); if(!R.sessions) return null;
+ const c=document.createElement('div'); c.className='checkin month';
+ c.innerHTML='<div class="ck-head"><b>'+R.name+' in review</b><button class="ck-ok">Got it</button></div>'+monthBody(R);
+ c.querySelector('.ck-ok').addEventListener('click',async()=>{ monthSeen=ym; await Store.set('gt4_monthseen',ym); render(); });
+ return c; }

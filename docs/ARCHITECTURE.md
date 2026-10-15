@@ -4,12 +4,20 @@
 
 ```js
 PLAN = { name, startedISO, days: [ { id, name, tag, av, warm, items:[ {ex, sets, reps[], lo?, wu?, rest?, super?} ] } ] }
-LIB  = { exerciseId: { n, g: group, alts: [...], c: [form cues], custom?: true } }
+LIB  = { exerciseId: { n, g: group, m?: {muscle: 1|.5}, alts: [...], c: [form cues], custom?: true } }
 ```
 
 `reps[]` is the top of the rep range per set and `lo` the bottom (absent: a default
 from the top, see `loFor()`); `wu` is the number of warm-up rows shown above set 1,
 which are not planned sets.
+
+`g` is the coarse group (Chest / Back / Shoulders / Arms / Legs, or Other for a
+custom exercise), used to sort lists. `m` is what the exercise trains, keyed by
+`MUSCLES` ids (chest, back, shoulders, biceps, triceps, quads, hamstrings, glutes,
+calves): 1 for the main muscle, .5 for a helper. Every built-in entry has one;
+custom exercises don't (nothing stored changed when `m` arrived), so
+`musclesFor()` gives them `MUSCLE_DEFAULT[g]`, and gives an `alt::` key the
+muscles of the slot's exercise, or of the library exercise that lists it.
 
 The plan references exercises by id. **All logged data is keyed by exercise id**, so
 moving an exercise between days, reordering, removing, or re-adding preserves
@@ -47,6 +55,7 @@ legacy weights. So a new preset shows real numbers from its first session.
 | `gt4_hist` | `{historyKey: [{date, top, reps, vol?, sets?}]}` -- `vol` (sets x reps x kg, working sets only) is present from 2026-09-11 onward; older entries lack it and count as 0 toward volume stats rather than being guessed at. `sets` (every ticked set, `{w, r, t?}`) from 2026-09-23 |
 | `gt4_dedupe1` | set once the one-off duplicate-session clean-up (`dropDupeDays`) has run |
 | `gt4_checkin` | Monday (ISO date) of the week whose check-in card was dismissed |
+| `gt4_monthseen` | `YYYY-MM` of the monthly review card last dismissed (UI state, like `gt4_checkin`; not in backups) |
 | `gt4_weektarget` | sessions/week target shown on the main screen (default 3) |
 | `gt4_routines` | `[{id, label, savedISO, days}]`, named snapshots of `PLAN.days`, switchable from the plan editor |
 | `gt4_swaps` | `{exId: alternativeName}` |
@@ -60,7 +69,18 @@ legacy weights. So a new preset shows real numbers from its first session.
 | `gt4_place` | `'gym'` or `'home'`, where today's session is; stays on the last pick. In backups (`place`) |
 | `gt4_effort` | `{date: 'easy'\|'solid'\|'hard'\|'off'}`, one rating per session date. In backups (`effort`) |
 | `gt4_homeswaps` | `{exId: altName}`, swaps chosen at home (`''` = keep the planned exercise); the gym map stays in `gt4_swaps`. In backups (`homeSwaps`) |
+| `gt4_sessnote` | `{date: text}`, one short note per session date (≤140 chars, stored as typed, escaped when shown). In backups (`sessNotes`); a backup without it loads with none |
 | `gt4_active`, `gt4_theme` | UI state |
+
+## Files on the phone (outside the app)
+
+Kept by `serve.py` and the launcher, not by the app, so not in its backups:
+
+| Path | Contents |
+|---|---|
+| `~/gym-backups/gym-backup-<date>.json` | one auto-backup per day, newest 20 kept; `gym-latest.json` is the newest again |
+| `~/gym-backups/.offsite.json` | GitHub copy state: `{repo, files: {name: {hash, sha}}, last_ok, error}`. Only files whose hash changed are sent again; a new repo gets everything |
+| `~/gymtools/offsite.json` | GitHub copy settings `{repo, token}`, chmod 600, written by `offsite-setup.sh`. Absent means the copy is off |
 
 ## Storage modes
 

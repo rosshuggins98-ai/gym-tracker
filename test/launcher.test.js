@@ -37,6 +37,8 @@ test('serve.sh self-updates the launcher from the repo, then runs serve.py',{tim
   assert.match(fs.readFileSync(path.join(tools,'serve.py'),'utf8'),/api\/old/,'old serve.py installed');
   fs.writeFileSync(path.join(tools,'update-url'),'http://127.0.0.1:'+repoPort+'/app/gym-tracker.html\n');
   fs.writeFileSync(path.join(tools,'no-wakelock'),'');
+  /* an unreadable GitHub settings file: shows up in /api/status only if serve.sh passes --offsite */
+  fs.writeFileSync(path.join(tools,'offsite.json'),'{broken');
 
   /* 2. tap the widget */
   r=spawnSync('bash',[path.join(tools,'serve.sh')],{env:Object.assign({},env,{GYM_PORT:String(appPort),GYM_SETUP_NOLAUNCH:''}),encoding:'utf8',timeout:30000});
@@ -51,6 +53,8 @@ test('serve.sh self-updates the launcher from the repo, then runs serve.py',{tim
   /* 3. the NEW server is what's running, with the backup endpoint */
   const st=await waitFor(appPort,'/api/status');
   assert.equal(JSON.parse(st.body).ok,true);
+  assert.match(JSON.parse(st.body).offsite.error||'',/offsite-setup/,'server started with --offsite');
+  assert.ok(fs.existsSync(path.join(tools,'offsite-setup.sh')),'GitHub setup script installed');
   const page=await get(appPort,'/gym-tracker.html?v=1');
   assert.match(page.body,/const BUILD=/);
   const pid=parseInt(fs.readFileSync(path.join(tools,'server.pid'),'utf8'),10); assert.ok(pid>0);

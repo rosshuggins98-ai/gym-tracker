@@ -201,6 +201,18 @@ function doneSets(a){ const out=[];
   if(isNaN(w)&&isNaN(r)) return;
   const s={w:isNaN(w)?0:w,r:isNaN(r)?null:r}; if(x.t) s.t=x.t; out.push(s); });
  return out; }
+/* {top, reps, vol} for a history entry's sets: working sets only (warm-ups
+   never count), the heaviest weight with ties going to more reps, and kg x
+   reps summed -- the rules topWithReps() and exVolume() apply to a live
+   session. null when there's no working set. Finishing a session
+   (doNewSession) and editing a past one (67-histedit) both go through here,
+   so top / reps / vol can never disagree with the sets. */
+function entryFromSets(sets){ let top=null, reps=null, vol=0, any=false;
+ (sets||[]).forEach(s=>{ if(!s||s.t==='warm') return; const w=+s.w; if(isNaN(w)) return; any=true;
+  const r=(typeof s.r==='number'&&s.r>0)?s.r:null;
+  if(top===null||w>top||(w===top&&(r||0)>(reps||0))){ top=w; reps=r; }
+  if(r) vol+=w*r; });
+ return any?{top,reps,vol}:null; }
 /* Full PB picture for a history key: heaviest weight, best reps at that weight, best reps ever */
 function pbOf(k){
  const h=hist[k]||[]; if(!h.length) return null;

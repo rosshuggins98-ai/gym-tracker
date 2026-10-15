@@ -131,8 +131,9 @@ function openChart(exId,dId){
    '<div class="note">'+h.length+' session'+(h.length===1?'':'s')+' logged'+(sp.d?', '+inSpan.length+' in the last '+sp.lbl.toLowerCase():'')+'.'+trendTxt+
    (pts.some(p=>p.home)?' Ringed dots are home sessions.':'')+'</div>'+target+
    repRecordBlock(k)+incBlock(k)+variantBlock(exId,k)+
-   '<h5 style="margin:18px 0 8px">Sessions</h5><div id="histRows">'+histRows(h)+'</div>'+
-   (h.length?'<div class="note">Edit a weight or reps directly, or delete a mis-logged entry — saves immediately. Tap Gym / Home to move that whole day\'s session to the other place.</div>':'');
+   '<h5 style="margin:18px 0 8px">Sessions</h5><div id="histRows">'+histRows(h,k)+'</div>'+
+   (h.length?'<div class="note">Tap a session\'s top set to see and correct each set — the top set, reps and volume follow, and it saves straight away. '+
+    'Sessions before 23 Sep only kept the top set, so edit that directly. × deletes a whole session. Tap Gym / Home to move that day\'s session to the other place.</div>':'');
   wireHistRows(k,exId,dId);
   body.querySelectorAll('[data-cspan]').forEach(b=>b.addEventListener('click',()=>{ chartSpan=b.dataset.cspan; openChart(exId,dId); }));
   body.querySelectorAll('[data-cmetric]').forEach(b=>b.addEventListener('click',()=>{ chartMetric=b.dataset.cmetric; openChart(exId,dId); }));
@@ -143,43 +144,64 @@ function openChart(exId,dId){
 }
 /* Past-session list: shown newest-first, but each row's data-i is the index
    into the actual (chronological) hist[k] array, so edits/deletes address
-   the right entry regardless of display order. */
-function histRows(h){
+   the right entry regardless of display order. A session with per-set
+   history shows its top set as a button that opens its sets for editing
+   (67-histedit); an older one keeps its top set as two inputs. */
+let histOpen=null, histMsg='';            /* open session as "key|date"; the last refusal, shown once */
+const HIST_BAD='Use a weight like 22 or 22.5, and whole reps.';
+const HIST_LAST='A session needs at least one working set. To remove the whole session, use × on its row.';
+function histRows(h,k){
  if(!h.length) return '<div class="note">No sessions logged yet.</div>';
  return h.map((e,i)=>({e,i})).sort((a,b)=>a.e.date<b.e.date?1:-1)
-  .map(({e,i})=>'<div class="histrow" data-i="'+i+'"><span class="hdt">'+shortDate(e.date)+
-   (effortOf(e.date)?'<i class="eff '+effortOf(e.date)+'">'+EFFORTS[effortOf(e.date)]+'</i>':'')+'</span>'+
-   '<input class="hw" inputmode="decimal" value="'+e.top+'"><span class="hx">kg ×</span>'+
-   '<input class="hrp" inputmode="numeric" value="'+(e.reps!=null?e.reps:'')+'">'+
-   '<button class="mini hpl'+(placeOf(e)==='home'?' home':'')+'">'+PLACES[placeOf(e)]+'</button>'+
-   '<button class="mini del hdel">×</button></div>').join('');
+  .map(({e,i})=>{ const sets=hasSets(e), open=sets&&histOpen===k+'|'+e.date, n=sets?workingCount(e):0;
+   return '<div class="histrow" data-i="'+i+'"><span class="hdt">'+shortDate(e.date)+
+    (effortOf(e.date)?'<i class="eff '+effortOf(e.date)+'">'+EFFORTS[effortOf(e.date)]+'</i>':'')+'</span>'+
+    (sets?'<button class="htop'+(open?' open':'')+'">'+(e.top>0?e.top+'kg':'bodyweight')+(e.reps?' × '+e.reps:'')+
+      '<small>'+n+' set'+(n===1?'':'s')+' '+(open?'▴':'▾')+'</small></button>':
+     '<input class="hw" inputmode="decimal" value="'+e.top+'"><span class="hx">kg ×</span>'+
+     '<input class="hrp" inputmode="numeric" value="'+(e.reps!=null?e.reps:'')+'">')+
+    '<button class="mini hpl'+(placeOf(e)==='home'?' home':'')+'">'+PLACES[placeOf(e)]+'</button>'+
+    '<button class="mini del hdel">×</button></div>'+
+    (sessNoteOf(e.date)?'<div class="hnote">'+escHTML(sessNoteOf(e.date))+'</div>':'')+(open?histSetsBlock(e,i):''); }).join('');
 }
+/* The open session's sets: working sets numbered, warm-ups marked W. */
+function histSetsBlock(e,i){ let n=0;
+ return '<div class="hsets" data-i="'+i+'">'+e.sets.map((s,j)=>{ const warm=s.t==='warm'; if(!warm) n++;
+   return '<div class="hset'+(warm?' hwarm':'')+'" data-j="'+j+'"><span class="hsn">'+(warm?'W':n)+'</span>'+
+    '<input class="hsw" inputmode="decimal" value="'+s.w+'"><span class="hx">kg ×</span>'+
+    '<input class="hsr" inputmode="numeric" value="'+(s.r!=null?s.r:'')+'">'+
+    '<button class="mini hwu'+(warm?' on':'')+'">Warm-up</button><button class="mini del hsdel">×</button></div>'; }).join('')+
+  (histMsg?'<div class="note hmsg">'+histMsg+'</div>':'')+'</div>'; }
 function wireHistRows(k,exId,dId){
  const box=document.getElementById('histRows'); if(!box) return;
+ /* Save and redraw after a change; on a refusal, redraw (restoring what was
+    typed) with the reason under the sets. */
+ const redo=async(ok,why)=>{ histMsg=ok?'':why;
+  if(ok){ await Store.set('gt4_hist',hist); render(); }
+  openChart(exId,dId); histMsg=''; };
  box.querySelectorAll('.histrow').forEach(row=>{
-  const i=+row.dataset.i, hw=row.querySelector('.hw'), hrp=row.querySelector('.hrp'), del=row.querySelector('.hdel');
-  const commit=async()=>{
-   const arr=hist[k]; if(!arr||!arr[i]) return;
-   const w=parseFloat(hw.value); if(isNaN(w)) return;
-   const r=parseInt(hrp.value,10);
-   arr[i].top=w; arr[i].reps=isNaN(r)?null:r;
-   arr.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
-   await Store.set('gt4_hist',hist);
-   openChart(exId,dId);
-  };
-  hw.addEventListener('change',commit); hrp.addEventListener('change',commit);
+  const i=+row.dataset.i, hw=row.querySelector('.hw'), hrp=row.querySelector('.hrp'), top=row.querySelector('.htop');
+  if(hw){ const c=()=>redo(histEditTop(k,i,hw.value,hrp.value),HIST_BAD); hw.addEventListener('change',c); hrp.addEventListener('change',c); }
+  if(top) top.addEventListener('click',()=>{ const e=hist[k]&&hist[k][i]; if(!e) return;
+   const key=k+'|'+e.date; histOpen=histOpen===key?null:key; openChart(exId,dId); });
   /* Gym <-> home for the whole session that day, every lift in it. */
   row.querySelector('.hpl').addEventListener('click',async()=>{
    const e=hist[k]&&hist[k][i]; if(!e) return;
    await tagDate(e.date,placeOf(e)==='home'?'gym':'home'); openChart(exId,dId); render(); });
-  del.addEventListener('click',async()=>{
-   const arr=hist[k]; if(!arr) return;
+  row.querySelector('.hdel').addEventListener('click',async()=>{
+   const arr=hist[k]; if(!arr||!arr[i]) return;
    arr.splice(i,1);
    if(!arr.length) delete hist[k];
-   await Store.set('gt4_hist',hist);
-   openChart(exId,dId);
+   histOpen=null; redo(true,'');
   });
  });
+ box.querySelectorAll('.hsets').forEach(blk=>{ const i=+blk.dataset.i;
+  blk.querySelectorAll('.hset').forEach(row=>{ const j=+row.dataset.j, sw=row.querySelector('.hsw'), sr=row.querySelector('.hsr');
+   const c=()=>redo(histEditSet(k,i,j,sw.value,sr.value),HIST_BAD);
+   sw.addEventListener('change',c); sr.addEventListener('change',c);
+   row.querySelector('.hwu').addEventListener('click',()=>redo(histToggleWarm(k,i,j),HIST_LAST));
+   row.querySelector('.hsdel').addEventListener('click',()=>{ const r=histDeleteSet(k,i,j); if(r==='entry') histOpen=null; redo(!!r,HIST_LAST); });
+  }); });
 }
 function repRecordBlock(k){
  const rr=repRecords(k), ns=REP_BUCKETS.filter(n=>rr[n]);

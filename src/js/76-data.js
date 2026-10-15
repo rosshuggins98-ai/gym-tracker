@@ -11,13 +11,14 @@ function openData(){
  const hn=Object.keys(hist||{}).length;
  el.innerHTML+='<br><br><b>Data found:</b> '+hn+' exercise'+(hn===1?'':'s')+' with logged history'+
   (n?', plus recovered weights for '+n+' exercise'+(n===1?'':'s')+' from an earlier version':'')+'.'+
-  '<br><br>'+autoBackupNote();
+  '<br><br>'+autoBackupNote()+'<span id="offsiteNote"></span>';
+ loadOffsiteNote();
  applyAccent(); document.getElementById('databg').classList.add('show');
 }
 function closeData(){ document.getElementById('databg').classList.remove('show'); }
 document.getElementById('databg').addEventListener('click',e=>{ if(e.target.id==='databg')closeData(); });
 function backup(){ return {app:"gym-tracker",version:4,build:BUILD,exported:new Date().toISOString(),
- plan:PLAN,cur,prev,swaps:gymSwapMap(),homeSwaps:homePicks,history:hist,warm:warmDone,custom,barWeight:BARWEIGHT,notes,weekTarget:WEEKTARGET,routines,bodyweight,incs,place:PLACE,effort:efforts}; }
+ plan:PLAN,cur,prev,swaps:gymSwapMap(),homeSwaps:homePicks,history:hist,warm:warmDone,custom,barWeight:BARWEIGHT,notes,weekTarget:WEEKTARGET,routines,bodyweight,incs,place:PLACE,effort:efforts,sessNotes}; }
 function dl(n,t,m){ try{ const b=new Blob([t],{type:m}),u=URL.createObjectURL(b),a=document.createElement('a');
  a.href=u;a.download=n;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);return true;}catch(e){return false;} }
 function showExport(t,n){ document.getElementById('exportText').value=t;
@@ -48,6 +49,26 @@ function exportCSV(){
  if(t===null){ showExport('No history yet — finish a session first.',n); return; }
  dl(n,t,'text/csv'); showExport(t,n);
 }
+/* Every set, one row each, for working in a spreadsheet: sets are numbered
+   in the order they were done, warm-ups included and named in Type.
+   Sessions from before 2026-09-23 only kept their top set, so each is one
+   row typed "top set only". The per-session CSV above stays as it was. */
+function csvSetsText(){
+ const rows=[];
+ Object.keys(hist).forEach(k=>{ const nm=keyName(k);
+  (hist[k]||[]).forEach(h=>{ const pl=PLACES[placeOf(h)];
+   if(Array.isArray(h.sets)&&h.sets.length) h.sets.forEach((s,j)=>rows.push([h.date,nm,j+1,s.w,s.r!=null?s.r:'',typeLabel(s.t)||'working',pl]));
+   else rows.push([h.date,nm,1,h.top,h.reps!=null?h.reps:'','top set only',pl]); }); });
+ if(!rows.length) return null;
+ rows.sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:a[1]<b[1]?-1:a[1]>b[1]?1:a[2]-b[2]);
+ return [['Date','Exercise','Set','Weight (kg)','Reps','Type','Place'].map(cell).join(',')]
+  .concat(rows.map(r=>r.map(cell).join(','))).join('\r\n');
+}
+function exportSetsCSV(){
+ const t=csvSetsText(), n='gym-sets-'+today()+'.csv';
+ if(t===null){ showExport('No history yet — finish a session first.',n); return; }
+ dl(n,t,'text/csv'); showExport(t,n);
+}
 function copyExport(btn){ const ta=document.getElementById('exportText'); ta.focus(); ta.select();
  let ok=false; try{ ok=document.execCommand('copy'); }catch(e){}
  if(!ok&&navigator.clipboard){ navigator.clipboard.writeText(ta.value); ok=true; }
@@ -72,13 +93,14 @@ async function applyImport(){ const d=window.__imp; if(!d)return;
  if(typeof d.weekTarget==='number'&&d.weekTarget>0) WEEKTARGET=d.weekTarget;
  if(PLACES[d.place]) PLACE=d.place;
  efforts=(d.effort&&typeof d.effort==='object')?d.effort:{};
+ sessNotes=(d.sessNotes&&typeof d.sessNotes==='object')?d.sessNotes:{};
  homePicks=(d.homeSwaps&&typeof d.homeSwaps==='object')?d.homeSwaps:{};
  notes=d.notes||{}; routines=d.routines||[]; incs=(d.incs&&typeof d.incs==='object')?d.incs:{};
  bodyweight=Array.isArray(d.bodyweight)?d.bodyweight.filter(e=>e&&e.date&&e.kg>0):[];
  await Promise.all([Store.set('gt4_plan',PLAN),Store.set('gt4_cur',cur),Store.set('gt4_prev',prev),Store.set('gt4_bodyweight',bodyweight),
   Store.set('gt4_hist',hist),Store.set('gt4_swaps',swaps),Store.set('gt4_warm',warmDone),Store.set('gt4_custom',custom),
   Store.set('gt4_barweight',BARWEIGHT),Store.set('gt4_notes',notes),Store.set('gt4_weektarget',WEEKTARGET),
-  Store.set('gt4_routines',routines),Store.set('gt4_incs',incs),Store.set('gt4_place',PLACE),Store.set('gt4_effort',efforts),Store.set('gt4_homeswaps',homePicks)]);
+  Store.set('gt4_routines',routines),Store.set('gt4_incs',incs),Store.set('gt4_place',PLACE),Store.set('gt4_effort',efforts),Store.set('gt4_homeswaps',homePicks),Store.set('gt4_sessnote',sessNotes)]);
  enterPlace();
  window.__imp=null;
  document.getElementById('importPreview').innerHTML='<b>Restored ✓</b><div class="note">Your data is back.</div>';

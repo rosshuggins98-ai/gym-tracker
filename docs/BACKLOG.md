@@ -10,70 +10,10 @@ From the market review (`docs/MARKET-REVIEW.md`), checked against the code.
 Decided with Ross on 2026-10-14: **charts first**; **PBs stay one record across
 gym and home**; **no 4th day planned**, so the day editor stays parked.
 
-Phases 1, 2 and 4 are UI only and don't change stored data. Phase 3 changes
-stored history, so write its tests first.
-
-Phase 0 (docs) and Phase 1 (items 1–3, the chart sheet) are done: see "Done".
-**Next is Phase 2, item 4.**
-
-### Phase 2: design plans with feedback
-
-4. **Weekly sets per muscle group in the plan editor.** `70-editor.js`. Under the
-   per-session `volNote`, add bars in the `balanceRows()` style from
-   `plannedByGroup()` (the whole plan, every day once), redrawn on every edit. This
-   is guidance only, with no enforced target. A reference band (~10–20 sets per
-   group per week, as Fitbod uses) may be shown as guidance.
-   Done when: changing sets on one day updates the weekly numbers at once.
-5. **Finer muscle groups, with secondary muscles** (from section D). `10-lib.js`:
-   add `m` to every `LIB` entry, e.g. dumbbell bench `{chest:1, triceps:.5,
-   shoulders:.5}`. Groups: chest, back, shoulders, biceps, triceps, quads,
-   hamstrings, glutes, calves. Keep `g` for coarse views. Custom exercises
-   (`gt4_custom`) get a default `m` from their `g` when read, so no stored data
-   changes. Swap alternates under `alt::` keys take the slot's exercise, as
-   `groupFor()` already does for `g`. Then move week balance, the check-in, the
-   still-to-do strip and item 4 to fine groups, counting secondary muscles as
-   fractional sets (rounded for display).
-   Tests: every `LIB` entry has `m` with one primary at 1; the custom default;
-   fractional sums. On each day of `BEGINNER_PLAN()`, built on the rule of one
-   quad-led and one hamstring-led lift per day (`docs/TRAINING-PLAN.md`), both
-   quads and hamstrings come out above 0.
-   Risk: numbers change on several screens at once, so check the check-in card and
-   the strip by eye.
-
-### Phase 3: fix the record (changes stored history: tests first)
-
-6. **Edit individual past sets** (was the loose end "History editing only edits
-   the top set"). On the chart sheet, a history row expands to its `sets`, where a
-   set's kg and reps can be edited, the set deleted, or toggled as a warm-up. Add
-   one pure function, `entryFromSets(sets)` → `{top, reps, vol}`, working sets
-   only, ties going to more reps (the same rules as `topWithReps()` and
-   `exVolume()`). Use it in both the editor and `doNewSession()`, so the two can't
-   drift. Entries without `sets` (before 2026-09-23) keep today's top/reps
-   editing. Deleting the last set deletes the entry.
-   Tests: for the same sets, the rebuilt entry matches what `doNewSession()`
-   writes; warm-ups are excluded; old entries are untouched; backup round-trip.
-7. **Per-set CSV** (was the loose end "CSV export has no per-set data"). Add a
-   second export, "CSV, every set": one row per set with date, exercise, set number,
-   kg, reps, type and place. Leave the current CSV unchanged. Entries without
-   `sets` export their top set as one row.
-   Test: row count equals sets logged, plus one per old entry.
-8. **Session note** (from section E). A text box on the summary sheet beside the
-   effort rating, one note per date, stored in `gt4_sessnote` as `{date: text}`.
-   Cap it at ~140 characters and strip it like `cleanName()`, because it renders
-   through innerHTML. Show it on chart history rows and in "Where you trained".
-   Add it to `backup()`/`applyImport()` and the ARCHITECTURE key table, with a
-   round-trip test. Re-run `autoBackup()` after an edit, as the effort rating does.
-
-### Phase 4: motivation over months
-
-9. **Training calendar.** Progress sheet: the last 3–6 months as month grids from
-   `allSessionDates()`, one dot per session day, ringed for home (`placeOf`). Tap
-   a day to list what was trained.
-10. **Muscle-group sets over time.** Build after item 5. Weekly working sets per
-    group for the last 12 weeks, via `setsByGroup()` week by week, as small bars
-    with the plan's weekly number as a reference line.
-11. **Milestones and a monthly report** (section C; this was "Next up" item 4 on
-    2026-10-07). As described in section C.
+**All five phases are done (items 0–11), and so is F (backups to GitHub): see
+"Done".** Nothing agreed is left here. The next piece of work needs agreeing with
+Ross first. Open candidates: relative strength (section C), and the loose ends
+below.
 
 ### Decided or parked on 2026-10-14
 
@@ -94,21 +34,18 @@ Phase 0 (docs) and Phase 1 (items 1–3, the chart sheet) are done: see "Done".
   needs a fallback for them (`workSets(e)` in `58-coach.js` already does this).
 - Only ticked sets are recorded, and warm-ups are kept but flagged `t:'warm'`.
 - Bodyweight is logged per day (`bodyweight`, `80-bodyweight.js`).
-- Muscle groups are coarse: `LIB[id].g` is one of Chest / Back / Shoulders / Arms /
-  Legs (custom exercises can also use Other). Item 5 adds finer ones.
+- Muscles: `musclesFor(k, exId)` gives `{muscle: 1|.5}` for any history key
+  (nine muscles, helpers at half). `LIB[id].g` is still the coarse group for
+  sorting lists.
 
 ## C. The long view
 
 - ~~Since-you-started comparison per exercise~~: done 2026-10-08 in Progress as
   "How you're doing". The chart-sheet line is item 3.
-- **Monthly report** (item 11). Sessions attended vs target, PBs (all three
-  kinds), biggest gains, exercises that stalled, bodyweight change. Could be a
-  sheet opened from Progress, or shown automatically on the first session of a new
-  month. The "4 weeks" span in Compare covers most of it already.
-- **Milestones** (item 11). 10/25/50/100 sessions, first 20kg dumbbell, first time
-  leg pressing your bodyweight, longest week streak. Cheap, and they motivate.
-  Work them out from history rather than storing them, so they appear for past
-  sessions too.
+- ~~Monthly report~~: done 2026-10-14 as item 11 (a card in a new month, and
+  "Last month" in Progress).
+- ~~Milestones~~: done 2026-10-14 as item 11, worked out from history, never
+  stored.
 - **Relative strength.** Top set ÷ bodyweight on the nearest date for the main
   lifts. Bodyweight is already logged. Not scheduled.
 
@@ -116,8 +53,8 @@ Phase 0 (docs) and Phase 1 (items 1–3, the chart sheet) are done: see "Done".
 
 - ~~Hard sets per muscle per week~~: done 2026-10-07 against the plan's own
   weekly sets rather than a fixed 10–20 range (see "Done").
-- Finer muscle groups with secondary muscles, and `alt::` keys inheriting the
-  slot's group: now item 5.
+- ~~Finer muscle groups with secondary muscles, and `alt::` keys inheriting the
+  slot's group~~: done 2026-10-14 as item 5 (see "Done").
 
 ## E. Context on sessions
 
@@ -125,20 +62,18 @@ Phase 0 (docs) and Phase 1 (items 1–3, the chart sheet) are done: see "Done".
 - **Reps in reserve (RIR) on the last set** as an optional alternative. A more
   precise signal, but it's another tap per exercise, so only add it if the
   effort rating proves too coarse.
-- Short session note: now item 8.
+- ~~Short session note~~: done 2026-10-14 as item 8 (see "Done").
 
 ## F. Data safety
 
-- **Copy backups off the phone automatically.** Today every backup lives on the
-  phone (`serve.py` keeps the newest 20 in `gym-backups/`). Options: Termux
-  writing to a synced folder (Drive/Syncthing), or `serve.py` committing and
-  pushing to a private repo after each save. Losing the phone currently means
-  losing everything. Not yet scheduled; raised with Ross on 2026-10-14.
+- ~~Copy backups off the phone automatically~~: done 2026-10-14. Ross chose a
+  private GitHub repo over a synced folder (see "Done"). He still has to do the
+  one-off setup on the phone (README, "Backups to GitHub").
 
 ## Loose ends from A and B
 
-- Per-set CSV: now item 7.
-- Per-set history editing: now item 6.
+- ~~Per-set CSV~~: done 2026-10-14 as item 7.
+- ~~Per-set history editing~~: done 2026-10-14 as item 6.
 - **"vs last time" in the session summary** still compares against `prev` (the
   last session on that day). It could compare set by set from history instead,
   which also works when the exercise was last done on a different day.
@@ -167,7 +102,9 @@ Phase 0 (docs) and Phase 1 (items 1–3, the chart sheet) are done: see "Done".
   what the stub DOM hides. Headless Chromium does install in the cloud dev
   container (`pip install --break-system-packages playwright && python3 -m
   playwright install chromium`); Phase 1 was checked that way, with a seeded
-  history, at 360px in both themes. The script wasn't committed.
+  history, at 360px in both themes. Phases 3 and 4 also had a whole-app run (log a
+  set, finish, open every sheet, export, wipe, restore, against `serve.py`). The
+  scripts weren't committed.
 - **Header wraps at phone width.** "GYM TRACKER" breaks onto two lines and the
   build badge squashes (seen in a 2026-09-23 screenshot).
 
@@ -198,7 +135,7 @@ Phase 0 (docs) and Phase 1 (items 1–3, the chart sheet) are done: see "Done".
 - 2026-10-08: **Effort rating.** Easy / Solid / Hard / Off day on the summary
   sheet, per date; off-day sessions are left out of the coach's judgement (no
   "drop back" or stall from a bad day). Shown on chart history rows and in
-  "Where you trained". The session note is now item 8.
+  "Where you trained". The session note followed on 2026-10-14 (item 8).
 - 2026-10-08: **Home kit.** At home each planned exercise that needs gym kit is
   swapped for a dumbbells-and-bench one (gym swap if it works at home, else a
   preferred stand-in, else the first workable alt); picks made at home stay
@@ -217,3 +154,41 @@ Phase 0 (docs) and Phase 1 (items 1–3, the chart sheet) are done: see "Done".
   lifts chart reps; tiles are best, latest and change; the dashed 1RM line is gone.
 - 2026-10-14 `b9f2db2`: **Item 3, since you started.** Compare's "All time" row
   for the lift, shown above its chart (`liftThenNow()` shared by both).
+- 2026-10-14 `7448285`: **Item 4, weekly sets in the plan editor.** Bars per
+  muscle for the whole plan, redrawn on every edit, the edited day's share darker,
+  a 10–20 sets guidance band behind.
+- 2026-10-14 `8373985`: **Item 5, nine muscle groups.** `LIB[id].m` on every entry
+  (helpers at .5), custom defaults by group, `alt::` keys inherit; the week
+  balance, check-in, still-to-do strip (now capped at four plus "+N more"),
+  Progress and the editor all count muscles. Balance rows line up.
+- 2026-10-14 `2b3eadb`: **Item 6, edit past sets.** A session's top set on the chart
+  sheet opens its sets: edit kg/reps, mark a warm-up, delete. Top/reps/vol are
+  rebuilt by `entryFromSets()`, which finishing a session uses too; the last working
+  set can't go; older sessions keep top-set editing (`67-histedit.js`).
+- 2026-10-14 `ee21cf5`: **Item 7, per-set CSV.** "Export every set to spreadsheet"
+  in the Data panel; the per-session CSV is unchanged.
+- 2026-10-14 `59abf3a`: **Item 8, session note.** On the summary sheet, per date
+  (`gt4_sessnote`, in backups), shown on chart rows and in "Where you trained".
+  Escaped when shown rather than stripped like `cleanName()` (the plan's
+  wording), so apostrophes survive.
+- 2026-10-14 `aee3ff1`: **Item 9, training calendar.** Progress shows the last
+  three months as month grids (filled dot gym, ringed home); tap a day for its
+  lifts, place, effort and note; "Show 6 months" when there's older history.
+- 2026-10-14 `977f36f`: **Item 10, sets per muscle week by week.** Up to 12 weeks
+  of small bars per muscle under this week's balance, the plan's weekly sets as a
+  dashed line, weeks that met it in green, this week live.
+- 2026-10-14 `b5910d9`, `5a51d96`: **Item 11, milestones.** Sessions, week
+  streaks, dumbbell weights, lifts against bodyweight, kg lifted and PB counts,
+  worked out from history. In Progress (latest four, plus the three nearest with
+  a bar) and on the summary when a session reaches one.
+- 2026-10-14 `c745109`: **Item 11, monthly report.** "<Month> in review" on the
+  workout screen once per new month (sessions vs target, PBs by kind, biggest
+  gains, lifts that didn't beat their best, bodyweight, milestones), and "Last
+  month" in Progress. Dismissal is UI state (`gt4_monthseen`), not backed up.
+- 2026-10-14 `7f32e53`, `7a17048`: **F, backups to GitHub.** `serve.py --offsite`
+  sends every dated backup to a private repo (contents API, stdlib only): on
+  start, after each save, and every 5 minutes while one is waiting. It refuses
+  a public repo and never shows the token. Setup is `~/gymtools/offsite-setup.sh`
+  (launcher v5). Data shows the status, and the finish screen says "phone and
+  GitHub ✓", or warns after 7 days without a copy. Checked end to end, including
+  a restore from the copy that reached the repo.

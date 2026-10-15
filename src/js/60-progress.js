@@ -33,22 +33,19 @@ function liveVolume(){
  return liveDays().reduce((s,id)=>
   s+Object.values(cur[id]||{}).reduce((s2,a)=>s2+exVolume(a),0),0);
 }
-/* A key merged into a real library exercise (no swap, or swapped to a name
-   that matched one) resolves to a muscle group; a synthetic alt:: key has no
-   group of its own -- it was never a tracked exercise, just a name. */
-function groupOf(k){ return (k.indexOf('::')<0&&LIB[k])?LIB[k].g:null; }
 function weekVolume(){
  const mon=mondayISO(); let v=0;
  Object.values(hist).forEach(a=>(a||[]).forEach(e=>{ if(e.date>=mon) v+=(e.vol||0); }));
  return Math.round(v+liveVolume());
 }
-/* Most recent trained date per muscle group, from history only -- a group
-   only entered live today doesn't count as "trained" until the session is
-   finished, same as everywhere else PB/top-set logic works. */
+/* Most recent trained date per muscle (musclesFor in 61-week, helpers
+   included), from history only -- a muscle only entered live today doesn't
+   count as "trained" until the session is finished, same as everywhere else
+   PB/top-set logic works. */
 function groupLastTrained(){
  const last={};
- Object.keys(hist).forEach(k=>{ const g=groupOf(k); if(!g) return;
-  (hist[k]||[]).forEach(e=>{ if(!last[g]||e.date>last[g]) last[g]=e.date; }); });
+ Object.keys(hist).forEach(k=>{ const m=musclesFor(k,null); if(!m) return;
+  (hist[k]||[]).forEach(e=>Object.keys(m).forEach(g=>{ if(!last[g]||e.date>last[g]) last[g]=e.date; })); });
  return last;
 }
 /* Epley estimated 1RM: w * (1 + reps/30). Falls back to the raw weight when
@@ -108,6 +105,7 @@ function openProgress(){
    (wk>=3?'Three this week — that is the target hit.':wk===2?'One more this week hits the target.':
     wk===1?'Two more this week hits the target.':'Nothing logged this week yet.')+'</div>'+
    '<div class="note">This week: <b>'+weekVolume()+'kg</b> total volume moved (working sets only).</div>';
+  h+='<div id="calBox">'+calendarBlock()+'</div>';
   h+='<h5>How you\'re doing</h5><div id="cmpBox">'+compareBlock()+'</div>';
   const pbs=recentPBs(6);
   if(pbs.length){
@@ -115,6 +113,7 @@ function openProgress(){
     '<span class="nm">'+keyName(p.k)+'</span><span class="dt">'+p.txt+' · '+shortDate(p.date)+'</span></div>').join('');
    h+='<div class="note">'+totalPB+' personal best'+(totalPB===1?'':'s')+' since you started.</div>';
   }
+  h+=milestoneBlock();
   const tg=nextTargets();
   if(tg.length){
    const st=tg.filter(t=>t.co.kind==='stall').length;
@@ -128,15 +127,19 @@ function openProgress(){
   if(bal.length){
    h+='<h5>This week: sets per muscle group</h5>'+balanceRows(bal.map(r=>{
     const last=glt[r.g], dd=last?Math.floor((new Date(today())-new Date(last))/864e5):null;
-    return Object.assign({},r,{g:r.g+((dd===null||dd>=7)?' <span class="trend down">⚠ '+(dd===null?'never':dd+'d ago')+'</span>':'')}); }));
-   h+='<div class="note">Working sets done this week (warm-ups not counted) against what your plan asks for when every day is done once. Flagged if nothing in that group has been logged in 7+ days.</div>';
+    return Object.assign({},r,{flag:(dd===null||dd>=7)?'<small class="flag">⚠ '+(dd===null?'never trained':dd+'d ago')+'</small>':''}); }));
+   h+='<div class="note">Working sets done this week (warm-ups not counted) against what your plan asks for when every day is done once. '+
+    'A set counts fully for the main muscle and half for a muscle that helps. Flagged if nothing that trains a muscle has been logged in 7+ days.</div>';
   }
+  h+=muscleTrendBlock();
   if(ds.some(x=>x<mon)) h+='<h5>Last week</h5>'+checkinBody(checkin());
+  const lm=monthReport(lastMonthYM());
+  if(lm.sessions) h+='<h5>Last month: '+lm.name+'</h5>'+monthBody(lm);
  }
  if(ds.length) h+='<div id="placeBox">'+placeBlock()+'</div>';
  h+='<div class="hr"></div>'+bodyweightBlock();
  document.getElementById('progBody').innerHTML=h;
- wireBodyweight(openProgress); wireCompare(); wirePlace();
+ wireBodyweight(openProgress); wireCompare(); wirePlace(); wireCalendar();
  document.getElementById('progbg').classList.add('show');
 }
 function closeProgress(){ document.getElementById('progbg').classList.remove('show'); }

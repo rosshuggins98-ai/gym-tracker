@@ -38,7 +38,10 @@ Use these to decide between options.
   generate workouts or reshuffle his plan automatically.
 - **History belongs to the exercise**, not to the day or the plan.
 - **Local and offline.** No accounts, cloud sync, social features, nutrition or
-  wearables. `docs/MARKET-REVIEW.md` explains why.
+  wearables. `docs/MARKET-REVIEW.md` explains why. The one thing that leaves the
+  phone is the backup copy `serve.py` sends to Ross's own private GitHub repo
+  (chosen 2026-10-14, see "Server"). The app itself never talks to anything but
+  its own server.
 - **Plain language in the UI.** Match the existing copy: short and direct, and any
   jargon is explained where it appears (e.g. the note under "Est. 1RM").
 
@@ -112,6 +115,25 @@ calls from `autoBackup()` after every finished session. It is embedded verbatim 
 `serve.py`, then paste it into the heredoc (or regenerate) before committing.
 `autoBackup()` must stay fire-and-forget: no UI, no error, if the endpoint is absent.
 
+**GitHub copy** (`serve.py --offsite ~/gymtools/offsite.json`, passed by `serve.sh`).
+When that settings file exists (`{"repo","token"}`, chmod 600, written by
+`~/gymtools/offsite-setup.sh`), `OffsiteWorker` sends every dated backup to that
+private repo through the contents API, stdlib `urllib` only. It sends on start,
+after each save (`worker.wake`), and every `OFFSITE_RETRY` seconds while one is
+waiting. `<backups>/.offsite.json` remembers each file's hash and sha, so only
+new or changed days go up. A `.offsite.lock` flock keeps the server and
+`--offsite-check` from sending at once. Rules that must hold:
+- Refuse a public repo.
+- Never print, log, or return the token.
+- Never let a copy failure touch the save or the server.
+- Errors are plain sentences, shown as they are.
+
+`/api/status` reports `offsite: {enabled:false}` or `{enabled, repo, pending,
+last_ok, error}`. The Data panel shows it, and the summary line asks it a few
+times after a save (`offsiteAfterSave`), warning when nothing has got through for
+`OFFSITE_STALE` (7) days. Tests use a fake GitHub on localhost via the settings
+file's `api` and `retry` keys. Never point tests at the real API.
+
 The Termux launcher (`serve.sh`, written by `gym-setup.sh`) self-updates: on every
 tap it fetches `termux/gym-setup.sh` from the repo and re-runs it in
 `GYM_SETUP_NOLAUNCH=1` mode when it has changed, so pushing a change to any
@@ -131,7 +153,9 @@ One script scope; later modules call earlier ones. `src/js/`:
 (gym / home) → `58-coach` → `59-effort` → `60-progress` → `61-week` (sets per
 muscle group, check-in, still-to-do strip, days done this week) → `62-cues` →
 `63-compare` (Progress "How you're doing": span vs the span before) → `64-swap` →
-`66-plates` → `68-chart` → `70-editor` → `72-routines` → `74-theme` → `76-data`
+`65-calendar` (Progress month grids) → `66-plates` → `67-histedit` (editing past
+sets) → `68-chart` → `69-milestones` (milestones, monthly review) → `70-editor` →
+`72-routines` → `74-theme` → `76-data`
 (export/import) → `78-onthefly` (today-only extras, skips) → `80-bodyweight` →
 `82-summary` → `84-autobackup` → `86-actions` (finish) → `90-migrate` → `99-boot`.
 New module: pick a free number, end the file with a newline.
@@ -176,6 +200,15 @@ New module: pick a free number, end the file with a newline.
 - **History entries**: `{date, top, reps, vol, sets}`. `sets` (every ticked set as
   `{w, r, t?}`, warm-ups included and flagged) exists from 2026-09-23 on; older
   entries only have the top set, so every reader must fall back to `top`/`reps`.
+  When an entry has `sets`, `top`/`reps`/`vol` are derived: `entryFromSets(sets)`
+  is the only rule, used by `doNewSession()` and by every edit in `67-histedit`
+  (`histEditSet`, `histToggleWarm`, `histDeleteSet`). Never write `top`/`reps` on
+  such an entry directly. Only entries without `sets` are edited by their top set
+  (`histEditTop`). An edit never leaves a session without a working set; deleting
+  its only set deletes the session.
+- **Session note**: one per date in `sessNotes` (`gt4_sessnote`, `sessNotes` in
+  backups), typed on the summary sheet beside the effort rating. Stored as typed and
+  shown through `escHTML()`, unlike exercise names, which are stripped at input.
 - **Rep ranges**: `it.reps` is the top of the range per set, `it.lo` the bottom.
   `lo` is optional — `loFor(it)` defaults it from the top (10 → 8, 12 → 8,
   15 → 12, else ~¾), which is the migration for every pre-2026-10-07 plan, so
@@ -205,9 +238,17 @@ New module: pick a free number, end the file with a newline.
   taps per set stays), but a slot only gets `rt` once its reps are typed or
   stepped. Without it the row is flagged, and `finishChecks()` lists untyped sets
   and exercises identical to their last entry on the finish sheet.
-- **Week balance** (`61-week`): working sets per muscle group against the plan's
+- **Week balance** (`61-week`): working sets per muscle against the plan's
   weekly sets (every day once), not kg. Only plan days count from `cur`
   (`liveDays()`) — a previous plan's unfinished sets stay in `cur` indefinitely.
+  Muscles come from `musclesFor(k, exId)`: `LIB[id].m` (1 for the main muscle,
+  .5 for a helper), a custom exercise's `MUSCLE_DEFAULT[g]`, and for an `alt::`
+  key the slot's exercise or the library exercise that lists it. Counts are
+  fractional; show them with `fmtSets()` and names with `muscleName()`. The coarse
+  `g` only sorts lists. Every tally goes through `addSets()`, so a new view
+  should too. The same model feeds the plan editor's weekly block
+  (`weekVolBlock`), the still-to-do strip (four muscles, then "+N more"),
+  Progress, and its week-by-week bars (`muscleWeeks`).
 - **Gym / home** (`57-place`): `PLACE` (`gt4_place`, in backups) is where today's
   session is and stays on whatever was picked last. Finishing stamps `at` on each
   history entry and `_at` on `prev`; no `at` means gym (everything before
@@ -241,6 +282,25 @@ New module: pick a free number, end the file with a newline.
   session). Early entries with no reps are skipped as baselines when a rep-logged
   one exists, and compared by top weight when not -- otherwise a weight-only
   entry scores as one rep and every gain looks huge.
+- **Calendar** (`65-calendar`): Progress month grids from `allSessionDates()`,
+  newest first, three months (six on "Show 6 months"). Filled dot gym, ringed home
+  (`placeOf`); tapping a day shows its lifts, place, effort and note. Dates are UTC
+  ISO days, like `today()` and history.
+- **Milestones** (`69-milestones`): worked out from history on every call
+  (`milestones()`), never stored, so sessions from before the feature earn them
+  and an edited or deleted session moves them. Thresholds are the `MS_*` arrays.
+  Dumbbell milestones go by `dumbbellKey()` (a 2kg default jump); bodyweight
+  ratios need a reading (`bwNear()`, nearest date) and are skipped without one.
+  The summary shows the ones the session's date reached (`milestonesOn()`).
+- **Monthly review**: `monthReport(ym)` gives sessions against `WEEKTARGET`, PBs,
+  the three biggest gains, lifts that didn't beat their best, bodyweight and
+  milestones. `monthCard()` shows it on the workout screen in a new month until
+  "Got it" (`monthSeen`, `gt4_monthseen`, UI state, not backed up). `render()`
+  shows one card at a time: the monthly review comes before the weekly check-in.
+  Two PB counters exist. `recentPBs()` (Progress list, Compare, PB milestones)
+  counts heavier and more-reps PBs. `pbEvents()` (monthly review, by kind) also
+  counts rep-range PBs, like `pbCheck()` does live. A month's count can therefore
+  be higher than Compare's for the same weeks.
 - **Supersets**: `it.super` on a plan item = "paired with the next item". Roles come
   from `ssRole(d, idx)` — always pass the day and index, never infer from the item
   alone, since the pairing is positional. Rest fires after the second half only.
@@ -264,8 +324,11 @@ in-memory fallback, so each `load()` is a clean slate. Sandbox values have their
 own prototypes — compare with `deq()` (JSON round-trip) not `assert.deepEqual`.
 Coverage: migration, PB detection, volume/trend/1RM, the coach, the finish-session
 flow, backup round-trip, presets, gym/home, effort, supersets, warm-ups, the chart
-(ranges, metrics, since-you-started), the build, the server and the launcher. Add a
-test whenever you touch any of those.
+(ranges, metrics, since-you-started), muscles and the weekly views (week by week
+too), history editing, the per-set CSV, the session note, the calendar, milestones,
+the monthly review, the build, the server, the GitHub copy and the launcher. Add a
+test whenever you touch any of those, and write it first when the change touches
+stored history.
 
 The suite doesn't render anything, so still serve and click through after a UI
 change: log a set, swap an exercise, edit the plan, create a custom exercise,
@@ -289,19 +352,21 @@ errors.
 | `docs/ROADMAP.md` | The original September brief, now delivered. **Historical only:** its cache-first service worker and "stop after item 3" instructions are superseded by this file. |
 
 ## Product direction
-Logging and progression coaching are already as good as the leading apps (see
-`docs/MARKET-REVIEW.md`). The thinnest areas are **visualisation**, then **plan
-design**. The plan agreed on 2026-10-14 is in `docs/BACKLOG.md` under "Next up",
-in phases:
+Logging and progression coaching were already as good as the leading apps (see
+`docs/MARKET-REVIEW.md`). The thinnest areas were **visualisation**, then **plan
+design**. The plan agreed on 2026-10-14 to strengthen them is complete; each item
+is recorded under "Done" in `docs/BACKLOG.md`. Its phases:
 
 0. Tidy the docs. *Done 2026-10-14.*
 1. **See your progress:** chart ranges spaced by date, a metric switch, and a
    then-vs-now line. *Done 2026-10-14.*
-2. **Design plans with feedback** (next): weekly sets per muscle group in the editor,
-   then finer muscle groups with secondary muscles.
+2. **Design plans with feedback:** weekly sets per muscle group in the editor,
+   then finer muscle groups with secondary muscles. *Done 2026-10-14.*
 3. **Fix the record:** per-set history editing, per-set CSV, and a session note.
+   *Done 2026-10-14.*
 4. **Motivation over months:** a training calendar, muscle-group sets over
-   time, and milestones with a monthly report.
+   time, and milestones with a monthly report. *Done 2026-10-14.*
 
-Work through it in that order. Each item says which code it touches, its tests,
-and when it's done.
+Copying backups off the phone (backlog F) followed the same day. Agree the next
+piece of work with Ross before starting it; `docs/BACKLOG.md` lists the open
+candidates.

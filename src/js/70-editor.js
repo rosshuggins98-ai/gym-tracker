@@ -59,6 +59,7 @@ function drawEdit(){
    n<=22 ? 'Solid working volume. Expect 60&ndash;75 minutes.' :
    'High volume &mdash; this is the territory that made your original plan hard to finish.';
  document.getElementById('volNote').innerHTML='<b>'+n+' working sets</b> this session (warm-ups not counted). '+advice;
+ const wv=document.getElementById('weekVol'); if(wv) wv.innerHTML=weekVolBlock(d);
  const add=document.getElementById('addBody'); add.innerHTML='';
  const box=document.createElement('div'); box.className='erow'; box.style.alignItems='stretch';
  box.innerHTML='<div class="en"><b>Create your own</b>'+
@@ -107,6 +108,19 @@ function drawEdit(){
  });
  drawRoutines();
 }
+/* Sets per muscle group per week for the whole plan, redrawn on every edit
+   (drawEdit), so changing one day shows its effect on the week at once. The
+   darker part of each bar is the day being edited; the faint band behind is
+   WEEK_BAND, guidance only. */
+function weekVolBlock(d){ const rows=plannedWeekRows(d.id); if(!rows.length) return '';
+ const max=Math.max(WEEK_BAND[1],...rows.map(r=>r.n)), pct=v=>Math.round(Math.min(100,v/max*100)*10)/10;
+ const band='<s style="left:'+pct(WEEK_BAND[0])+'%;width:'+(pct(WEEK_BAND[1])-pct(WEEK_BAND[0]))+'%"></s>';
+ return '<h5>Sets per muscle group, per week</h5>'+rows.map(r=>'<div class="bal wk"><span class="nm">'+muscleName(r.g)+'</span>'+
+   '<span class="bar">'+band+'<i style="width:'+pct(r.n)+'%"></i><b style="width:'+pct(r.day)+'%"></b></span>'+
+   '<span class="n">'+fmtSets(r.n)+'</span></div>').join('')+
+  '<div class="note">Your whole plan with every day done once. A set counts fully for the main muscle and half for '+
+  'a muscle that helps (a bench set is half a set for triceps and shoulders). The darker part of each bar comes from '+d.name+
+  '. The shaded band is '+WEEK_BAND[0]+'–'+WEEK_BAND[1]+' sets a week, a common range for building muscle — fewer is fine while you build the habit.</div>'; }
 function savePlan(){ Store.set('gt4_plan',PLAN); mirrorHash(); }
 function sameDays(a,b){ return JSON.stringify(a)===JSON.stringify(b); }
 /* Swap the whole plan for a built-in one. The outgoing plan is kept as a
