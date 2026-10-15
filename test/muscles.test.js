@@ -17,7 +17,7 @@ test('every library exercise has muscles: one or more main (1), helpers at .5, k
   }
   assert.ok(Object.values(m).includes(1),id+' has a main muscle');
  }
- assert.equal(Object.keys(LIB).filter(id=>!LIB[id].custom).length,45);
+ assert.equal(Object.keys(LIB).filter(id=>!LIB[id].custom).length,46,'45, plus the glute bridge (2026-10-15)');
 });
 
 test('the coarse groups still match: a Legs exercise trains leg muscles, and so on',async()=>{
@@ -55,8 +55,9 @@ test('the Beginner plan\'s rule shows: every day has quads and hamstrings',async
  /* the week as a whole, worked out by hand from docs/TRAINING-PLAN.md */
  const w=app.plannedByGroup();
  assert.equal(w.chest,9,'DB bench 3 + incline 3 + DB bench 3');
- assert.equal(w.hamstrings,9,'DB RDL 3 + leg curl 3 + leg curl 3');
- assert.equal(w.quads,9,'goblet 3 + leg press 3 + leg extension 3');
+ assert.equal(w.hamstrings,7.5,'leg curl 3 + DB RDL 3 + glute bridge 3 at half');
+ assert.equal(w.quads,9,'goblet 3 + leg extension 3 + leg extension 3');
+ assert.equal(w.glutes,6,'goblet and DB RDL at half, glute bridge 3');
 });
 
 test('the still-to-do strip shows four muscles and folds the rest into "+N more"',async()=>{
@@ -66,7 +67,7 @@ test('the still-to-do strip shows four muscles and folds the rest into "+N more"
  const html=app.todoStrip(app.PLAN.days[0]).innerHTML;
  const chips=[...html.matchAll(/class="chip( top)?">([^<]+)</g)].map(m=>m[2]);
  assert.equal(chips.length,app.TODO_MAX,'four muscles');
- assert.equal(chips[0],'Triceps 11','most sets left first');
+ assert.equal(chips[0],'Triceps 12','most sets left first');
  assert.ok(/class="chip more">\+4 more</.test(html),'8 owed, 4 shown');
 });
 

@@ -59,22 +59,25 @@ function FULL_BODY_PLAN(){ return {
 function BEGINNER_PLAN(){ return {
  name:"Full Body Beginner",
  startedISO:new Date().toISOString().slice(0,10),
+ /* Revised 2026-10-15 (docs/TRAINING-PLAN.md): leg work last, at most one
+    heavy leg lift a session and it comes at the very end, the same sets and
+    reps for a lift wherever it appears, and the glute bridge from physio. */
  days:[
   {id:"bgA",name:"Workout A",tag:"Full body",av:"--a1",
-   warm:"10 minutes: light cardio, then bodyweight squats, arm circles, band pull-aparts, and a light set of goblet squat and dumbbell bench.",
-   items:[{ex:"goblet",sets:3,reps:[10,10,10],rest:105},{ex:"dbbench",sets:3,reps:[10,10,10],rest:120},
-          {ex:"latpulldown",sets:3,reps:[10,10,10],rest:105},{ex:"dbrdl",sets:3,reps:[10,10,10],rest:105},
-          {ex:"dbcurl",sets:2,reps:[12,12],rest:60},{ex:"pushdown",sets:2,reps:[12,12],rest:60}]},
+   warm:"10 minutes: light cardio, then arm circles, band pull-aparts, and a light set of dumbbell bench. Use the warm-up row before the last lift for a lighter build-up set.",
+   items:[{ex:"dbbench",sets:3,reps:[10,10,10],rest:120,wu:1},{ex:"latpulldown",sets:3,reps:[10,10,10],rest:105},
+          {ex:"dbcurl",sets:3,reps:[12,12,12],rest:60},{ex:"pushdown",sets:3,reps:[12,12,12],rest:60},
+          {ex:"legcurl",sets:3,reps:[12,12,12],lo:10,rest:90},{ex:"goblet",sets:3,reps:[10,10,10],rest:120,wu:1}]},
   {id:"bgB",name:"Workout B",tag:"Full body",av:"--a2",
-   warm:"10 minutes: light cardio, then hip hinges, arm circles, band pull-aparts, and a light build-up set on the leg press.",
-   items:[{ex:"legpress",sets:3,reps:[12,12,12],rest:120},{ex:"incline",sets:3,reps:[10,10,10],rest:120},
-          {ex:"cablerow",sets:3,reps:[10,10,10],rest:105},{ex:"legcurl",sets:3,reps:[12,12,12],rest:90},
-          {ex:"lateral",sets:2,reps:[15,15],rest:60},{ex:"hammer",sets:2,reps:[12,12],rest:60}]},
+   warm:"10 minutes: light cardio, then arm circles, band pull-aparts and hip hinges. Use the warm-up row before the RDLs for a lighter build-up set.",
+   items:[{ex:"incline",sets:3,reps:[10,10,10],rest:120},{ex:"cablerow",sets:3,reps:[10,10,10],rest:105},
+          {ex:"lateral",sets:2,reps:[15,15],rest:60},{ex:"hammer",sets:3,reps:[12,12,12],rest:60},
+          {ex:"legext",sets:3,reps:[12,12,12],lo:10,rest:90},{ex:"dbrdl",sets:3,reps:[8,8,8],rest:120,wu:1}]},
   {id:"bgC",name:"Workout C",tag:"Full body",av:"--a3",
-   warm:"10 minutes: light cardio, then bodyweight squats, arm circles, band pull-aparts, and a light set of dumbbell bench.",
-   items:[{ex:"dbbench",sets:3,reps:[10,10,10],rest:120},{ex:"csrow",sets:3,reps:[10,10,10],rest:105},
-          {ex:"legext",sets:3,reps:[12,12,12],rest:90},{ex:"legcurl",sets:3,reps:[12,12,12],rest:90},
-          {ex:"dbshoulder",sets:3,reps:[10,10,10],rest:105},{ex:"pushdown",sets:3,reps:[15,15,15],rest:60}]}
+   warm:"10 minutes: light cardio, then arm circles, band pull-aparts, and a light set of dumbbell bench. Use the warm-up row before the glute bridges for a lighter build-up set.",
+   items:[{ex:"dbbench",sets:3,reps:[10,10,10],rest:120,wu:1},{ex:"csrow",sets:3,reps:[10,10,10],rest:105},
+          {ex:"dbshoulder",sets:3,reps:[10,10,10],rest:105},{ex:"pushdown",sets:3,reps:[12,12,12],rest:60},
+          {ex:"legext",sets:3,reps:[12,12,12],lo:10,rest:90},{ex:"gbridge",sets:3,reps:[12,12,12],lo:10,rest:105,wu:1}]}
  ]};
 }
 const PRESETS={beginner:{label:"Full Body Beginner",make:BEGINNER_PLAN},ppl:{label:"Push / Pull / Legs",make:DEFAULT_PLAN},fullbody:{label:"3-Day Full Body",make:FULL_BODY_PLAN}};
@@ -87,5 +90,5 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-10-14n";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-10-15a";   /* shown next to the title and in the Data panel so you can confirm the version */
 

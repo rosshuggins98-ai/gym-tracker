@@ -30,8 +30,8 @@ test('Keep in plan makes an extra permanent',async()=>{
 test('an extra copies sets, reps and rest from where the exercise is already planned',async()=>{
  const {app,tick}=await load();
  await app.loadPreset('beginner'); await tick();
- app.addExtra(app.day('bgA'),'legcurl');
- deq(app.day('bgA').items.slice(-1),[{ex:'legcurl',sets:3,reps:[12,12,12],extra:true,rest:90}]);
+ app.addExtra(app.day('bgA'),'lateral');
+ deq(app.day('bgA').items.slice(-1),[{ex:'lateral',sets:2,reps:[15,15],extra:true,rest:60}]);
 });
 
 test('skip today: out of the count, prefills dropped, nothing logged, back next session',async()=>{

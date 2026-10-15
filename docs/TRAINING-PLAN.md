@@ -6,7 +6,44 @@ burnout circuit. That took over an hour to get 75% through — a volume problem,
 fitness problem. Fifteen triceps sets alongside twelve chest pressing sets is well
 past the point of diminishing returns.
 
-## Preset: Full Body Beginner — dumbbells & machines (added 2026-09-23)
+## Current: Full Body Beginner, legs last (from 2026-10-15)
+The same preset, `BEGINNER_PLAN()`, revised with Ross on 2026-10-15 after going
+through his history (backup of 15 Oct). Names in brackets are what his gym swaps
+show; at home the app picks dumbbell versions.
+
+| Day | Exercises (sets × rep range, rest) |
+|---|---|
+| A | DB Bench 3×8–10 (2:00, warm-up row), Lat Pulldown 3×8–10 (1:45), DB Curl [Cable Curl] 3×8–12 (1:00), Pushdown 3×8–12 (1:00), Leg Curl 3×10–12 (1:30), Goblet Squat [Leg Press] 3×8–10 (2:00, warm-up row) |
+| B | DB Incline 3×8–10 (2:00), Cable Row 3×8–10 (1:45), Lateral Raise 2×12–15 (1:00), Hammer Curl [Cable Curl] 3×8–12 (1:00), Leg Extension 3×10–12 (1:30), DB RDL [RDLs] 3×6–8 (2:00, warm-up row) |
+| C | DB Bench 3×8–10 (2:00, warm-up row), Chest-Supported Row [Cable Row] 3×8–10 (1:45), DB Shoulder Press 3×8–10 (1:45), Pushdown 3×8–12 (1:00), Leg Extension 3×10–12 (1:30), Barbell Glute Bridge 3×10–12 (1:45, warm-up row) |
+
+- **Why legs moved.** Leg press and deadlifts drained the rest of the session, so
+  they were being skipped: no leg press logged since 30 Sep, and one RDL since
+  27 Sep. Each session now has at most one heavy leg lift, and it is the last
+  exercise, with a machine (leg curl or leg extension) just before it.
+- **This is a trial** ("let's try it and see"). If the heavy lift keeps getting
+  dropped at the end, the other option is to put it first and stop about 2 reps
+  short of failure. Research gathered on 2026-10-15 supports either: stopping 1–2
+  reps short grew legs as well as going to failure, with much less fatigue, and
+  exercise order barely changes muscle growth.
+- **How the heavy lifts are done.** Stop about 2 reps short of failure. Leg press
+  is 8–10 reps (it had been taken to 12–15), RDL 6–8.
+- **RDL, not deadlift.** That is Ross's preference.
+- **Glute bridge** comes from his physio. It is a new library entry, `gbridge`
+  (glutes 1, hamstrings .5), with the Dumbbell Glute Bridge at home. If the
+  physio prescribes something different, theirs wins.
+- **The same sets and reps for a lift wherever it appears** (bench, curls,
+  pushdowns, leg extension), so the coach makes one call. A's 4th bench set was a
+  leftover from logging a warm-up as a working set, so it is gone.
+- **Volume.** 18 / 17 / 18 working sets. Weekly: quads 9, hamstrings 7.5,
+  glutes 6, chest 9.
+- **Still in force:** never three leg exercises in a session, no supersets, no
+  face pulls.
+- Ross is keeping three days a week. A two-day A/B plan was considered and
+  dropped, partly because the data understated how often he trains: unfinished
+  workouts never reach history (see BACKLOG, loose ends).
+
+## Previous: Full Body Beginner, first version (2026-09-23 to 2026-10-15)
 Written because the barbell plan kept getting rebuilt on the gym floor: barbell
 lifts feel uncomfortable at this stage, and dumbbell/machine work gets pushed much
 harder. What matters most for a beginner's progress is turning up and working
@@ -31,7 +68,7 @@ hard, so the plan follows those preferences. In-app as `BEGINNER_PLAN()`.
 - Dumbbell Bench and Dumbbell RDL got library entries for this. Both were swap
   alternates before; `migrate()` moves history logged under those swaps onto the new ids.
 
-## Current: 3-day full body (A/B/C), from 2026-09-16
+## Earlier: 3-day full body (A/B/C), 2026-09-16 to 2026-09-23
 Source of record is `docs/full-body-plan.json`; the in-app preset `FULL_BODY_PLAN()`
 is a transcription of it. Rotation is A, B, C, repeat. 15-17 working sets per session,
 6-7 exercises, 55-70 minutes. Every big compound gets touched more than once a week,
