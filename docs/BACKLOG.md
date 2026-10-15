@@ -72,6 +72,15 @@ below.
 
 ## Loose ends from A and B
 
+- **Unfinished workouts never reach history** (found 2026-10-15). Sets are saved
+  only when Finish is tapped, and dated the day it is tapped. The 15 Oct backup
+  holds ticked sets from three Push/Pull/Legs workouts that were never finished,
+  and 14 Oct has A (home) and B (gym) finished together, so A was likely trained
+  earlier. Ross thinks he trains 3 a week; history shows about 2.
+  - Proposed fix, raised with Ross on 2026-10-15 and not yet agreed: when the app
+    opens with ticked sets from an earlier day, ask to save the workout or
+    discard it. Date every saved workout by its first ticked set (`gt4_start`),
+    not by when Finish was tapped.
 - ~~Per-set CSV~~: done 2026-10-14 as item 7.
 - ~~Per-set history editing~~: done 2026-10-14 as item 6.
 - **"vs last time" in the session summary** still compares against `prev` (the
@@ -106,7 +115,9 @@ below.
   set, finish, open every sheet, export, wipe, restore, against `serve.py`). The
   scripts weren't committed.
 - **Header wraps at phone width.** "GYM TRACKER" breaks onto two lines and the
-  build badge squashes (seen in a 2026-09-23 screenshot).
+  build badge squashes (seen in a 2026-09-23 screenshot). At a 360px width, the
+  Data and theme buttons also sit past the right edge, making the page 440px
+  wide (measured 2026-10-15; also on main).
 
 ## Done
 
@@ -192,3 +203,9 @@ below.
   (launcher v5). Data shows the status, and the finish screen says "phone and
   GitHub ✓", or warns after 7 days without a copy. Checked end to end, including
   a restore from the copy that reached the repo.
+- 2026-10-15 `5c75125`: **Plan revised with Ross: legs last.**
+  - The Beginner preset now has at most one heavy leg lift per session, as the
+    last exercise (leg press, RDL, glute bridge), with a machine just before it.
+  - The glute bridge is a new library entry.
+  - Lifts that appear on more than one day have the same sets and reps.
+  - See TRAINING-PLAN.md.
