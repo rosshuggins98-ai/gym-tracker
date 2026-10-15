@@ -98,7 +98,7 @@ function slot(dId,exId,i,t){ if(!cur[dId])cur[dId]={}; if(!cur[dId][exId])cur[dI
   /* Pre-fill from last session's same set so a matched set is one tap on the
      tick and nothing else. Only happens once, at creation -- never overwrites
      something already typed, since the slot object is reused after this. */
-  const lw=lastW(dId,exId,i), lr=lastR(dId,exId,i);
+  const warm=t==='warm', lw=warm?warmLast(dId,exId,i,'w'):lastW(dId,exId,i), lr=warm?warmLast(dId,exId,i,'r'):lastR(dId,exId,i);
   cur[dId][exId][i]={w:lw!==null?String(lw):'',r:lr!==null?String(lr):'',done:false};
   if(t==='warm') cur[dId][exId][i].t='warm';
  }
@@ -116,6 +116,14 @@ function carryWeight(dId,exId,ri,n){ const a=(cur[dId]&&cur[dId][exId])||[], x=a
   if(!y||y.done||y.wt||y.t==='warm'||y.t==='drop'||y.w===x.w) continue;
   y.w=x.w; out.push(j); }
  return out; }
+/* After the plan is replaced (a preset or a routine), prefilled sets nobody
+   touched are dropped so they're rebuilt for the new plan: a new warm-up row
+   gets a warm-up slot rather than last plan's set 1 (which would otherwise
+   be logged as a working set), and the working sets start at the coach's
+   target. Ticked sets and anything typed stay where they are. */
+function refreshPrefills(){ Object.keys(cur).forEach(dId=>{ const c=cur[dId]||{};
+ Object.keys(c).forEach(exId=>{ const a=c[exId]; if(!Array.isArray(a)) return;
+  a.forEach((x,i)=>{ if(x&&!x.done&&!x.rt&&!x.wt) a[i]=null; }); }); }); }
 /* A ticked working set whose reps were never typed or stepped (s.rt) is the
    prefill or the target, not a count -- flagged on screen and at finish. */
 function repsUnconfirmed(x){ return !!(x&&x.done&&x.t!=='warm'&&!x.rt); }
@@ -185,6 +193,17 @@ function lastW(dId,exId,i){ const s=lastSrc(dId,exId);
  if(s&&s.sets) return (s.sets[i]&&s.sets[i].w)?s.sets[i].w:null;
  if(s&&s.top!==undefined) return s.top;
  const L=legacyLast[exId]; return (L&&L[i])?L[i]:null; }
+/* A warm-up row's prefill: the same row last time if that was a warm-up
+   too, else the matching warm-up of the most recent session that had one
+   (this place first), else nothing -- never a working weight (2026-10-15:
+   Leg Press's new warm-up row was showing 160). */
+function warmLast(dId,exId,i,f){ const s=lastSrc(dId,exId), x=s&&s.sets&&s.sets[i];
+ if(x&&x.t==='warm'&&x[f]) return x[f];
+ const k=hkey(exId,swaps[exId]||null), h=hist[k]||[], here=h.filter(e=>placeOf(e)===PLACE);
+ for(const pool of [here,h]) for(let j=pool.length-1;j>=0;j--){
+  const ws=(pool[j].sets||[]).filter(z=>z&&z.t==='warm');
+  if(ws.length){ const z=ws[Math.min(i,ws.length-1)]; return z[f]==null?null:z[f]; } }
+ return null; }
 function lastR(dId,exId,i){ const s=lastSrc(dId,exId);
  return (s&&s.sets&&s.sets[i]&&s.sets[i].r)?s.sets[i].r:null; }
 /* Set types: undefined/'work' (default), 'warm', 'amrap', 'drop'. Warmups are

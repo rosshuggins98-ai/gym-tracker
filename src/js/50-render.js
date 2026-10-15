@@ -85,7 +85,7 @@ function card(it,d,idx){
  const stepW=incFor(k0)||2.5, wu=wuOf(it), rng=rangeLabel(it);
  for(let ri=0;ri<wu+reps.length;ri++){ const isW=ri<wu, i=ri-wu, tg=isW?null:reps[i];
   const x=slot(d.id,exId,ri,isW?'warm':undefined), tt=isW?'':(tg===null||tg==='max')?'max':tg;
-  const lw=lastW(d.id,exId,ri), lt=lw!==null?'last <b>'+lw+'</b>':'';
+  const lw=isW?warmLast(d.id,exId,ri,'w'):lastW(d.id,exId,ri), lt=lw!==null?'last <b>'+lw+'</b>':'';
   const typLbl=isW?'warm-up':typeLabel(x.t);
   const row=document.createElement('div'); row.className='set'+(x.t==='warm'?' warm':'')+(repsUnconfirmed(x)?' unconf':'');
   row.innerHTML='<div class="idx"><b>'+(isW?'W':(i+1))+'</b>'+(isW?'':'<small>×'+(rng&&tt!=='max'?rng:tt)+'</small>')+

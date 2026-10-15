@@ -700,7 +700,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-10-15d";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-10-15f";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -819,7 +819,7 @@ function slot(dId,exId,i,t){ if(!cur[dId])cur[dId]={}; if(!cur[dId][exId])cur[dI
   /* Pre-fill from last session's same set so a matched set is one tap on the
      tick and nothing else. Only happens once, at creation -- never overwrites
      something already typed, since the slot object is reused after this. */
-  const lw=lastW(dId,exId,i), lr=lastR(dId,exId,i);
+  const warm=t==='warm', lw=warm?warmLast(dId,exId,i,'w'):lastW(dId,exId,i), lr=warm?warmLast(dId,exId,i,'r'):lastR(dId,exId,i);
   cur[dId][exId][i]={w:lw!==null?String(lw):'',r:lr!==null?String(lr):'',done:false};
   if(t==='warm') cur[dId][exId][i].t='warm';
  }
@@ -837,6 +837,14 @@ function carryWeight(dId,exId,ri,n){ const a=(cur[dId]&&cur[dId][exId])||[], x=a
   if(!y||y.done||y.wt||y.t==='warm'||y.t==='drop'||y.w===x.w) continue;
   y.w=x.w; out.push(j); }
  return out; }
+/* After the plan is replaced (a preset or a routine), prefilled sets nobody
+   touched are dropped so they're rebuilt for the new plan: a new warm-up row
+   gets a warm-up slot rather than last plan's set 1 (which would otherwise
+   be logged as a working set), and the working sets start at the coach's
+   target. Ticked sets and anything typed stay where they are. */
+function refreshPrefills(){ Object.keys(cur).forEach(dId=>{ const c=cur[dId]||{};
+ Object.keys(c).forEach(exId=>{ const a=c[exId]; if(!Array.isArray(a)) return;
+  a.forEach((x,i)=>{ if(x&&!x.done&&!x.rt&&!x.wt) a[i]=null; }); }); }); }
 /* A ticked working set whose reps were never typed or stepped (s.rt) is the
    prefill or the target, not a count -- flagged on screen and at finish. */
 function repsUnconfirmed(x){ return !!(x&&x.done&&x.t!=='warm'&&!x.rt); }
@@ -906,6 +914,17 @@ function lastW(dId,exId,i){ const s=lastSrc(dId,exId);
  if(s&&s.sets) return (s.sets[i]&&s.sets[i].w)?s.sets[i].w:null;
  if(s&&s.top!==undefined) return s.top;
  const L=legacyLast[exId]; return (L&&L[i])?L[i]:null; }
+/* A warm-up row's prefill: the same row last time if that was a warm-up
+   too, else the matching warm-up of the most recent session that had one
+   (this place first), else nothing -- never a working weight (2026-10-15:
+   Leg Press's new warm-up row was showing 160). */
+function warmLast(dId,exId,i,f){ const s=lastSrc(dId,exId), x=s&&s.sets&&s.sets[i];
+ if(x&&x.t==='warm'&&x[f]) return x[f];
+ const k=hkey(exId,swaps[exId]||null), h=hist[k]||[], here=h.filter(e=>placeOf(e)===PLACE);
+ for(const pool of [here,h]) for(let j=pool.length-1;j>=0;j--){
+  const ws=(pool[j].sets||[]).filter(z=>z&&z.t==='warm');
+  if(ws.length){ const z=ws[Math.min(i,ws.length-1)]; return z[f]==null?null:z[f]; } }
+ return null; }
 function lastR(dId,exId,i){ const s=lastSrc(dId,exId);
  return (s&&s.sets&&s.sets[i]&&s.sets[i].r)?s.sets[i].r:null; }
 /* Set types: undefined/'work' (default), 'warm', 'amrap', 'drop'. Warmups are
@@ -1113,7 +1132,7 @@ function card(it,d,idx){
  const stepW=incFor(k0)||2.5, wu=wuOf(it), rng=rangeLabel(it);
  for(let ri=0;ri<wu+reps.length;ri++){ const isW=ri<wu, i=ri-wu, tg=isW?null:reps[i];
   const x=slot(d.id,exId,ri,isW?'warm':undefined), tt=isW?'':(tg===null||tg==='max')?'max':tg;
-  const lw=lastW(d.id,exId,ri), lt=lw!==null?'last <b>'+lw+'</b>':'';
+  const lw=isW?warmLast(d.id,exId,ri,'w'):lastW(d.id,exId,ri), lt=lw!==null?'last <b>'+lw+'</b>':'';
   const typLbl=isW?'warm-up':typeLabel(x.t);
   const row=document.createElement('div'); row.className='set'+(x.t==='warm'?' warm':'')+(repsUnconfirmed(x)?' unconf':'');
   row.innerHTML='<div class="idx"><b>'+(isW?'W':(i+1))+'</b>'+(isW?'':'<small>×'+(rng&&tt!=='max'?rng:tt)+'</small>')+
@@ -2754,7 +2773,7 @@ async function loadPreset(key){
   routines.push({id:newRoutineId(),label:cleanName(PLAN.name||'Previous plan')||'Previous plan',savedISO:today(),days:outgoing});
   await Store.set('gt4_routines',routines);
  }
- PLAN=P.make(); ACTIVE=PLAN.days[0].id;
+ PLAN=P.make(); ACTIVE=PLAN.days[0].id; refreshPrefills(); queueSave();
  savePlan(); drawRoutines(); drawEdit(); render();
 }
 function resetPlan(){ return loadPreset('ppl'); }
@@ -2774,7 +2793,7 @@ async function saveRoutine(){
 async function loadRoutine(id){
  const r=routines.find(x=>x.id===id); if(!r) return;
  PLAN={name:r.label,startedISO:today(),days:JSON.parse(JSON.stringify(r.days))};
- ACTIVE=PLAN.days[0].id;
+ ACTIVE=PLAN.days[0].id; refreshPrefills(); queueSave();
  await Store.set('gt4_plan',PLAN); mirrorHash();
  drawEdit(); render();
 }

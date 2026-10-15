@@ -249,7 +249,11 @@ New module: pick a free number, end the file with a newline.
   (`e1RMShown`); `trendFor`/`stalled` still use raw Epley because they only compare
   an exercise with itself.
 - **Warm-up rows**: `it.wu` rows above set 1, always typed `'warm'`, not planned
-  sets. They're a plan property (kept by `endOfSession` and `cleanDays`), so
+  sets. They prefill (and show "last") only from a past warm-up (`warmLast()`):
+  the same row last time if it was a warm-up, otherwise the latest session with
+  one, otherwise empty. Never a working weight. Loading a preset or routine
+  rebuilds every untouched prefill (`refreshPrefills()`), so a newly added
+  warm-up row never inherits the old plan's set 1. They're a plan property (kept by `endOfSession` and `cleanDays`), so
   `prev` lines up row for row. Anything indexing working sets in `cur` must offset
   by `wuOf(it)`: `done`, `updateProgress`, `applyCoach`, `removeSet`.
 - **Start at the target** (2026-10-15, Ross asked): before a workout starts

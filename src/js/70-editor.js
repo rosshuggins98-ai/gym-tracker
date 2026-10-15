@@ -135,7 +135,7 @@ async function loadPreset(key){
   routines.push({id:newRoutineId(),label:cleanName(PLAN.name||'Previous plan')||'Previous plan',savedISO:today(),days:outgoing});
   await Store.set('gt4_routines',routines);
  }
- PLAN=P.make(); ACTIVE=PLAN.days[0].id;
+ PLAN=P.make(); ACTIVE=PLAN.days[0].id; refreshPrefills(); queueSave();
  savePlan(); drawRoutines(); drawEdit(); render();
 }
 function resetPlan(){ return loadPreset('ppl'); }

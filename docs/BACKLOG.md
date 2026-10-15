@@ -212,3 +212,7 @@ below.
 - 2026-10-15: **Start at the target** (Ross asked). Before a workout starts,
   every working set shows the coach's weight for the session ("Go 26kg"),
   not last time's.
+- 2026-10-15: **Prefills after a plan switch.** Loading a preset or routine
+  rebuilds the prefills nobody touched. Without this, the new plan's warm-up
+  rows held the old plan's set 1, which would have been logged as a working
+  set. Warm-up rows now prefill only from a past warm-up, or stay empty.
