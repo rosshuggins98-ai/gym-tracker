@@ -16,6 +16,7 @@ function renderTabs(){
 function render(){
  enterPlace(); applyAccent(); renderTabs();
  const d=day(ACTIVE);
+ if(applyTargets(d)) queueSave();   /* start at the coach's target (58-coach) */
  document.getElementById('plabel').textContent=setCount(d)+' sets planned';
  const wk=workoutsThisWeek(), streak=weekStreak();
  document.getElementById('weekTag').textContent='Week '+weekNo();

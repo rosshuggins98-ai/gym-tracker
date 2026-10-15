@@ -209,3 +209,6 @@ below.
 - 2026-10-15: **Weight carries forward** (Ross asked).
   - Ticking a set gives the sets after it its weight.
   - A weight typed by hand, a warm-up row or a drop set keeps its own.
+- 2026-10-15: **Start at the target** (Ross asked). Before a workout starts,
+  every working set shows the coach's weight for the session ("Go 26kg"),
+  not last time's.

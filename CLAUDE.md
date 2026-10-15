@@ -252,6 +252,12 @@ New module: pick a free number, end the file with a newline.
   sets. They're a plan property (kept by `endOfSession` and `cleanDays`), so
   `prev` lines up row for row. Anything indexing working sets in `cur` must offset
   by `wuOf(it)`: `done`, `updateProgress`, `applyCoach`, `removeSet`.
+- **Start at the target** (2026-10-15, Ross asked): before a workout starts
+  (nothing ticked on the day), `render()` calls `applyTargets(d)`, which sets
+  every working set to the coach's weight for this session (`coach().w`) instead
+  of last time's. Weights typed by hand, warm-up rows and drop sets keep theirs.
+  Once a set is ticked the day is left alone and carryWeight takes over. The
+  "last" hint under each set still shows last time's weight.
 - **Weight carries forward** (2026-10-15, Ross asked): ticking a working set
   gives the sets after it its weight (`carryWeight()`), on screen and in `cur`.
   - Ticked sets, weights typed or stepped by hand (`wt` on the slot), warm-up
