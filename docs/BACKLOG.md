@@ -216,3 +216,6 @@ below.
   rebuilds the prefills nobody touched. Without this, the new plan's warm-up
   rows held the old plan's set 1, which would have been logged as a working
   set. Warm-up rows now prefill only from a past warm-up, or stay empty.
+- 2026-10-23: **Warm-ups don't carry.** A ticked set under 80% of the weight
+  the next sets show is a warm-up done in a normal row, so it no longer changes
+  the working sets. Ross reported a 14kg warm-up dropping them to 14.
