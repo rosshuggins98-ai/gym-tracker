@@ -106,14 +106,20 @@ function slot(dId,exId,i,t){ if(!cur[dId])cur[dId]={}; if(!cur[dId][exId])cur[dI
 /* Once a working set is ticked, the sets after it take its weight, so a
    weight changed once carries through the exercise (asked for 2026-10-15).
    Ticked sets, weights typed or stepped by hand (wt), warm-up rows and drop
-   sets keep theirs; nothing carries from a warm-up row or a drop set. n is
+   sets keep theirs; nothing carries from a warm-up row or a drop set, or
+   from a set under WARM_SHARE of the weight the next sets show -- that's a
+   warm-up done in a normal row (2026-10-23: a 14kg warm-up dropped the
+   working sets to 14). One or two jumps down still carry. n is
    how many rows are on screen (a slot left over from an older plan is not).
    Returns the row indexes that changed. */
+const WARM_SHARE=0.8;
 function carryWeight(dId,exId,ri,n){ const a=(cur[dId]&&cur[dId][exId])||[], x=a[ri], out=[];
  if(!x||!x.done||x.t==='warm'||x.t==='drop'||String(x.w==null?'':x.w).trim()==='') return out;
- const end=Math.min(a.length,n==null?a.length:n);
+ const end=Math.min(a.length,n==null?a.length:n), open=y=>y&&!y.done&&!y.wt&&y.t!=='warm'&&y.t!=='drop';
+ const ref=a.slice(ri+1,end).find(y=>open(y)&&parseFloat(y.w)>0);
+ if(ref&&parseFloat(x.w)<WARM_SHARE*parseFloat(ref.w)) return out;
  for(let j=ri+1;j<end;j++){ const y=a[j];
-  if(!y||y.done||y.wt||y.t==='warm'||y.t==='drop'||y.w===x.w) continue;
+  if(!open(y)||y.w===x.w) continue;
   y.w=x.w; out.push(j); }
  return out; }
 /* After the plan is replaced (a preset or a routine), prefilled sets nobody

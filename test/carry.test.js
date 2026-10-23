@@ -93,3 +93,26 @@ test('the workout screen shows the target when it is drawn',async()=>{
  app.render();
  deq(app.cur.bgA.dbbench.slice(1).map(x=>x.w),['26','26','26']);
 });
+
+/* 2026-10-23: Ross warmed up at 14kg in a normal set row (no warm-up row on
+   that press) and the working sets dropped to 14. A ticked set well under
+   the weight the sets after it show is a warm-up: it carries nothing. */
+test('a much lighter set ticked first is a warm-up: the working sets keep their weight',async()=>{
+ const {app,set}=await load();
+ set('cur',{d:{press:[{w:'14',r:'10',done:true},{w:'24',r:'10',done:false},{w:'24',r:'10',done:false}]}});
+ deq(app.carryWeight('d','press',0),[]);
+ deq(ws(app.cur.d.press),['14','24','24']);
+ /* the first real working set then carries as normal */
+ app.cur.d.press[1].w='22'; app.cur.d.press[1].done=true;
+ deq(app.carryWeight('d','press',1),[2]); deq(ws(app.cur.d.press),['14','22','22']);
+});
+
+test('a working-weight change still carries: one or two jumps down, or any jump up',async()=>{
+ const {app,set}=await load();
+ for(const [w,carries] of [['24',true],['22',true],['21',true],['20',false],['28',true]]){
+  set('cur',{d:{press:[{w,r:'10',done:true},{w:'26',r:'10',done:false}]}});
+  assert.equal(app.carryWeight('d','press',0).length>0,carries,w+'kg against 26kg');
+ }
+ set('cur',{d:{press:[{w:'14',r:'10',done:true},{w:'',r:'',done:false}]}});
+ deq(app.carryWeight('d','press',0),[1],'nothing to compare with: carries');
+});

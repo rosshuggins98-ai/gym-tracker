@@ -268,6 +268,10 @@ New module: pick a free number, end the file with a newline.
     rows and drop sets keep their own weight.
   - Nothing carries from a warm-up row or a drop set, which is why a lighter
     build-up set belongs in the warm-up row.
+  - Nothing carries from a set under `WARM_SHARE` (80%) of the weight the next
+    sets show either. That's a warm-up done in a normal row (2026-10-23: a
+    14kg warm-up had dropped the working sets to 14). One or two jumps down
+    still carry.
   - Only the rows on screen change.
 - **Unconfirmed reps**: ticking a set with empty reps still fills the target (two
   taps per set stays), but a slot only gets `rt` once its reps are typed or
