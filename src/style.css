@@ -180,6 +180,10 @@
  .plrow i.eff{display:inline;margin-right:6px}
  .plrow .pnote{display:block;color:var(--muted);font-weight:600;font-size:11px;overflow:hidden;text-overflow:ellipsis}
  .sessnote{margin:8px 2px 4px}
+ .addalt{display:flex;gap:8px;align-items:center;margin-top:10px}
+ .addalt input{flex:1;min-width:0}
+ .addalt .dbtn{width:auto;flex-shrink:0;margin:0;padding:10px 16px}
+ .opt .rmalt{flex-shrink:0;font-size:18px;line-height:1;color:var(--muted);padding:2px 4px 2px 8px}
  .sessnote input{width:100%;box-sizing:border-box;background:var(--card2);border:1px solid var(--line);border-radius:10px;
   color:var(--text);font-family:inherit;font-size:13px;padding:10px 11px;outline:none}
  .sessnote input:focus{border-color:var(--accent)}
