@@ -69,7 +69,7 @@ function drawEdit(){
   '<small>It joins the library, gets its own progress chart, and can be added to any session.</small></div>';
  add.appendChild(box);
  const gsel=box.querySelector('#cxGroups'); let chosen='Chest';
- ['Chest','Back','Shoulders','Arms','Legs','Other'].forEach(g=>{
+ ['Chest','Back','Shoulders','Arms','Legs','Core','Other'].forEach(g=>{
   const b=document.createElement('button'); b.className='sb'; b.style.width='auto'; b.style.padding='0 9px';
   b.style.fontSize='11px'; b.textContent=g;
   if(g===chosen){ b.style.borderColor='var(--accent)'; b.style.color='var(--accent)'; }

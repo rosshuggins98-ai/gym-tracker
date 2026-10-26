@@ -17,7 +17,7 @@ test('every library exercise has muscles: one or more main (1), helpers at .5, k
   }
   assert.ok(Object.values(m).includes(1),id+' has a main muscle');
  }
- assert.equal(Object.keys(LIB).filter(id=>!LIB[id].custom).length,46,'45, plus the glute bridge (2026-10-15)');
+ assert.equal(Object.keys(LIB).filter(id=>!LIB[id].custom).length,51,'45, the glute bridge (2026-10-15), machine-2 pushdown and four core exercises (2026-10-26)');
 });
 
 test('the coarse groups still match: a Legs exercise trains leg muscles, and so on',async()=>{
@@ -25,7 +25,7 @@ test('the coarse groups still match: a Legs exercise trains leg muscles, and so 
  const legs=['quads','hamstrings','glutes','calves'], arms=['biceps','triceps'];
  for(const id of Object.keys(LIB)){ const L=LIB[id]; if(L.custom) continue;
   const main=Object.keys(L.m).filter(k=>L.m[k]===1);
-  const ok={Legs:legs,Arms:arms,Chest:['chest'],Back:['back'],Shoulders:['shoulders']}[L.g];
+  const ok={Legs:legs,Arms:arms,Chest:['chest'],Back:['back'],Shoulders:['shoulders'],Core:['core']}[L.g];
   assert.ok(main.some(k=>ok.includes(k)),id+' ('+L.g+'): main muscle '+main+' is in its group');
  }
 });

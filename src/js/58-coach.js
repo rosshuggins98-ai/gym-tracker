@@ -23,6 +23,7 @@ function incDefault(k){
  if(id&&INC_NONE.indexOf(id)>=0) return 0;
  if(id&&INC_DB.indexOf(id)>=0) return 2;
  if(id&&INC_MACHINE.indexOf(id)>=0) return 5;
+ if(id==='pushdown2') return 2.5;   /* a cable stack like the usual pushdown; "machine" in its name is only a label */
  if(/push.?ups?|pull.?ups?|chin.?ups?|\bdips?\b|bodyweight/.test(nm)) return 0;
  if(/dumbbell|\bdb\b|goblet/.test(nm)) return 2;
  if(/machine|pec deck|leg press|hack squat/.test(nm)) return 5;
