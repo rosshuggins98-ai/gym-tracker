@@ -37,7 +37,7 @@ function staleCard(){ const ds=staleDays(); if(!ds.length) return null;
    '. Save it as '+shortDate(dt)+', or discard it if it was a mistake.</div>'+
    '<div class="ck-btns"><button class="ck-ok ck-save">Save as '+shortDate(dt)+'</button><button class="ck-ok ck-discard">Discard</button></div></div>'; }).join('');
  c.querySelectorAll('.uns').forEach(el=>{ const id=el.dataset.day, x=el.querySelector('.ck-discard');
-  el.querySelector('.ck-save').addEventListener('click',()=>doNewSession(id));
+  el.querySelector('.ck-save').addEventListener('click',()=>openSheet(id));
   x.addEventListener('click',()=>{ if(x.dataset.armed){ discardSession(id); return; }
    const n=tickedCount(id); x.dataset.armed='1'; x.classList.add('armed');
    x.textContent='Tap again to delete '+n+' set'+(n===1?'':'s'); }); });

@@ -239,10 +239,12 @@ below.
   - A suggested warm-up weight (about 55% of the target) where there's no
     past warm-up.
 - Agreed next, 2026-10-26:
-  - (5) Make the effort rating more prominent, with "Off day" covering being
-    tired or unwell.
   - (6) Let the swap sheet take a name you type, for grips, attachments, straps
     and second machines.
   - Strength standards: Strength Level's terms forbid copying its standards.
     A link out per lift, or the app's own ranking, was offered and is awaiting
     Ross's answer.
+- 2026-10-26: **Effort rating required** (5): the labels are now Felt strong,
+  Normal, Hard work, and Tired or unwell. A workout saves only once one is
+  picked on the finish sheet. The unsaved-workout card goes through the same
+  sheet.
