@@ -124,7 +124,9 @@ function card(it,d,idx){
     carryWeight(d.id,exId,ri,wu+reps.length).forEach(j=>{ if(wIs[j]) wIs[j].value=cur[d.id][exId][j].w; }); }
    if(y.done&&!y.r&&tt&&tt!=='max'){ y.r=String(tt); rI.value=tt; }
    row.classList.toggle('unconf',repsUnconfirmed(y)); row.querySelectorAll('.last')[1].textContent=repsUnconfirmed(y)?'not typed':'';
-   if(y.done){ const sec=restAfter(d,idx); if(sec) restStart(sec); else restCue(vName(partner.ex,swaps[partner.ex]||null)); }
+   if(y.done){ const sec=restAfter(d,idx), nd=setNudge(it,cur[d.id][exId],ri);
+    if(sec){ restStart(sec+(nd?nd.extra:0)); if(nd) document.getElementById('restL').textContent=nd.msg; }
+    else restCue(vName(partner.ex,swaps[partner.ex]||null)); }
    pills(c,it,d);
    if(y.done&&pbCheck(d.id,exId,k0)) celebratePB();
    done(c,it,d); updateProgress(); queueSave(); flush(); });
@@ -182,6 +184,7 @@ function pills(c,it,d){
  const pb=pbCheck(d.id,exId,k);
  if(pb) h+='<span class="pill pb">'+I.tick+(pb.kind==='weight'?'PB weight':pb.kind==='reps'?'PB reps':pb.kind==='range'?'PB for '+pb.n+'+ reps':'First log')+'</span>';
  if(co&&co.why) h+='<div class="coachwhy">'+co.why+'</div>';
+ const sj=sinceJumpTxt(k); if(sj) h+='<div class="coachwhy sincejump">'+sj+'</div>';
  const m=c.querySelector('.meta'); m.innerHTML=h;
  const cp=m.querySelector('.pill.coach');
  if(cp&&co&&(co.kind==='up'||co.kind==='stall'||co.kind==='down')) cp.addEventListener('click',()=>applyCoach(d,it,co.w));

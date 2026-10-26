@@ -231,3 +231,18 @@ below.
 - 2026-10-26: **Core work in the plan.** The Beginner preset was rebuilt from
   Ross's plan as on his phone on 25 Oct, plus Back Extension first on A and C
   and Cable Crunch first on B (2 × 12–15). Every day is now 20 sets.
+- 2026-10-26: **Coaching nudges** (ideas 1-4 from Ross's data):
+  - Progress since the last weight jump, on the card and the chart page.
+  - Two extra reps before a big default machine jump.
+  - A note on the rest bar when set 1 runs 2+ reps past the target, and 30s
+    more rest when reps drop by 3 or more.
+  - A suggested warm-up weight (about 55% of the target) where there's no
+    past warm-up.
+- Agreed next, 2026-10-26:
+  - (5) Make the effort rating more prominent, with "Off day" covering being
+    tired or unwell.
+  - (6) Let the swap sheet take a name you type, for grips, attachments, straps
+    and second machines.
+  - Strength standards: Strength Level's terms forbid copying its standards.
+    A link out per lift, or the app's own ranking, was offered and is awaiting
+    Ross's answer.

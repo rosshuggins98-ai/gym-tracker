@@ -262,6 +262,20 @@ New module: pick a free number, end the file with a newline.
   of last time's. Weights typed by hand, warm-up rows and drop sets keep theirs.
   Once a set is ticked the day is left alone and carryWeight takes over. The
   "last" hint under each set still shows last time's weight.
+- **Coaching nudges** (2026-10-26, agreed with Ross; in `58-coach`):
+  - `sinceJump(k)` / `sinceJumpTxt(k)`: sessions in a row at the current working
+    weight, comparing the first set's reps and the total reps then and now. It's
+    shown on the card and the chart page, so a weight that hasn't moved still
+    shows progress.
+  - A big default machine jump (`incDefault` ≥ 5, no `incs` override, over 5%
+    of the weight) asks for 2 reps past the top of the range before "up". A jump
+    set by hand on the chart page is used as it is.
+  - `setNudge()` puts a note on the rest bar after a ticked set. A first set
+    2+ reps past the top of its range gets "save some for sets 2 and 3". A set
+    3+ reps down on the one before gets 30s more rest.
+  - `warmSuggest()`: a warm-up row with no past warm-up prefills about 55% of
+    the session's target (75% and 85% for later rows) on the lift's own step,
+    for 10 reps.
 - **Weight carries forward** (2026-10-15, Ross asked): ticking a working set
   gives the sets after it its weight (`carryWeight()`), on screen and in `cur`.
   - Ticked sets, weights typed or stepped by hand (`wt` on the slot), warm-up

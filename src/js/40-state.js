@@ -98,7 +98,8 @@ function slot(dId,exId,i,t){ if(!cur[dId])cur[dId]={}; if(!cur[dId][exId])cur[dI
   /* Pre-fill from last session's same set so a matched set is one tap on the
      tick and nothing else. Only happens once, at creation -- never overwrites
      something already typed, since the slot object is reused after this. */
-  const warm=t==='warm', lw=warm?warmLast(dId,exId,i,'w'):lastW(dId,exId,i), lr=warm?warmLast(dId,exId,i,'r'):lastR(dId,exId,i);
+  const warm=t==='warm'; let lw=warm?warmLast(dId,exId,i,'w'):lastW(dId,exId,i), lr=warm?warmLast(dId,exId,i,'r'):lastR(dId,exId,i);
+  if(warm&&lw===null){ const s=warmSuggest(dId,exId,i); if(s){ lw=s.w; lr=s.r; } }   /* 58-coach */
   cur[dId][exId][i]={w:lw!==null?String(lw):'',r:lr!==null?String(lr):'',done:false};
   if(t==='warm') cur[dId][exId][i].t='warm';
  }
