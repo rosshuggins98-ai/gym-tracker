@@ -73,7 +73,9 @@ test('Beginner preset: two leg exercises a day, at the end, the heavy one last',
   deq(d.items.slice(-2).map(i=>i.ex),plain(legs.map(i=>i.ex)),d.name+': the leg work is the last two exercises');
   assert.equal(d.items[d.items.length-1].wu,1,d.name+': the heavy leg lift has a warm-up row');
  });
- deq(P.days.map(d=>app.setCount(d)),[18,17,18],'working sets per day');
+ deq(P.days.map(d=>app.setCount(d)),[20,20,20],'working sets per day (2026-10-26: core work added)');
+ deq(P.days.map(d=>d.items[0].ex),['backext','cablecrunch','backext'],'rehab first, straight after the warm-up: back extension on A and C, crunch on B');
+ P.days.forEach(d=>{ const it=d.items[0]; deq([it.sets,it.reps,it.lo,it.rest],[2,[15,15],12,60],d.name+': 2 x 12-15'); });
  const byEx={}; P.days.forEach(d=>d.items.forEach(it=>(byEx[it.ex]=byEx[it.ex]||[]).push(it)));
  Object.keys(byEx).forEach(ex=>{ const a=byEx[ex]; if(a.length<2) return;
   a.forEach(it=>deq({sets:it.sets,reps:it.reps,lo:it.lo},plain({sets:a[0].sets,reps:a[0].reps,lo:a[0].lo}),

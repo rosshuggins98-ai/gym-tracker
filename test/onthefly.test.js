@@ -31,7 +31,7 @@ test('an extra copies sets, reps and rest from where the exercise is already pla
  const {app,tick}=await load();
  await app.loadPreset('beginner'); await tick();
  app.addExtra(app.day('bgA'),'lateral');
- deq(app.day('bgA').items.slice(-1),[{ex:'lateral',sets:2,reps:[15,15],extra:true,rest:60}]);
+ deq(app.day('bgA').items.slice(-1),[{ex:'lateral',sets:3,reps:[15,15,15],extra:true,rest:60}]);
 });
 
 test('skip today: out of the count, prefills dropped, nothing logged, back next session',async()=>{

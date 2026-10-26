@@ -6,6 +6,20 @@ burnout circuit. That took over an hour to get 75% through — a volume problem,
 fitness problem. Fifteen triceps sets alongside twelve chest pressing sets is well
 past the point of diminishing returns.
 
+## 2026-10-26: core work added, for rehab
+Same plan as below, taken from Ross's phone on 2026-10-25 so his own edits are
+kept: warm-up rows on lat pulldown, pushdown (A), leg curl, incline and leg
+extension (B), none on A's bench, and 3 sets of lateral raises. Two things were
+added, agreed with Ross on 2026-10-26:
+- **Back Extension (bench)** first on A and C. It isn't on B, which already has
+  RDLs. It's bodyweight for now, with weight added later.
+- **Cable Crunch** first on B.
+- Each is 2 × 12–15 with 60s rest, straight after the warm-up, stopping 2–3
+  reps short of failure. The machine versions are on the swap button.
+- Every day is now 20 working sets.
+
+If his physio's numbers differ, theirs win.
+
 ## Current: Full Body Beginner, legs last (from 2026-10-15)
 The same preset, `BEGINNER_PLAN()`, revised with Ross on 2026-10-15 after going
 through his history (backup of 15 Oct). Names in brackets are what his gym swaps
