@@ -239,8 +239,6 @@ below.
   - A suggested warm-up weight (about 55% of the target) where there's no
     past warm-up.
 - Agreed next, 2026-10-26:
-  - (6) Let the swap sheet take a name you type, for grips, attachments, straps
-    and second machines.
   - Strength standards: Strength Level's terms forbid copying its standards.
     A link out per lift, or the app's own ranking, was offered and is awaiting
     Ross's answer.
@@ -248,3 +246,7 @@ below.
   Normal, Hard work, and Tired or unwell. A workout saves only once one is
   picked on the finish sheet. The unsaved-workout card goes through the same
   sheet.
+- 2026-10-26: **Typed swap names** (6; un-parks "swap to any library
+  exercise"): the swap sheet takes a typed name, kept for that exercise
+  (`gt4_myalts`, backed up). A new name keeps its own history. A library
+  exercise's exact name logs under that exercise.

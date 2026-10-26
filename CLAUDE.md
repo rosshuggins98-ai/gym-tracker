@@ -178,6 +178,13 @@ New module: pick a free number, end the file with a newline.
 - **Rest**: per plan item, `it.rest` seconds, read through `restFor(it)`. Absent means
   `REST_DEFAULT` (60s) — that's the migration for every pre-2026-09-16 plan and
   routine, so never make `rest` required.
+- **Typed swap names** (`64-swap`, 2026-10-26, Ross asked: grips,
+  attachments, straps, a second machine): the swap sheet takes a typed name
+  (`cleanName`), kept per exercise in `myAlts` (`gt4_myalts`, `myAlts` in
+  backups) and offered again with a "Yours" flag and a × that drops it from
+  the list but never touches its history. It's an ordinary swap name to
+  `hkey()`: its own `alt::slug` history unless it matches a library name. A
+  swap in use is always listed, even if its name is gone from every list.
 - **Promoting an alt to a real exercise**: if a name that was only ever in some
   `alts:[]` list gets its own `LIB` entry (as Chest-Supported Row did), `hkey()` starts
   resolving that name to the new id. `migrate()` handles this generically — any

@@ -1,5 +1,20 @@
 /* ============ SWAP ============ */
 let swapT=null;
+/* Names typed on the swap sheet (2026-10-26, Ross asked: grips,
+   attachments, straps, a second machine), kept per exercise in myAlts
+   (gt4_myalts, in backups) so they're offered again next time. Each is an
+   ordinary swap name: hkey() gives it the global alt::slug key, its own
+   history and PBs, unless it matches a library exercise's name exactly, in
+   which case it joins that exercise's history. Removing one from the list
+   never touches its history. */
+let myAlts={};
+function myAltsOf(exId){ return Array.isArray(myAlts[exId])?myAlts[exId]:[]; }
+async function addMyAlt(exId,name){ const n=cleanName(name); if(!n) return null;
+ const known=[exName(exId)].concat((LIB[exId]||{}).alts||[],myAltsOf(exId));
+ const same=known.find(x=>x.toLowerCase()===n.toLowerCase()); if(same) return same===exName(exId)?'':same;
+ myAlts[exId]=myAltsOf(exId).concat(n); await Store.set('gt4_myalts',myAlts); return n; }
+async function removeMyAlt(exId,name){ const a=myAltsOf(exId).filter(x=>x!==name);
+ if(a.length) myAlts[exId]=a; else delete myAlts[exId]; await Store.set('gt4_myalts',myAlts); }
 function openSwap(exId){ swapT=exId; const L=LIB[exId]||{alts:[]}, alt=swaps[exId]||null;
  document.getElementById('swapTitle').textContent=exName(exId);
  const list=document.getElementById('swapList'); list.innerHTML='';
@@ -10,7 +25,10 @@ function openSwap(exId){ swapT=exId; const L=LIB[exId]||{alts:[]}, alt=swaps[exI
  /* At home the home stand-in is offered even when it isn't one of the alts
     (Dumbbell Leg Curl for Leg Curls), and each option says whether the home
     kit can do it. */
- const home=PLACE==='home', opts=[{n:exName(exId),v:null,f:'Planned'}].concat((L.alts||[]).map(a=>({n:a,v:a,f:''})));
+ const home=PLACE==='home', opts=[{n:exName(exId),v:null,f:'Planned'}].concat((L.alts||[]).map(a=>({n:a,v:a,f:''})),
+  myAltsOf(exId).filter(a=>!(L.alts||[]).includes(a)).map(a=>({n:a,v:a,f:'Yours',mine:true})));
+ /* a swap in use is always offered, even if its name was removed from the list */
+ if(alt&&!opts.some(o=>o.v===alt)) opts.push({n:alt,v:alt,f:''});
  const ha=home?homeAuto(exId):null;
  if(ha&&!opts.some(o=>o.v===ha)) opts.push({n:ha,v:ha,f:''});
  if(home) opts.forEach(o=>{ if(!o.f||o.f==='Planned') o.f=(o.f?o.f+' · ':'')+(homeOk(o.n)?'home ✓':'gym only'); });
@@ -21,7 +39,22 @@ function openSwap(exId){ swapT=exId; const L=LIB[exId]||{alts:[]}, alt=swaps[exI
   const b=document.createElement('button'); b.className='opt'+(alt===o.v?' on':'')+(home&&!homeOk(o.n)?' dim':'');
   const bs=bestOf(hkey(exId,o.v));
   b.innerHTML='<span>'+o.n+(bs!==null?'<small>best '+bs+'kg logged</small>':'<small>no history yet</small>')+'</span><span class="flag">'+(alt===o.v?'Using':o.f)+'</span>';
-  b.addEventListener('click',()=>chooseSwap(o.v)); list.appendChild(b); });
+  b.addEventListener('click',()=>chooseSwap(o.v));
+  if(o.mine&&alt!==o.v){ const x=document.createElement('span'); x.className='rmalt'; x.textContent='×'; x.title='Remove from this list';
+   x.addEventListener('click',async ev=>{ ev.stopPropagation(); await removeMyAlt(exId,o.n); openSwap(exId); });
+   b.appendChild(x); }
+  list.appendChild(b); });
+ /* Type a name: a grip, an attachment, straps, a second machine. */
+ const add=document.createElement('div'); add.className='sessnote addalt';
+ add.innerHTML='<input id="swapNew" maxlength="40" placeholder="Type your own, e.g. with straps">'+
+  '<button class="dbtn" id="swapNewGo">Use</button>';
+ list.appendChild(add);
+ const hint=document.createElement('p'); hint.className='small';
+ hint.textContent='A new name keeps its own history and PBs. Type an exercise\'s exact name to log it under that exercise instead.';
+ list.appendChild(hint);
+ const go=async()=>{ const v=await addMyAlt(exId,document.getElementById('swapNew').value); if(v===null) return; await chooseSwap(v||null); };
+ add.querySelector('#swapNewGo').addEventListener('click',go);
+ add.querySelector('#swapNew').addEventListener('keydown',e=>{ if(e.key==='Enter') go(); });
  if(alt&&!home){ const mk=document.createElement('button'); mk.className='dbtn'; mk.style.marginTop='6px';
   mk.textContent='Make '+alt+' the planned exercise';
   mk.addEventListener('click',async()=>{ await promoteSwap(exId); closeSwap(); render(); });
