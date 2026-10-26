@@ -70,7 +70,7 @@ function drawQuickAdd(q){
  if(nm&&!nameToId(nm)){
   if(!Object.keys(groups).length){ const p=document.createElement('p'); p.className='small'; p.textContent='Nothing in the library called that.'; box.appendChild(p); }
   const row=document.createElement('div'); row.className='step'; row.style.margin='10px 0';
-  ['Chest','Back','Shoulders','Arms','Legs','Other'].forEach(g=>{
+  ['Chest','Back','Shoulders','Arms','Legs','Core','Other'].forEach(g=>{
    const b=document.createElement('button'); b.className='sb'+(g===qaGroup?' on':''); b.style.cssText='width:auto;padding:0 9px;font-size:11px'; b.textContent=g;
    b.addEventListener('click',()=>{ qaGroup=g; drawQuickAdd(q); }); row.appendChild(b); });
   const mk=document.createElement('button'); mk.className='dbtn'; mk.textContent='Create "'+nm+'" ('+qaGroup+') and add it';

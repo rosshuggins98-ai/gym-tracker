@@ -219,3 +219,12 @@ below.
 - 2026-10-23: **Warm-ups don't carry.** A ticked set under 80% of the weight
   the next sets show is a warm-up done in a normal row, so it no longer changes
   the working sets. Ross reported a 14kg warm-up dropping them to 14.
+- 2026-10-26: **A second pushdown, and core exercises.**
+  - "Tricep Pushdown (machine 2)" for the gym's other pulley machine. Swap to
+    it on the days it's used, so its weights keep their own history.
+  - Cable Crunch, Machine Crunch, Back Extension Machine and Back Extension
+    (bench), in a new Core group (abs and lower back). They are gym only.
+  - They aren't in a preset. Ross adds them himself once his physio gives the
+    numbers.
+  - Splitting the past pushdown sessions between the two machines was offered.
+    It's not done, because the dates aren't known.

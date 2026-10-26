@@ -68,6 +68,15 @@ const LIB={
   c:["Dumbbells in front of your thighs, soft knees. Push your hips back — it's a hinge, not a squat.","Keep the dumbbells brushing your legs on the way down, back flat the whole time.","Stop at a strong hamstring stretch (usually around mid-shin), then drive the hips forward to stand tall."]},
  gbridge:{n:"Barbell Glute Bridge",g:"Legs",m:{glutes:1,hamstrings:.5},alts:["Dumbbell Glute Bridge","Single-leg Glute Bridge","Hip Thrust"],
   c:["Lie on your back with knees bent and feet flat, about hip-width apart. Roll the bar over your hips and use a pad.","Drive through your heels and squeeze your glutes until your body is straight from knees to shoulders.","Lift with your hips, not by arching your lower back. Pause for a second at the top, then lower under control."]},
+ /* Core (2026-10-26): what the gym has for Ross's rehab. Nothing at home. */
+ cablecrunch:{n:"Cable Crunch",g:"Core",m:{core:1},alts:["Machine Crunch"],
+  c:["Kneel facing the stack, rope by your head. Hips stay still.","Curl your ribs down towards your hips -- it's your trunk bending, not your arms pulling.","Slow on the way back up, and stop well before your lower back takes over."]},
+ mcrunch:{n:"Machine Crunch",g:"Core",m:{core:1},alts:["Cable Crunch"],
+  c:["Set the seat so the pads sit on your upper chest or the handles at your shoulders.","Curl forward by tightening your abs; breathe out as you crunch.","Control the way back -- don't let the stack pull you up."]},
+ mbackext:{n:"Back Extension Machine",g:"Core",m:{core:1,glutes:.5},alts:["Back Extension"],
+  c:["Set the pad across your upper back and your hips against the seat.","Push back smoothly until you're upright -- don't lean back past it.","Lower under control. Steady, comfortable range; no jerking."]},
+ backext:{n:"Back Extension",g:"Core",m:{core:1,glutes:.5,hamstrings:.5},alts:["Back Extension Machine"],
+  c:["Pad just below your hips, feet locked in. Arms crossed on your chest (or a plate held there once you add weight).","Lower with a flat back, then rise until your body is a straight line -- not arched past it.","Squeeze your glutes at the top. Slow and controlled; stop if your lower back complains."]},
  legcurl:{n:"Leg Curls",g:"Legs",m:{hamstrings:1},alts:["Single-leg RDL","Hip Thrust","Good Mornings"],
   c:["Keep your hips pressed into the pad throughout.","Squeeze at the top and lower slowly — resist the weight on the way back.","Don't let the weight stack slam down between reps."]},
  dblegcurl:{n:"Dumbbell Leg Curl",g:"Legs",m:{hamstrings:1},alts:["Leg Curls","Single-leg RDL","Dumbbell RDL"],
@@ -78,8 +87,12 @@ const LIB={
   c:["Shoulder blades on the bench, chin tucked slightly.","Drive through your heels and squeeze the glutes hard at the top.","Stop at a flat torso — don't over-arch the lower back."]},
  calf:{n:"Calf Raises",g:"Legs",m:{calves:1},alts:["Seated Calf Raise","Leg Press Calf Raise","Single-leg Calf Raise"],
   c:["Full range: deep stretch at the bottom, high squeeze at the top.","Pause a beat at both ends rather than bouncing.","Calves respond well to higher reps."]},
- pushdown:{n:"Tricep Pushdown",g:"Arms",m:{triceps:1},alts:["Overhead Extension","Rope Pushdown","Close-Grip Push-ups"],
+ pushdown:{n:"Tricep Pushdown",g:"Arms",m:{triceps:1},alts:["Tricep Pushdown (machine 2)","Overhead Extension","Rope Pushdown","Close-Grip Push-ups"],
   c:["Keep your elbows pinned to your sides — only the forearms move.","Fully straighten the arms and squeeze at the bottom.","Stand slightly back from the stack, torso still."]},
+ /* The gym's second pushdown machine: a different pulley, so the same number
+    on the stack isn't the same load. Swap to it on the days it's used. */
+ pushdown2:{n:"Tricep Pushdown (machine 2)",g:"Arms",m:{triceps:1},alts:["Tricep Pushdown","Overhead Extension","Rope Pushdown"],
+  c:["Keep your elbows pinned to your sides — only the forearms move.","Fully straighten the arms and squeeze at the bottom.","Its weights aren't comparable with the other machine, so it keeps its own history."]},
  ohext:{n:"Overhead Extension",g:"Arms",m:{triceps:1},alts:["Skull Crusher","Rope Pushdown","Tricep Pushdown"],
   c:["Keep your elbows pointing forward and close to your head.","Lower behind your head until you feel the stretch, then extend.","Ribs down — don't let the lower back arch."]},
  skull:{n:"Skull Crusher",g:"Arms",m:{triceps:1},alts:["Overhead Extension","Rope Pushdown","Close-Grip Bench"],
@@ -101,10 +114,10 @@ const LIB={
 };
 /* The muscle groups the weekly views count, in display order. */
 const MUSCLES={chest:'Chest',back:'Back',shoulders:'Shoulders',biceps:'Biceps',triceps:'Triceps',
- quads:'Quads',hamstrings:'Hamstrings',glutes:'Glutes',calves:'Calves'};
+ quads:'Quads',hamstrings:'Hamstrings',glutes:'Glutes',calves:'Calves',core:'Core'};
 /* A custom exercise has only its coarse group, so it gets this split. Legs
    and Arms are shared between their muscles because the name alone can't
    say which; Other isn't counted. */
 const MUSCLE_DEFAULT={Chest:{chest:1},Back:{back:1},Shoulders:{shoulders:1},
- Arms:{biceps:.5,triceps:.5},Legs:{quads:.5,hamstrings:.5,glutes:.5}};
+ Arms:{biceps:.5,triceps:.5},Legs:{quads:.5,hamstrings:.5,glutes:.5},Core:{core:1}};
 

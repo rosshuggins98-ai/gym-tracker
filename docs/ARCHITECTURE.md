@@ -11,10 +11,10 @@ LIB  = { exerciseId: { n, g: group, m?: {muscle: 1|.5}, alts: [...], c: [form cu
 from the top, see `loFor()`); `wu` is the number of warm-up rows shown above set 1,
 which are not planned sets.
 
-`g` is the coarse group (Chest / Back / Shoulders / Arms / Legs, or Other for a
+`g` is the coarse group (Chest / Back / Shoulders / Arms / Legs / Core, or Other for a
 custom exercise), used to sort lists. `m` is what the exercise trains, keyed by
 `MUSCLES` ids (chest, back, shoulders, biceps, triceps, quads, hamstrings, glutes,
-calves): 1 for the main muscle, .5 for a helper. Every built-in entry has one;
+calves, core -- abs and lower back, added 2026-10-26): 1 for the main muscle, .5 for a helper. Every built-in entry has one;
 custom exercises don't (nothing stored changed when `m` arrived), so
 `musclesFor()` gives them `MUSCLE_DEFAULT[g]`, and gives an `alt::` key the
 muscles of the slot's exercise, or of the library exercise that lists it.
