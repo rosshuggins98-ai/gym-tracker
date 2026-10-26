@@ -55,9 +55,10 @@ test('the Beginner plan\'s rule shows: every day has quads and hamstrings',async
  /* the week as a whole, worked out by hand from docs/TRAINING-PLAN.md */
  const w=app.plannedByGroup();
  assert.equal(w.chest,9,'DB bench 3 + incline 3 + DB bench 3');
- assert.equal(w.hamstrings,7.5,'leg curl 3 + DB RDL 3 + glute bridge 3 at half');
+ assert.equal(w.hamstrings,9.5,'leg curl 3 + DB RDL 3 + glute bridge and back extensions at half');
  assert.equal(w.quads,9,'goblet 3 + leg extension 3 + leg extension 3');
- assert.equal(w.glutes,6,'goblet and DB RDL at half, glute bridge 3');
+ assert.equal(w.glutes,8,'goblet, DB RDL and back extensions at half, glute bridge 3');
+ assert.equal(w.core,6,'back extension 2 + 2, cable crunch 2');
 });
 
 test('the still-to-do strip shows four muscles and folds the rest into "+N more"',async()=>{
@@ -68,7 +69,7 @@ test('the still-to-do strip shows four muscles and folds the rest into "+N more"
  const chips=[...html.matchAll(/class="chip( top)?">([^<]+)</g)].map(m=>m[2]);
  assert.equal(chips.length,app.TODO_MAX,'four muscles');
  assert.equal(chips[0],'Triceps 12','most sets left first');
- assert.ok(/class="chip more">\+4 more</.test(html),'8 owed, 4 shown');
+ assert.ok(/class="chip more">\+5 more</.test(html),'9 owed (core since 2026-10-26), 4 shown');
 });
 
 /* --- Week by week (backlog item 10) --- */

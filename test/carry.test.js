@@ -55,7 +55,7 @@ test('switching place re-fills untouched sets but keeps a weight typed by hand',
    target for the session, not last time's number. */
 async function benchDay(){
  const r=await load(); const {app,set}=r;
- set('PLAN',app.BEGINNER_PLAN()); set('ACTIVE','bgA'); set('swaps',{}); set('PLACE','gym'); set('prev',{}); set('cur',{});
+ set('PLAN',app.BEGINNER_PLAN()); set('ACTIVE','bgC'); set('swaps',{}); set('PLACE','gym'); set('prev',{}); set('cur',{});
  set('sessionStart',{});
  set('hist',{dbbench:[{date:'2026-10-09',top:24,reps:12,vol:720,sets:[{w:24,r:12},{w:24,r:10},{w:24,r:8}],at:'gym'}]});
  return r;
@@ -63,35 +63,35 @@ async function benchDay(){
 
 test('before a workout starts, its working sets start at the coach\'s target',async()=>{
  const {app}=await benchDay();
- const d=app.day('bgA'), it=d.items.find(i=>i.ex==='dbbench');
+ const d=app.day('bgC'), it=d.items.find(i=>i.ex==='dbbench');
  assert.equal(app.coach('dbbench',it).kind,'up'); assert.equal(app.coach('dbbench',it).w,26);
  app.applyTargets(d);
- deq(app.cur.bgA.dbbench.slice(1).map(x=>x.w),['26','26','26'],'all three working sets: 26kg');
- assert.ok(!app.cur.bgA.dbbench[0],'the warm-up row is left to its own prefill');
+ deq(app.cur.bgC.dbbench.slice(1).map(x=>x.w),['26','26','26'],'all three working sets: 26kg');
+ assert.ok(!app.cur.bgC.dbbench[0],'the warm-up row is left to its own prefill');
 });
 
 test('targets leave typed weights and drop sets alone, and stop once a set is ticked',async()=>{
  const {app,set}=await benchDay();
- const d=app.day('bgA');
- set('cur',{bgA:{dbbench:[null,{w:'24',r:'10',done:false},{w:'22',r:'',done:false,wt:true},{w:'18',r:'',done:false,t:'drop'}]}});
+ const d=app.day('bgC');
+ set('cur',{bgC:{dbbench:[null,{w:'24',r:'10',done:false},{w:'22',r:'',done:false,wt:true},{w:'18',r:'',done:false,t:'drop'}]}});
  app.applyTargets(d);
- deq(app.cur.bgA.dbbench.slice(1).map(x=>x.w),['26','22','18']);
- set('cur',{bgA:{dbbench:[null,{w:'24',r:'10',done:true},{w:'24',r:'',done:false},{w:'24',r:'',done:false}]}});
+ deq(app.cur.bgC.dbbench.slice(1).map(x=>x.w),['26','22','18']);
+ set('cur',{bgC:{dbbench:[null,{w:'24',r:'10',done:true},{w:'24',r:'',done:false},{w:'24',r:'',done:false}]}});
  app.applyTargets(d);
- deq(app.cur.bgA.dbbench.slice(1).map(x=>x.w),['24','24','24'],'started: the session is left alone, carryWeight takes over');
+ deq(app.cur.bgC.dbbench.slice(1).map(x=>x.w),['24','24','24'],'started: the session is left alone, carryWeight takes over');
 });
 
 test('no history, no target: the prefill stays as it was',async()=>{
  const {app,set}=await benchDay();
- set('hist',{}); set('cur',{bgA:{dbbench:[null,{w:'24',r:'10',done:false},{w:'24',r:'9',done:false},{w:'24',r:'8',done:false}]}});
- assert.equal(app.applyTargets(app.day('bgA')),0);
- deq(app.cur.bgA.dbbench.slice(1).map(x=>x.w),['24','24','24']);
+ set('hist',{}); set('cur',{bgC:{dbbench:[null,{w:'24',r:'10',done:false},{w:'24',r:'9',done:false},{w:'24',r:'8',done:false}]}});
+ assert.equal(app.applyTargets(app.day('bgC')),0);
+ deq(app.cur.bgC.dbbench.slice(1).map(x=>x.w),['24','24','24']);
 });
 
 test('the workout screen shows the target when it is drawn',async()=>{
  const {app}=await benchDay();
  app.render();
- deq(app.cur.bgA.dbbench.slice(1).map(x=>x.w),['26','26','26']);
+ deq(app.cur.bgC.dbbench.slice(1).map(x=>x.w),['26','26','26']);
 });
 
 /* 2026-10-23: Ross warmed up at 14kg in a normal set row (no warm-up row on

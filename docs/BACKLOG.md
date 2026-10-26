@@ -228,3 +228,6 @@ below.
     numbers.
   - Splitting the past pushdown sessions between the two machines was offered.
     It's not done, because the dates aren't known.
+- 2026-10-26: **Core work in the plan.** The Beginner preset was rebuilt from
+  Ross's plan as on his phone on 25 Oct, plus Back Extension first on A and C
+  and Cable Crunch first on B (2 × 12–15). Every day is now 20 sets.
