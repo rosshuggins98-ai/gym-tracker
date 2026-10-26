@@ -20,6 +20,14 @@ added, agreed with Ross on 2026-10-26:
 
 If his physio's numbers differ, theirs win.
 
+**Legs, agreed 2026-10-26.** Ross asked about doing RDLs instead of leg press,
+with leg extension covering the quads. He was advised against it: RDLs on two
+days would load the lower back alongside the new back-extension work, and
+leg extension alone trains only part of the quads. He chose to keep the plan
+as it is: RDLs on B only, and Leg Press on A done lighter, at 8–10 reps with
+about 2 reps in reserve, so it doesn't drain the rest of the session. No plan
+change was needed.
+
 ## Current: Full Body Beginner, legs last (from 2026-10-15)
 The same preset, `BEGINNER_PLAN()`, revised with Ross on 2026-10-15 after going
 through his history (backup of 15 Oct). Names in brackets are what his gym swaps
