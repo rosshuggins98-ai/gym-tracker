@@ -98,7 +98,7 @@ function coach(k,it){
   const w=snapW(rackAt(PLACE),c.w,c.kind==='up'?1:c.kind==='stay'?0:-1,c.from);
   if(w!==c.w){ c.w=w; why('First time at '+PLACES[PLACE].toLowerCase()+' — '+w+'kg is the nearest weight you\'ve used there.'); } }
  const last=raw[raw.length-1];
- if(on.length&&offDay(last)) why('Last time ('+shortDate(last.date)+') was an off day, so this goes on the session before.');
+ if(on.length&&offDay(last)) why('Last time ('+shortDate(last.date)+') was rated tired or unwell, so this goes on the session before.');
  return c; }
 function coachOn(k,it,h){
  const last=h[h.length-1], ws=workSets(last); if(!ws.length) return null;

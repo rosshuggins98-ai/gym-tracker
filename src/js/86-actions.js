@@ -1,11 +1,26 @@
 /* ============ ACTIONS ============ */
 function switchDay(id){ if(id===ACTIVE)return; flush(); ACTIVE=id; Store.set('gt4_active',id); render(); window.scrollTo({top:0}); }
-function openSheet(){ applyAccent();
- const w=finishChecks(day(ACTIVE)), el=document.getElementById('finishWarn');
+/* The finish sheet, for the active day or (from the unsaved-workout card)
+   one left from an earlier day. A workout only saves once how it felt is
+   picked (Ross asked, 2026-10-26), so every session has a rating. */
+let FIN_DAY=null;
+function openSheet(dId){ applyAccent();
+ FIN_DAY=(typeof dId==='string'&&PLAN.days.some(x=>x.id===dId))?dId:ACTIVE;
+ const d=day(FIN_DAY), stale=sessionDate(FIN_DAY)<today();
+ const w=finishChecks(d), el=document.getElementById('finishWarn');
  el.innerHTML=w.length?'<b>Worth a look before saving:</b>'+w.map(x=>'<div>'+x+'</div>').join(''):'';
  el.style.display=w.length?'block':'none';
- finishPlace();
+ const pl=document.getElementById('finishPlace');
+ if(stale){ pl.style.display='none'; } else { pl.style.display=''; finishPlace(); }
+ const date=sessionDate(FIN_DAY), ef=document.getElementById('finishEffort');
+ ef.innerHTML=effortRow(date); wireEffort(date,'finishEffort',finishReady);
+ finishReady();
  document.getElementById('sheetbg').classList.add('show'); }
+function canSave(dId){ return !!effortOf(sessionDate(dId)); }
+function finishReady(){ const b=document.getElementById('finishSave'), ok=canSave(FIN_DAY||ACTIVE);
+ b.disabled=!ok; b.textContent=ok?'Save & clear':'Pick how it felt to save'; }
+async function finishSave(){ const id=FIN_DAY||ACTIVE; if(!canSave(id)){ finishReady(); return; }
+ FIN_DAY=null; await doNewSession(id); }
 /* Things that usually mean a mis-log, listed on the finish sheet (never
    blocking): an exercise whose ticked sets match its last history entry set
    for set -- the 15/16 Sep duplicate, or last time's prefill ticked through --

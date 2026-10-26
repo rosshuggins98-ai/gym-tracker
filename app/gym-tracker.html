@@ -187,6 +187,7 @@
  .place.effort{flex-wrap:wrap;margin-top:14px}
  .place.effort .note{flex-basis:100%;margin:2px 0 0}
  .place.effort button{padding:6px 11px}
+ .sheet .row button.confirm:disabled{opacity:.45;cursor:default}
  .place.effort button.off.on{background:var(--warn);border-color:var(--warn)}
  i.eff{display:block;font-style:normal;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
  .plrow i.eff{display:inline;margin-right:6px}
@@ -423,7 +424,8 @@
  <p>Today's top weight for each exercise is saved to its progress chart, then the boxes clear for next time.</p>
  <div class="place" id="finishPlace"></div>
  <div class="finwarn" id="finishWarn"></div>
- <div class="row"><button class="cancel" onclick="closeSheet()">Keep going</button><button class="confirm" onclick="doNewSession()">Save &amp; clear</button></div>
+ <div class="place effort" id="finishEffort"></div>
+ <div class="row"><button class="cancel" onclick="closeSheet()">Keep going</button><button class="confirm" id="finishSave" onclick="finishSave()">Save &amp; clear</button></div>
 </div></div>
 
 <div class="sheet-bg" id="sumbg"><div class="sheet">
@@ -726,7 +728,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-10-26c";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-10-26d";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -1530,7 +1532,7 @@ function coach(k,it){
   const w=snapW(rackAt(PLACE),c.w,c.kind==='up'?1:c.kind==='stay'?0:-1,c.from);
   if(w!==c.w){ c.w=w; why('First time at '+PLACES[PLACE].toLowerCase()+' — '+w+'kg is the nearest weight you\'ve used there.'); } }
  const last=raw[raw.length-1];
- if(on.length&&offDay(last)) why('Last time ('+shortDate(last.date)+') was an off day, so this goes on the session before.');
+ if(on.length&&offDay(last)) why('Last time ('+shortDate(last.date)+') was rated tired or unwell, so this goes on the session before.');
  return c; }
 function coachOn(k,it,h){
  const last=h[h.length-1], ws=workSets(last); if(!ws.length) return null;
@@ -1676,7 +1678,10 @@ function e1RMShown(w,r){ return (r&&r<=10)?Math.round(e1RM(w,r)*10)/10:null; }
    badly) is the one the coach acts on: those sessions are left out of what
    it judges, so a bad day can't trigger a "drop back" or a stall -- plain
    "hard" can mean the weight is heavy, which is normal after a jump. */
-const EFFORTS={easy:'Easy',solid:'Solid',hard:'Hard',off:'Off day'};
+/* Labels agreed with Ross on 2026-10-26 (were Easy / Solid / Hard / Off day);
+   the stored keys are unchanged, so older ratings keep their meaning. A
+   rating has to be picked on the finish sheet before the workout saves. */
+const EFFORTS={easy:'Felt strong',solid:'Normal',hard:'Hard work',off:'Tired or unwell'};
 let efforts={};
 function effortOf(date){ return EFFORTS[efforts[date]]?efforts[date]:null; }
 function offDay(e){ return !!e&&efforts[e.date]==='off'; }
@@ -1690,9 +1695,10 @@ function effortRow(date){ const cur=effortOf(date);
   (cur==='off'?'<div class="note">Noted — the coach won\'t judge your lifts on this session.</div>':''); }
 /* The summary's row: re-renders itself, and re-runs the auto-backup so the
    copy on the phone has the rating (the first one ran before it was tapped). */
-function wireEffort(date){ const el=document.getElementById('sumEffort'); if(!el) return;
+function wireEffort(date,id,after){ const el=document.getElementById(id||'sumEffort'); if(!el) return;
  el.querySelectorAll('button').forEach(b=>b.addEventListener('click',async()=>{
-  await setEffort(date,b.dataset.v); el.innerHTML=effortRow(date); wireEffort(date); render(); autoBackup(); })); }
+  await setEffort(date,b.dataset.v); el.innerHTML=effortRow(date); wireEffort(date,id,after);
+  if(after) after(); else { render(); autoBackup(); } })); }
 
 /* --- Session note --------------------------------------------------------
    One short note per session date ("slept badly", "gym packed"), typed on
@@ -3293,7 +3299,7 @@ function staleCard(){ const ds=staleDays(); if(!ds.length) return null;
    '. Save it as '+shortDate(dt)+', or discard it if it was a mistake.</div>'+
    '<div class="ck-btns"><button class="ck-ok ck-save">Save as '+shortDate(dt)+'</button><button class="ck-ok ck-discard">Discard</button></div></div>'; }).join('');
  c.querySelectorAll('.uns').forEach(el=>{ const id=el.dataset.day, x=el.querySelector('.ck-discard');
-  el.querySelector('.ck-save').addEventListener('click',()=>doNewSession(id));
+  el.querySelector('.ck-save').addEventListener('click',()=>openSheet(id));
   x.addEventListener('click',()=>{ if(x.dataset.armed){ discardSession(id); return; }
    const n=tickedCount(id); x.dataset.armed='1'; x.classList.add('armed');
    x.textContent='Tap again to delete '+n+' set'+(n===1?'':'s'); }); });
@@ -3306,12 +3312,27 @@ async function discardSession(dId){ const d=PLAN.days.find(x=>x.id===dId); if(!d
  mirrorHash(); render(); }
 /* ============ ACTIONS ============ */
 function switchDay(id){ if(id===ACTIVE)return; flush(); ACTIVE=id; Store.set('gt4_active',id); render(); window.scrollTo({top:0}); }
-function openSheet(){ applyAccent();
- const w=finishChecks(day(ACTIVE)), el=document.getElementById('finishWarn');
+/* The finish sheet, for the active day or (from the unsaved-workout card)
+   one left from an earlier day. A workout only saves once how it felt is
+   picked (Ross asked, 2026-10-26), so every session has a rating. */
+let FIN_DAY=null;
+function openSheet(dId){ applyAccent();
+ FIN_DAY=(typeof dId==='string'&&PLAN.days.some(x=>x.id===dId))?dId:ACTIVE;
+ const d=day(FIN_DAY), stale=sessionDate(FIN_DAY)<today();
+ const w=finishChecks(d), el=document.getElementById('finishWarn');
  el.innerHTML=w.length?'<b>Worth a look before saving:</b>'+w.map(x=>'<div>'+x+'</div>').join(''):'';
  el.style.display=w.length?'block':'none';
- finishPlace();
+ const pl=document.getElementById('finishPlace');
+ if(stale){ pl.style.display='none'; } else { pl.style.display=''; finishPlace(); }
+ const date=sessionDate(FIN_DAY), ef=document.getElementById('finishEffort');
+ ef.innerHTML=effortRow(date); wireEffort(date,'finishEffort',finishReady);
+ finishReady();
  document.getElementById('sheetbg').classList.add('show'); }
+function canSave(dId){ return !!effortOf(sessionDate(dId)); }
+function finishReady(){ const b=document.getElementById('finishSave'), ok=canSave(FIN_DAY||ACTIVE);
+ b.disabled=!ok; b.textContent=ok?'Save & clear':'Pick how it felt to save'; }
+async function finishSave(){ const id=FIN_DAY||ACTIVE; if(!canSave(id)){ finishReady(); return; }
+ FIN_DAY=null; await doNewSession(id); }
 /* Things that usually mean a mis-log, listed on the finish sheet (never
    blocking): an exercise whose ticked sets match its last history entry set
    for set -- the 15/16 Sep duplicate, or last time's prefill ticked through --

@@ -4,7 +4,10 @@
    badly) is the one the coach acts on: those sessions are left out of what
    it judges, so a bad day can't trigger a "drop back" or a stall -- plain
    "hard" can mean the weight is heavy, which is normal after a jump. */
-const EFFORTS={easy:'Easy',solid:'Solid',hard:'Hard',off:'Off day'};
+/* Labels agreed with Ross on 2026-10-26 (were Easy / Solid / Hard / Off day);
+   the stored keys are unchanged, so older ratings keep their meaning. A
+   rating has to be picked on the finish sheet before the workout saves. */
+const EFFORTS={easy:'Felt strong',solid:'Normal',hard:'Hard work',off:'Tired or unwell'};
 let efforts={};
 function effortOf(date){ return EFFORTS[efforts[date]]?efforts[date]:null; }
 function offDay(e){ return !!e&&efforts[e.date]==='off'; }
@@ -18,9 +21,10 @@ function effortRow(date){ const cur=effortOf(date);
   (cur==='off'?'<div class="note">Noted — the coach won\'t judge your lifts on this session.</div>':''); }
 /* The summary's row: re-renders itself, and re-runs the auto-backup so the
    copy on the phone has the rating (the first one ran before it was tapped). */
-function wireEffort(date){ const el=document.getElementById('sumEffort'); if(!el) return;
+function wireEffort(date,id,after){ const el=document.getElementById(id||'sumEffort'); if(!el) return;
  el.querySelectorAll('button').forEach(b=>b.addEventListener('click',async()=>{
-  await setEffort(date,b.dataset.v); el.innerHTML=effortRow(date); wireEffort(date); render(); autoBackup(); })); }
+  await setEffort(date,b.dataset.v); el.innerHTML=effortRow(date); wireEffort(date,id,after);
+  if(after) after(); else { render(); autoBackup(); } })); }
 
 /* --- Session note --------------------------------------------------------
    One short note per session date ("slept badly", "gym packed"), typed on

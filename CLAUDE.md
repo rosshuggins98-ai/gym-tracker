@@ -323,9 +323,13 @@ New module: pick a free number, end the file with a newline.
   Backups and the URL hash store the gym map (`gymSwapMap()`). `prev._keys`
   (stamped on finish) records the history key each slot was logged as, so a
   prefill never crosses exercises; older prevs count as logged under the gym map.
-- **Effort** (`59-effort`): Easy / Solid / Hard / Off day, one tap on the summary
-  sheet, kept per date in `efforts` (`gt4_effort`, `effort` in backups), not on
-  history entries. `coach()` drops off-day entries before judging (unless that
+- **Effort** (`59-effort`): Felt strong / Normal / Hard work / Tired or unwell
+  (keys `easy`/`solid`/`hard`/`off`; relabelled 2026-10-26), kept per date in
+  `efforts` (`gt4_effort`, `effort` in backups), not on history entries. Picking
+  one on the finish sheet is required (Ross asked, 2026-10-26): `finishSave()`
+  waits on `canSave(dId)`, a rating for that workout's `sessionDate`. The
+  unsaved-workout card's Save opens the same sheet (`openSheet(dId)`, place row
+  hidden). The summary sheet still lets him change it. `coach()` drops off-day entries before judging (unless that
   leaves none) and says so in `why`; the other ratings are only shown.
 - **Days done this week**: read from `prev[dayId]._date` (stamped on finish), not
   history -- history entries don't record which day they came from. The tabs show
