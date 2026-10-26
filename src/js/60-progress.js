@@ -114,6 +114,7 @@ function openProgress(){
    h+='<div class="note">'+totalPB+' personal best'+(totalPB===1?'':'s')+' since you started.</div>';
   }
   h+=milestoneBlock();
+  h+='<div id="strBox">'+strengthBlock()+'</div>';
   const tg=nextTargets();
   if(tg.length){
    const st=tg.filter(t=>t.co.kind==='stall').length;
@@ -139,7 +140,7 @@ function openProgress(){
  if(ds.length) h+='<div id="placeBox">'+placeBlock()+'</div>';
  h+='<div class="hr"></div>'+bodyweightBlock();
  document.getElementById('progBody').innerHTML=h;
- wireBodyweight(openProgress); wireCompare(); wirePlace(); wireCalendar();
+ wireBodyweight(openProgress); wireStrength(openProgress); wireCompare(); wirePlace(); wireCalendar();
  document.getElementById('progbg').classList.add('show');
 }
 function closeProgress(){ document.getElementById('progbg').classList.remove('show'); }

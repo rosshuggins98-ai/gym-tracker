@@ -239,9 +239,6 @@ below.
   - A suggested warm-up weight (about 55% of the target) where there's no
     past warm-up.
 - Agreed next, 2026-10-26:
-  - Strength standards: Strength Level's terms forbid copying its standards.
-    A link out per lift, or the app's own ranking, was offered and is awaiting
-    Ross's answer.
 - 2026-10-26: **Effort rating required** (5): the labels are now Felt strong,
   Normal, Hard work, and Tired or unwell. A workout saves only once one is
   picked on the finish sheet. The unsaved-workout card goes through the same
@@ -250,3 +247,11 @@ below.
   exercise"): the swap sheet takes a typed name, kept for that exercise
   (`gt4_myalts`, backed up). A new name keeps its own history. A library
   exercise's exact name logs under that exercise.
+- 2026-10-26: **Strength check** on Progress:
+  - Strengths and focus.
+  - Opposing-muscle set balance.
+  - Bench against FitnessVolt's standards (CC BY 4.0, dumbbell bench
+    converted).
+  - A Strength Level link on each chart page.
+  - Not done: other lifts against lifter data, because no open dataset
+    covers dumbbells or machines.

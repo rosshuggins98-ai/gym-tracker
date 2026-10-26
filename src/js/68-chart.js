@@ -123,7 +123,7 @@ function openChart(exId,dId){
   const chart=pts.length?buildChart(pts):
    '<div class="note">'+(inSpan.length?'None of the sessions in this range can show '+M.lbl.toLowerCase()+' (see below).':
     'Nothing logged in the last '+sp.lbl.toLowerCase()+'. Pick a longer range to see this lift.')+'</div>';
-  body.innerHTML=sinceStartedLine(k)+(sinceJumpTxt(k)?'<div class="ck-line">'+sinceJumpTxt(k)+'</div>':'')+chartSpanChips()+chartMetricChips(k)+chart+
+  body.innerHTML=sinceStartedLine(k)+(sinceJumpTxt(k)?'<div class="ck-line">'+sinceJumpTxt(k)+'</div>':'')+slLink(k)+chartSpanChips()+chartMetricChips(k)+chart+
    '<div class="stats"><div class="stat"><b>'+(best!==null?chartNum(best):'—')+'</b><span>'+bestLbl+'</span></div>'+
    '<div class="stat"><b>'+(last?chartNum(last.val):'—')+'</b><span>'+(last&&last.today?'Today':'Latest')+' '+M.unit+'</span></div>'+
    '<div class="stat"><b>'+(chg!==null?(chg>0?'+':chg<0?'−':'±')+chartNum(Math.abs(chg)):'—')+'</b><span>Change '+M.unit+'</span></div></div>'+

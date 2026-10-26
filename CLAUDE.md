@@ -155,6 +155,7 @@ muscle group, check-in, still-to-do strip, days done this week) → `62-cues` �
 `63-compare` (Progress "How you're doing": span vs the span before) → `64-swap` →
 `65-calendar` (Progress month grids) → `66-plates` → `67-histedit` (editing past
 sets) → `68-chart` → `69-milestones` (milestones, monthly review) → `70-editor` →
+`71-strength` (strengths and focus, bench standards, Strength Level links) →
 `72-routines` → `74-theme` → `76-data`
 (export/import) → `78-onthefly` (today-only extras, skips) → `80-bodyweight` →
 `82-summary` → `84-autobackup` → `85-unsaved` (dating a workout, the unsaved-workout card) →
@@ -338,6 +339,19 @@ New module: pick a free number, end the file with a newline.
   unsaved-workout card's Save opens the same sheet (`openSheet(dId)`, place row
   hidden). The summary sheet still lets him change it. `coach()` drops off-day entries before judging (unless that
   leaves none) and says so in `why`; the other ratings are only shown.
+- **Strength check** (`71-strength`, 2026-10-26, agreed with Ross): a
+  Progress section (`strengthBlock`) with three parts.
+  - Strengths and focus over the plan's lifts (`planKeys`): fastest 4-week
+    gains through `liftThenNow`, plus stalled or flat lifts.
+  - Opposing-muscle balance (`pairBalance`: back/chest, hamstrings/quads,
+    biceps/triceps): working sets in 4 weeks, flagged under 75%. Sets, not kg.
+  - Bench against FitnessVolt's standards (`BENCH_STD`, CC BY 4.0). The credit
+    "Powered by FitnessVolt" must stay wherever it's shown. Dumbbell bench is
+    converted at 2×DB/0.8 (`DB_TO_BB`). It needs `profile.sex` (`gt4_profile`)
+    and the latest body weight reading.
+  - Each chart page links to Strength Level (`SL_SLUG`, pages confirmed to
+    exist). Their terms forbid copying their standards, so it is a link only.
+    The app never fetches from either site.
 - **Days done this week**: read from `prev[dayId]._date` (stamped on finish), not
   history -- history entries don't record which day they came from. The tabs show
   "✓ Done Tue" and mark the not-done day finished longest ago as "Up next".
