@@ -127,6 +127,14 @@ function coachOn(k,it,h){
   const r=last.reps||0;
   if(r>=hi) hit=true; else why='Top set: '+(r||'?')+' reps. Go up when it reaches '+hi+'.';
  }
+ /* A default 5kg machine jump that's over 5% of the weight (60 -> 65 on a
+    pulldown is 8%) is a big step on a light stack: build two reps past the
+    top of the range first (2026-10-26). A jump set by hand on the chart page
+    (incs) is taken as is -- that's where a 2.5kg add-on gets recorded. */
+ if(hit&&J&&inc>0&&incs[k]===undefined&&incDefault(k)>=5&&inc/top>0.05){
+  const first=(atTop[0]&&atTop[0].r)||0;
+  if(first<hi+2) return stay('Going up '+inc+'kg from '+top+'kg is a '+Math.round(inc/top*100)+'% jump, so build to '+(hi+2)+
+   ' reps on the first set first. If the machine has a 2.5kg add-on, set the jump to 2.5kg on this lift\'s chart page.'); }
  if(hit) return Object.assign(base,inc>0?{kind:'up',w:r25(top+inc)}:{kind:'reps',w:top});
  if(inc>0){
   const f=firstAtTop(last);
@@ -180,6 +188,41 @@ function applyTargets(d){ if(ticked(d.id)) return 0; let n=0;
   repsFor(it).forEach((_,i)=>{ const y=slot(d.id,it.ex,wu+i);
    if(y.done||y.wt||y.t==='warm'||y.t==='drop'||y.w===w) return; y.w=w; n++; }); });
  return n; }
+/* Progress since the last jump (2026-10-26): after a weight goes up the
+   top-weight chart goes flat while the reps climb. The sessions in a row at
+   the current working weight (this place's entries, like the coach), first
+   against latest: the first set's reps and the total reps at that weight.
+   Null until there are two sessions there. */
+function sinceJump(k){ const raw=hist[k]||[], here=raw.filter(e=>placeOf(e)===PLACE), h=here.length?here:raw;
+ const at=e=>{ const J=judged(e), ws=J?J.sets:workSets(e); if(!ws.length) return null;
+  const top=J?J.top:Math.max.apply(null,ws.map(s=>s.w)), t=ws.filter(s=>s.w===top);
+  return {top,first:t[0].r||0,total:t.reduce((n,s)=>n+(s.r||0),0)}; };
+ const L=h.length?at(h[h.length-1]):null; if(!L) return null;
+ let i=h.length-1; while(i>0){ const p=at(h[i-1]); if(!p||p.top!==L.top) break; i--; }
+ if(h.length-i<2) return null; const F=at(h[i]);
+ return {w:L.top,from:h[i].date,n:h.length-i,first:[F.first,L.first],total:[F.total,L.total]}; }
+function sinceJumpTxt(k){ const s=sinceJump(k); if(!s) return '';
+ return 'At '+s.w+'kg since '+shortDate(s.from)+' ('+s.n+' sessions): first set '+s.first[0]+' → '+s.first[1]+' reps, '+
+  s.total[0]+' → '+s.total[1]+' in total.'; }
+/* After a ticked working set (2026-10-26), a word on the rest bar: a first
+   set 2+ reps past the top of its range ("save it for sets 2-3" -- the coach
+   moves on the first set reaching the top with every set at the floor, so
+   extra reps there don't help and cost the later sets), or 30s more rest when
+   a set is 3+ reps down on the one before. */
+function setNudge(it,a,ri){ const wu=wuOf(it), x=a&&a[ri]; if(!x||!x.done||x.t==='warm'||ri<wu) return null;
+ const r=parseInt(x.r,10); if(isNaN(r)) return null; const hi=topRep(it);
+ if(ri===wu&&hi&&r>=hi+2) return {extra:0,msg:'Save some for sets 2 and 3'};
+ for(let j=ri-1;j>=wu;j--){ const p=a[j]; if(!p||!p.done||p.t==='warm') continue;
+  const pr=parseInt(p.r,10); if(!isNaN(pr)&&pr-r>=3) return {extra:30,msg:'Reps dropped: 30s more rest'}; break; }
+ return null; }
+/* A warm-up row with no past warm-up (2026-10-26): about 55% of this
+   session's target (75%, 85% for further rows), on the lift's own step,
+   for 10 reps. Empty when there's no target or last weight to go on. */
+function warmSuggest(dId,exId,i){ const d=PLAN.days.find(x=>x.id===dId), it=d&&d.items.find(x=>x.ex===exId); if(!it) return null;
+ const k=hkey(exId,swaps[exId]||null), co=coach(k,it);
+ const tw=(co&&co.w>0)?co.w:parseFloat(lastW(dId,exId,wuOf(it))); if(!(tw>0)) return null;
+ const step=incFor(k)||2.5, share=[0.55,0.75,0.85][i]||0.85, w=Math.max(step,Math.round(tw*share/step)*step);
+ return {w:Math.round(w*100)/100,r:10}; }
 function applyCoach(d,it,w){ const wu=wuOf(it);
  repsFor(it).forEach((_,i)=>{ const y=slot(d.id,it.ex,wu+i); if(!y.done&&y.t!=='warm') y.w=String(w); });
  queueSave(); flush(); render(); }

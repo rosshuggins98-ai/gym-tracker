@@ -726,7 +726,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-10-26b";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-10-26c";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -845,7 +845,8 @@ function slot(dId,exId,i,t){ if(!cur[dId])cur[dId]={}; if(!cur[dId][exId])cur[dI
   /* Pre-fill from last session's same set so a matched set is one tap on the
      tick and nothing else. Only happens once, at creation -- never overwrites
      something already typed, since the slot object is reused after this. */
-  const warm=t==='warm', lw=warm?warmLast(dId,exId,i,'w'):lastW(dId,exId,i), lr=warm?warmLast(dId,exId,i,'r'):lastR(dId,exId,i);
+  const warm=t==='warm'; let lw=warm?warmLast(dId,exId,i,'w'):lastW(dId,exId,i), lr=warm?warmLast(dId,exId,i,'r'):lastR(dId,exId,i);
+  if(warm&&lw===null){ const s=warmSuggest(dId,exId,i); if(s){ lw=s.w; lr=s.r; } }   /* 58-coach */
   cur[dId][exId][i]={w:lw!==null?String(lw):'',r:lr!==null?String(lr):'',done:false};
   if(t==='warm') cur[dId][exId][i].t='warm';
  }
@@ -1203,7 +1204,9 @@ function card(it,d,idx){
     carryWeight(d.id,exId,ri,wu+reps.length).forEach(j=>{ if(wIs[j]) wIs[j].value=cur[d.id][exId][j].w; }); }
    if(y.done&&!y.r&&tt&&tt!=='max'){ y.r=String(tt); rI.value=tt; }
    row.classList.toggle('unconf',repsUnconfirmed(y)); row.querySelectorAll('.last')[1].textContent=repsUnconfirmed(y)?'not typed':'';
-   if(y.done){ const sec=restAfter(d,idx); if(sec) restStart(sec); else restCue(vName(partner.ex,swaps[partner.ex]||null)); }
+   if(y.done){ const sec=restAfter(d,idx), nd=setNudge(it,cur[d.id][exId],ri);
+    if(sec){ restStart(sec+(nd?nd.extra:0)); if(nd) document.getElementById('restL').textContent=nd.msg; }
+    else restCue(vName(partner.ex,swaps[partner.ex]||null)); }
    pills(c,it,d);
    if(y.done&&pbCheck(d.id,exId,k0)) celebratePB();
    done(c,it,d); updateProgress(); queueSave(); flush(); });
@@ -1261,6 +1264,7 @@ function pills(c,it,d){
  const pb=pbCheck(d.id,exId,k);
  if(pb) h+='<span class="pill pb">'+I.tick+(pb.kind==='weight'?'PB weight':pb.kind==='reps'?'PB reps':pb.kind==='range'?'PB for '+pb.n+'+ reps':'First log')+'</span>';
  if(co&&co.why) h+='<div class="coachwhy">'+co.why+'</div>';
+ const sj=sinceJumpTxt(k); if(sj) h+='<div class="coachwhy sincejump">'+sj+'</div>';
  const m=c.querySelector('.meta'); m.innerHTML=h;
  const cp=m.querySelector('.pill.coach');
  if(cp&&co&&(co.kind==='up'||co.kind==='stall'||co.kind==='down')) cp.addEventListener('click',()=>applyCoach(d,it,co.w));
@@ -1555,6 +1559,14 @@ function coachOn(k,it,h){
   const r=last.reps||0;
   if(r>=hi) hit=true; else why='Top set: '+(r||'?')+' reps. Go up when it reaches '+hi+'.';
  }
+ /* A default 5kg machine jump that's over 5% of the weight (60 -> 65 on a
+    pulldown is 8%) is a big step on a light stack: build two reps past the
+    top of the range first (2026-10-26). A jump set by hand on the chart page
+    (incs) is taken as is -- that's where a 2.5kg add-on gets recorded. */
+ if(hit&&J&&inc>0&&incs[k]===undefined&&incDefault(k)>=5&&inc/top>0.05){
+  const first=(atTop[0]&&atTop[0].r)||0;
+  if(first<hi+2) return stay('Going up '+inc+'kg from '+top+'kg is a '+Math.round(inc/top*100)+'% jump, so build to '+(hi+2)+
+   ' reps on the first set first. If the machine has a 2.5kg add-on, set the jump to 2.5kg on this lift\'s chart page.'); }
  if(hit) return Object.assign(base,inc>0?{kind:'up',w:r25(top+inc)}:{kind:'reps',w:top});
  if(inc>0){
   const f=firstAtTop(last);
@@ -1608,6 +1620,41 @@ function applyTargets(d){ if(ticked(d.id)) return 0; let n=0;
   repsFor(it).forEach((_,i)=>{ const y=slot(d.id,it.ex,wu+i);
    if(y.done||y.wt||y.t==='warm'||y.t==='drop'||y.w===w) return; y.w=w; n++; }); });
  return n; }
+/* Progress since the last jump (2026-10-26): after a weight goes up the
+   top-weight chart goes flat while the reps climb. The sessions in a row at
+   the current working weight (this place's entries, like the coach), first
+   against latest: the first set's reps and the total reps at that weight.
+   Null until there are two sessions there. */
+function sinceJump(k){ const raw=hist[k]||[], here=raw.filter(e=>placeOf(e)===PLACE), h=here.length?here:raw;
+ const at=e=>{ const J=judged(e), ws=J?J.sets:workSets(e); if(!ws.length) return null;
+  const top=J?J.top:Math.max.apply(null,ws.map(s=>s.w)), t=ws.filter(s=>s.w===top);
+  return {top,first:t[0].r||0,total:t.reduce((n,s)=>n+(s.r||0),0)}; };
+ const L=h.length?at(h[h.length-1]):null; if(!L) return null;
+ let i=h.length-1; while(i>0){ const p=at(h[i-1]); if(!p||p.top!==L.top) break; i--; }
+ if(h.length-i<2) return null; const F=at(h[i]);
+ return {w:L.top,from:h[i].date,n:h.length-i,first:[F.first,L.first],total:[F.total,L.total]}; }
+function sinceJumpTxt(k){ const s=sinceJump(k); if(!s) return '';
+ return 'At '+s.w+'kg since '+shortDate(s.from)+' ('+s.n+' sessions): first set '+s.first[0]+' → '+s.first[1]+' reps, '+
+  s.total[0]+' → '+s.total[1]+' in total.'; }
+/* After a ticked working set (2026-10-26), a word on the rest bar: a first
+   set 2+ reps past the top of its range ("save it for sets 2-3" -- the coach
+   moves on the first set reaching the top with every set at the floor, so
+   extra reps there don't help and cost the later sets), or 30s more rest when
+   a set is 3+ reps down on the one before. */
+function setNudge(it,a,ri){ const wu=wuOf(it), x=a&&a[ri]; if(!x||!x.done||x.t==='warm'||ri<wu) return null;
+ const r=parseInt(x.r,10); if(isNaN(r)) return null; const hi=topRep(it);
+ if(ri===wu&&hi&&r>=hi+2) return {extra:0,msg:'Save some for sets 2 and 3'};
+ for(let j=ri-1;j>=wu;j--){ const p=a[j]; if(!p||!p.done||p.t==='warm') continue;
+  const pr=parseInt(p.r,10); if(!isNaN(pr)&&pr-r>=3) return {extra:30,msg:'Reps dropped: 30s more rest'}; break; }
+ return null; }
+/* A warm-up row with no past warm-up (2026-10-26): about 55% of this
+   session's target (75%, 85% for further rows), on the lift's own step,
+   for 10 reps. Empty when there's no target or last weight to go on. */
+function warmSuggest(dId,exId,i){ const d=PLAN.days.find(x=>x.id===dId), it=d&&d.items.find(x=>x.ex===exId); if(!it) return null;
+ const k=hkey(exId,swaps[exId]||null), co=coach(k,it);
+ const tw=(co&&co.w>0)?co.w:parseFloat(lastW(dId,exId,wuOf(it))); if(!(tw>0)) return null;
+ const step=incFor(k)||2.5, share=[0.55,0.75,0.85][i]||0.85, w=Math.max(step,Math.round(tw*share/step)*step);
+ return {w:Math.round(w*100)/100,r:10}; }
 function applyCoach(d,it,w){ const wu=wuOf(it);
  repsFor(it).forEach((_,i)=>{ const y=slot(d.id,it.ex,wu+i); if(!y.done&&y.t!=='warm') y.w=String(w); });
  queueSave(); flush(); render(); }
@@ -2438,7 +2485,7 @@ function openChart(exId,dId){
   const chart=pts.length?buildChart(pts):
    '<div class="note">'+(inSpan.length?'None of the sessions in this range can show '+M.lbl.toLowerCase()+' (see below).':
     'Nothing logged in the last '+sp.lbl.toLowerCase()+'. Pick a longer range to see this lift.')+'</div>';
-  body.innerHTML=sinceStartedLine(k)+chartSpanChips()+chartMetricChips(k)+chart+
+  body.innerHTML=sinceStartedLine(k)+(sinceJumpTxt(k)?'<div class="ck-line">'+sinceJumpTxt(k)+'</div>':'')+chartSpanChips()+chartMetricChips(k)+chart+
    '<div class="stats"><div class="stat"><b>'+(best!==null?chartNum(best):'—')+'</b><span>'+bestLbl+'</span></div>'+
    '<div class="stat"><b>'+(last?chartNum(last.val):'—')+'</b><span>'+(last&&last.today?'Today':'Latest')+' '+M.unit+'</span></div>'+
    '<div class="stat"><b>'+(chg!==null?(chg>0?'+':chg<0?'−':'±')+chartNum(Math.abs(chg)):'—')+'</b><span>Change '+M.unit+'</span></div></div>'+
