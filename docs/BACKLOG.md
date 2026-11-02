@@ -255,3 +255,8 @@ below.
   - A Strength Level link on each chart page.
   - Not done: other lifts against lifter data, because no open dataset
     covers dumbbells or machines.
+- 2026-11-02: **Rows and pulldowns swap both ways** (Ross asked). Cable Row
+  is now an alternative on Lat Pulldown, and Lat Pulldown on Cable Row and
+  Chest-Supported Row. Each logs into that exercise's own history through
+  `hkey()`. Advised as a stand-in when kit is busy, not a permanent swap:
+  A's pulldown is the plan's only vertical pull.
