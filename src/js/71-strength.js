@@ -81,7 +81,7 @@ function planKeys(){ const sw=gymSwapMap(), seen={}, out=[];
    Focus: stalled (no better in 3 sessions) or not up on the 4 weeks before. */
 function strengthsFocus(){ const ks=planKeys(), rows=ks.map(k=>liftThenNow(k,'4w')).filter(r=>r&&r.was&&r.pct!==null);
  const moving=rows.filter(r=>r.pct>0.02).sort((a,b)=>b.pct-a.pct).slice(0,3);
- const focus=[]; ks.forEach(k=>{ const r=rows.find(x=>x.k===k);
+ const focus=[]; if(!activeCut()) ks.forEach(k=>{ const r=rows.find(x=>x.k===k);
   if(stalled(k)) focus.push({k,nm:keyName(k),why:'no better in its last 3 sessions'});
   else if(r&&r.pct<=0.02) focus.push({k,nm:keyName(k),why:r.pct<-0.02?pctTxt(r.pct)+' on the 4 weeks before':'level with the 4 weeks before'}); });
  return {moving,focus:focus.slice(0,4)}; }
@@ -99,7 +99,8 @@ function strengthBlock(){
  const SF=strengthsFocus();
  if(SF.moving.length) h+='<div class="ck-line good">Moving fastest: '+SF.moving.map(r=>escHTML(r.nm)+' '+pctTxt(r.pct)).join(', ')+'</div>';
  if(SF.focus.length) h+='<div class="ck-line warn">Could use focus: '+SF.focus.map(f=>escHTML(f.nm)+' ('+f.why+')').join('; ')+'</div>';
- if(!SF.moving.length&&!SF.focus.length) h+='<div class="note">Needs a few more weeks of sessions to compare.</div>';
+ if(activeCut()) h+='<div class="ck-line">Cutting: lifts that hold their weight are doing their job, so none are flagged for focus until the cut ends.</div>';
+ else if(!SF.moving.length&&!SF.focus.length) h+='<div class="note">Needs a few more weeks of sessions to compare.</div>';
  const PB=pairBalance();
  if(PB.length){
   h+=PB.map(p=>{ const t=p.na+p.nb, w=t?Math.round(p.na/t*100):50;

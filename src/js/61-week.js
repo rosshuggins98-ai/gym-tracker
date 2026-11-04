@@ -39,7 +39,7 @@ function muscleName(g){ return MUSCLES[g]||g; }
    one day when onlyDay is given. Today-only extras don't count. */
 function plannedByGroup(onlyDay){ const g={};
  PLAN.days.forEach(d=>{ if(onlyDay&&d.id!==onlyDay) return; d.items.forEach(it=>{ if(it.extra) return;
-  addSets(g,hkey(it.ex,swaps[it.ex]||null),it.ex,it.sets); }); });
+  addSets(g,hkey(it.ex,swaps[it.ex]||null),it.ex,setsOf(it)); }); });
  return g; }
 /* The plan editor's weekly view: [{g, n, day}] -- each group's sets a week
    across the whole plan, and how many of them come from the day being
@@ -52,7 +52,7 @@ function plannedWeekRows(dayId){ const all=plannedByGroup(), mine=plannedByGroup
 /* Planned sets for a history key, as the fallback count for entries from
    before per-set history. */
 function plannedSetsFor(k){ let n=0;
- PLAN.days.forEach(d=>d.items.forEach(it=>{ if(!n&&hkey(it.ex,swaps[it.ex]||null)===k) n=it.sets; }));
+ PLAN.days.forEach(d=>d.items.forEach(it=>{ if(!n&&hkey(it.ex,swaps[it.ex]||null)===k) n=setsOf(it); }));
  return n||3; }
 /* Working sets per group logged in [from, to), plus the live session(s) when
    live is set. */

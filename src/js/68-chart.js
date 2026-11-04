@@ -35,7 +35,7 @@ function buildChart(pts,pts2){
  if(pts.length>1)ax+='<text class="cx-ax" x="'+(W-pr)+'" y="'+(H-8)+'" text-anchor="end">'+pts[pts.length-1].label+'</text>';
  ax+='<text class="cx-ax" x="4" y="'+(pt+4)+'">'+chartNum(mx)+'</text><text class="cx-ax" x="4" y="'+(pt+ih)+'">'+chartNum(mn)+'</text>';
  return '<div class="chartwrap"><svg viewBox="0 0 '+W+' '+H+'">'+
-  (path2?'<path class="cx-line2" d="'+path2.trim()+'"/>':'')+
+  cutBands(byDate,t0,t1,X0=>pl+X0*iw,pt,ih)+(path2?'<path class="cx-line2" d="'+path2.trim()+'"/>':'')+
   (pts.length>1?'<path class="cx-line" d="'+path.trim()+'"/>':'')+dots+lbls+ax+'</svg></div>';
 }
 /* --- Range ----------------------------------------------------------------
@@ -226,4 +226,11 @@ function variantBlock(exId,activeKey){
 }
 function closeChart(){ document.getElementById('chartbg').classList.remove('show'); }
 document.getElementById('chartbg').addEventListener('click',e=>{ if(e.target.id==='chartbg')closeChart(); });
-
+/* Cut periods (45-phase) shaded behind a dated chart, labelled once. */
+function cutBands(byDate,t0,t1,xAt,pt,ih){ if(!byDate||t1<=t0||!phases.length) return '';
+ let h=''; phases.forEach(p=>{ if(p.kind!=='cut') return;
+  const a=Math.max(t0,Date.parse(p.start)), b=Math.min(t1,Date.parse(p.stopped||today()));
+  if(b<a) return; const x0=xAt((a-t0)/(t1-t0)), x1=Math.max(x0+3,xAt((b-t0)/(t1-t0)));
+  h+='<rect class="cx-cut" x="'+x0.toFixed(1)+'" y="'+pt+'" width="'+(x1-x0).toFixed(1)+'" height="'+ih+'"/>'+
+   (x1-x0>22?'<text class="cx-cutl" x="'+(x0+3).toFixed(1)+'" y="'+(pt+9)+'">Cut</text>':''); });
+ return h; }

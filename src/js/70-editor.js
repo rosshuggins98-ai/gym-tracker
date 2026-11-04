@@ -7,14 +7,15 @@ function drawEdit(){
  const d=day(ACTIVE);
  document.getElementById('editTitle').textContent='Edit '+d.name+' — '+d.tag;
  const b=document.getElementById('editBody'); b.innerHTML='';
+ b.appendChild(cutEditBlock());
  d.items.forEach((it,idx)=>{
   const r=document.createElement('div'); r.className='erow';
   const canRm=it.sets>1&&!lastSetUsed(d.id,it.ex,wuOf(it)+it.sets), lo=loFor(it);
   r.innerHTML='<div class="en"><b>'+exName(it.ex)+(it.extra?' <small style="display:inline">· today only</small>':it.skip?' <small style="display:inline">· skipped today</small>':'')+'</b>'+
    '<div class="step"><button class="sb" data-a="minus"'+(canRm?'':' disabled')+'>&minus;</button>'+
-   '<span class="sv">'+it.sets+' set'+(it.sets===1?'':'s')+'</span>'+
+   '<span class="sv">'+it.sets+' set'+(it.sets===1?'':'s')+(setsOf(it)<it.sets?' <small style="display:inline">('+setsOf(it)+' now)</small>':'')+'</span>'+
    '<button class="sb" data-a="plus">+</button></div>'+
-   '<input value="'+repsFor(it).join(', ')+'" data-i="'+idx+'">'+
+   '<input value="'+planReps(it).join(', ')+'" data-i="'+idx+'">'+
    '<small>Top of the rep range per set, comma separated. Type <b>max</b> for to-failure.</small>'+
    (lo?'<input inputmode="numeric" data-lo="1" value="'+lo+'" style="width:72px">'+
     '<small>Bottom of the range: every set stays at or above this before the weight goes up.</small>':'')+

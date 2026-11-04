@@ -148,6 +148,8 @@ function coachOn(k,it,h){
    }
    why='Under the '+lo+'-rep floor — normal straight after a jump. Stay and build up; if it\'s still under '+lo+' next time, drop back.';
   }
+  /* On a cut, holding a weight is the goal: no reset (45-phase). */
+  if(stalled(k,h)&&activeCut()) return stay('Holding '+top+'kg during the cut — that\'s the goal. Keep it there.');
   if(stalled(k,h)){
    let w=Math.floor(top*0.9/inc)*inc; if(w>=top) w=top-inc;
    if(w>0) return Object.assign(base,{kind:'stall',w:r25(w),why:'No progress in your last 3 sessions.'});

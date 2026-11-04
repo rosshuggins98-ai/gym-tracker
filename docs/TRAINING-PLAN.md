@@ -6,6 +6,14 @@ burnout circuit. That took over an hour to get 75% through — a volume problem,
 fitness problem. Fifteen triceps sets alongside twelve chest pressing sets is well
 past the point of diminishing returns.
 
+## 2026-11-04: cutting
+Ross is dieting on Lyle McDonald's Rapid Fat Loss approach, in two 8-week
+blocks with a diet break around Christmas. While dieting he keeps intensity
+and drops volume: every exercise goes to 2 working sets (from 3), with the
+same exercises, rep ranges and weights. The app's cutting phase does this
+without editing the plan, so the 3-set plan below comes back when the cut
+ends. Holding a weight counts as success during a cut.
+
 ## 2026-10-26: core work added, for rehab
 Same plan as below, taken from Ross's phone on 2026-10-25 so his own edits are
 kept: warm-up rows on lat pulldown, pushdown (A), leg curl, incline and leg

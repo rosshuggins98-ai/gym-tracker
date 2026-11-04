@@ -260,3 +260,11 @@ below.
   Chest-Supported Row. Each logs into that exercise's own history through
   `hkey()`. Advised as a stand-in when kit is busy, not a permanent swap:
   A's pulldown is the plan's only vertical pull.
+- 2026-11-04: **Cutting phase** (Ross asked; he's on Lyle McDonald's Rapid
+  Fat Loss diet, in two 8-week blocks with a diet break at Christmas):
+  - Every exercise drops to 2 sets without the plan being edited.
+  - The coach judges 2 sets and holds instead of suggesting a stall reset.
+  - Weekly targets follow the 2 sets.
+  - Charts shade the cut; Progress and the monthly review treat a held
+    weight as a win.
+  - Started and ended from the plan editor; `gt4_phases` is in backups.

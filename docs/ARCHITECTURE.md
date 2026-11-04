@@ -72,6 +72,7 @@ legacy weights. So a new preset shows real numbers from its first session.
 | `gt4_homeswaps` | `{exId: altName}`, swaps chosen at home (`''` = keep the planned exercise); the gym map stays in `gt4_swaps`. In backups (`homeSwaps`) |
 | `gt4_myalts` | `{exId: [name]}`, swap names typed on the swap sheet (grips, attachments, straps), offered again for that exercise. Each logs under `hkey()` like any swap name. In backups (`myAlts`); a backup without it loads with none |
 | `gt4_profile` | `{sex}` (`'male'`/`'female'`), which bench standards to compare with on Progress (`71-strength`); bodyweight comes from `gt4_bodyweight`. In backups (`profile`); a backup without it loads with none |
+| `gt4_phases` | `[{kind:'cut', start, end, sets, stopped?}]`, cutting phases (`45-phase`). While one has no `stopped`, every plan item shows `min(sets, its sets)` working sets; the plan itself is unchanged. In backups (`phases`); a backup without it loads with none |
 | `gt4_sessnote` | `{date: text}`, one short note per session date (≤140 chars, stored as typed, escaped when shown). In backups (`sessNotes`); a backup without it loads with none |
 | `gt4_active`, `gt4_theme` | UI state |
 

@@ -403,3 +403,16 @@
  .stdticks span{position:absolute;transform:translateX(-50%);top:3px}
  a.dbtn.sl{display:block;text-align:center;text-decoration:none;margin:0 0 10px;box-sizing:border-box}
  #strBox a{color:var(--accent);font-weight:700}
+ /* 45-phase: cutting */
+ .cutbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 2px 10px;padding:9px 12px;border-radius:12px;
+  background:var(--card2);border:1px solid var(--line);font-size:12.5px;font-weight:600;color:var(--muted)}
+ .cutbar b{color:var(--text)} .cutbar.over{border-color:var(--warn)} .cutbar .ck-ok{margin-left:auto}
+ .cutedit{padding:12px 2px 14px;border-bottom:1px solid var(--line);margin-bottom:6px}
+ .cutedit b{display:block;font-size:14px} .cutedit small{display:block;color:var(--muted);font-size:12px;line-height:1.45;margin:4px 0 10px}
+ .cutedit .cutrow{display:flex;gap:10px;margin-bottom:10px}
+ .cutedit label{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:700;color:var(--muted)}
+ .cutedit label:first-child{flex:1}
+ .cutedit input{background:var(--card2);border:1px solid var(--line);border-radius:10px;color:var(--text);font:inherit;font-size:14px;padding:9px 10px;box-sizing:border-box;width:100%}
+ .cutedit input#cutWeeks{width:72px}
+ .chartwrap svg .cx-cut{fill:var(--accent);fill-opacity:.13;stroke:none} .cx-cutl{fill:var(--muted);font-size:9px;font-weight:700}
+

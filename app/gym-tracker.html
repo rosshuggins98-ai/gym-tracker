@@ -416,6 +416,19 @@
  .stdticks span{position:absolute;transform:translateX(-50%);top:3px}
  a.dbtn.sl{display:block;text-align:center;text-decoration:none;margin:0 0 10px;box-sizing:border-box}
  #strBox a{color:var(--accent);font-weight:700}
+ /* 45-phase: cutting */
+ .cutbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 2px 10px;padding:9px 12px;border-radius:12px;
+  background:var(--card2);border:1px solid var(--line);font-size:12.5px;font-weight:600;color:var(--muted)}
+ .cutbar b{color:var(--text)} .cutbar.over{border-color:var(--warn)} .cutbar .ck-ok{margin-left:auto}
+ .cutedit{padding:12px 2px 14px;border-bottom:1px solid var(--line);margin-bottom:6px}
+ .cutedit b{display:block;font-size:14px} .cutedit small{display:block;color:var(--muted);font-size:12px;line-height:1.45;margin:4px 0 10px}
+ .cutedit .cutrow{display:flex;gap:10px;margin-bottom:10px}
+ .cutedit label{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:700;color:var(--muted)}
+ .cutedit label:first-child{flex:1}
+ .cutedit input{background:var(--card2);border:1px solid var(--line);border-radius:10px;color:var(--text);font:inherit;font-size:14px;padding:9px 10px;box-sizing:border-box;width:100%}
+ .cutedit input#cutWeeks{width:72px}
+ .chartwrap svg .cx-cut{fill:var(--accent);fill-opacity:.13;stroke:none} .cx-cutl{fill:var(--muted);font-size:9px;font-weight:700}
+
 </style>
 </head>
 <body>
@@ -748,7 +761,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-11-02a";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-11-04a";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -821,7 +834,10 @@ function ssRole(d,idx){
 }
 function ssPartner(d,idx){ const r=ssRole(d,idx); return r==='first'?d.items[idx+1]:r==='second'?d.items[idx-1]:null; }
 function restAfter(d,idx){ return ssRole(d,idx)==='first'?0:restFor(d.items[idx]); }
-function repsFor(it){ const r=(it.reps||[]).slice(0,it.sets); while(r.length<it.sets) r.push(r.length?r[r.length-1]:10); return r; }
+/* planReps: the plan's own targets, one per planned set. repsFor: the sets
+   for this session, which a cut (45-phase) trims to its set count. */
+function planReps(it){ const r=(it.reps||[]).slice(0,it.sets); while(r.length<it.sets) r.push(r.length?r[r.length-1]:10); return r; }
+function repsFor(it){ return planReps(it).slice(0,setsOf(it)); }
 /* Rep ranges. it.reps holds the TOP of the range per set (the number to hit
    before adding weight); it.lo is the bottom, the floor every set must stay at
    or above. Plans from before 2026-10-07 have no lo, so it defaults from the
@@ -841,13 +857,13 @@ function rangeLabel(it){ const r=repsFor(it), hi=topRep(it);
    flag, so prev lines up row for row next session. */
 const WU_MAX=3;
 function wuOf(it){ const n=parseInt(it&&it.wu,10); return n>0?Math.min(n,WU_MAX):0; }
-function setCount(d){ return d.items.reduce((s,it)=>s+(it.skip?0:it.sets),0); }
-function addSet(it){ const r=repsFor(it); r.push(r.length?r[r.length-1]:10); it.reps=r; it.sets=r.length; savePlan(); }
+function setCount(d){ return d.items.reduce((s,it)=>s+(it.skip?0:setsOf(it)),0); }
+function addSet(it){ const r=planReps(it); r.push(r.length?r[r.length-1]:10); it.reps=r; it.sets=r.length; savePlan(); }
 function lastSetUsed(dId,exId,n){ const a=cur[dId]&&cur[dId][exId]; const x=a&&a[n-1]; return !!(x&&(x.w||x.r||x.done)); }
 function removeSet(it,dId){ if(it.sets<=1) return false;
  const wu=wuOf(it);
  if(lastSetUsed(dId,it.ex,wu+it.sets)) return false;
- const r=repsFor(it); r.pop(); it.reps=r; it.sets=r.length;
+ const r=planReps(it); r.pop(); it.reps=r; it.sets=r.length;
  const a=cur[dId]&&cur[dId][it.ex]; if(a) a.length=Math.min(a.length,wu+r.length);
  savePlan(); return true; }
 function addWarmup(d,it){ const wu=wuOf(it); if(wu>=WU_MAX) return false;
@@ -1100,6 +1116,69 @@ const I={tick:'<svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>',
  up:'<svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>',
  dn:'<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7"/></svg>'};
 
+/* ============ TRAINING PHASE: CUTTING ============
+   Ross asked on 2026-11-04. He's dieting in two 8-week blocks with a break
+   around Christmas, and keeping intensity while dropping volume: every
+   exercise goes to 2 working sets. A cut is a date range in `phases`
+   (gt4_phases, in backups): {kind:'cut', start, end, sets, stopped?}.
+     start    first day of the cut (may be back-dated, never in the future)
+     end      planned last day (start + weeks), only used for "week 2 of 8"
+              and the reminder when it's passed
+     stopped  the real last day, set by "End cut"; a cut without it is on
+     sets     working sets per exercise during it (2)
+   The plan itself is never edited. setsOf(it) caps each item's sets while a
+   cut is on, and repsFor() goes through it, so the cards, the coach, the
+   weekly targets and the finish count all follow; turning the cut off
+   brings the full plan back. During a cut the coach doesn't suggest a
+   stall reset (holding a weight is the goal), and Progress and the monthly
+   review say so instead of listing held lifts as stuck. */
+const CUT_SETS=2, CUT_WEEKS=8;
+let phases=[];
+/* The cut in force today, or null. */
+function activeCut(){ const td=today(); return phases.find(p=>p.kind==='cut'&&!p.stopped&&p.start<=td)||null; }
+/* The cut a date fell in, ended or not. */
+function cutOn(date){ return phases.find(p=>p.kind==='cut'&&p.start<=date&&(!p.stopped||date<=p.stopped))||null; }
+/* Any cut overlapping [from, to). */
+function cutIn(from,to){ return phases.find(p=>p.kind==='cut'&&p.start<to&&(!p.stopped||p.stopped>=from))||null; }
+function setsOf(it){ const p=activeCut(); return p?Math.max(1,Math.min(it.sets,p.sets||CUT_SETS)):it.sets; }
+async function startCut(start,weeks){ const td=today();
+ const s=/^\d{4}-\d{2}-\d{2}$/.test(String(start||''))&&start<=td?start:td, w=Math.max(1,Math.min(26,parseInt(weeks,10)||CUT_WEEKS));
+ if(activeCut()) return null;
+ const p={kind:'cut',start:s,end:addDays(s,w*7-1),sets:CUT_SETS};
+ phases.push(p); phases.sort((a,b)=>a.start<b.start?-1:1);
+ await Store.set('gt4_phases',phases); return p; }
+/* Ends the cut today. One ended the day it started was a mistake, so it goes. */
+async function endCut(){ const p=activeCut(); if(!p) return false; const td=today();
+ if(p.start===td) phases=phases.filter(x=>x!==p); else p.stopped=td;
+ await Store.set('gt4_phases',phases); return true; }
+/* {n, of}: week n of a planned `of`. */
+function cutWeek(p,date){ const d=Math.floor((Date.parse(date||today())-Date.parse(p.start))/864e5);
+ return {n:Math.floor(d/7)+1,of:Math.round((Date.parse(p.end)-Date.parse(p.start))/864e5/7)}; }
+
+/* The line under "Training at" on the workout screen while a cut is on. */
+function cutBar(){ const p=activeCut(); if(!p) return null; const W=cutWeek(p), over=today()>p.end;
+ const c=document.createElement('div'); c.className='cutbar'+(over?' over':'');
+ c.innerHTML='<b>Cutting</b> · '+(over?'planned to end '+shortDate(p.end):'week '+W.n+' of '+W.of)+' · '+(p.sets||CUT_SETS)+' sets per exercise'+
+  (over?'<button class="ck-ok">End cut</button>':'');
+ const b=c.querySelector('button'); if(b) b.addEventListener('click',async()=>{ await endCut(); render(); });
+ return c; }
+
+/* The block at the top of the plan editor. */
+function cutEditBlock(){ const p=activeCut(), box=document.createElement('div'); box.className='cutedit';
+ if(p){ const W=cutWeek(p);
+  box.innerHTML='<b>Cutting since '+shortDate(p.start)+'</b><small>Week '+W.n+' of '+W.of+', planned to end '+shortDate(p.end)+
+   '. Every exercise is '+(p.sets||CUT_SETS)+' sets. Your plan below is unchanged and comes back when the cut ends.</small>'+
+   '<button class="dbtn" id="cutEnd">End cut today</button>';
+  box.querySelector('#cutEnd').addEventListener('click',async()=>{ await endCut(); drawEdit(); });
+ } else {
+  box.innerHTML='<b>Dieting?</b><small>A cut drops every exercise to '+CUT_SETS+' sets without changing your plan. Holding your weights counts as a win while it\'s on.</small>'+
+   '<div class="cutrow"><label>From<input type="date" id="cutStart" value="'+today()+'" max="'+today()+'"></label>'+
+   '<label>Weeks<input inputmode="numeric" id="cutWeeks" value="'+CUT_WEEKS+'"></label></div>'+
+   '<button class="dbtn" id="cutGo">Start a cut</button>';
+  box.querySelector('#cutGo').addEventListener('click',async()=>{
+   await startCut(box.querySelector('#cutStart').value,box.querySelector('#cutWeeks').value); drawEdit(); });
+ }
+ return box; }
 /* ============ RENDER ============ */
 function applyAccent(){ const d=day(ACTIVE);
  document.documentElement.style.setProperty('--accent','var('+d.av+')');
@@ -1129,6 +1208,7 @@ function render(){
   await Store.set('gt4_weektarget',WEEKTARGET); render(); };
  const app=document.getElementById('app'); app.innerHTML='';
  app.appendChild(placeBar(d));
+ const cb=cutBar(); if(cb) app.appendChild(cb);
  /* one card at a time: a workout left unsaved on an earlier day first, then
     last month's review, then the weekly check-in */
  const ck=staleCard()||monthCard()||checkinCard(); if(ck) app.appendChild(ck);
@@ -1243,14 +1323,15 @@ function card(it,d,idx){
  const f=document.createElement('div'); f.className='setfoot';
  const canRm=it.sets>1&&!lastSetUsed(d.id,exId,wu+it.sets);
  const wa=cur[d.id]&&cur[d.id][exId], canRmW=wu>0&&!(wa&&wa[wu-1]&&wa[wu-1].done);
- f.innerHTML='<button class="rms"'+(canRm?'':' disabled')+'>&minus; Set</button>'+
-  '<button class="ads">+ Set</button>'+
+ const cut=activeCut();
+ f.innerHTML=(cut?'':'<button class="rms"'+(canRm?'':' disabled')+'>&minus; Set</button><button class="ads">+ Set</button>')+
   (wu<WU_MAX?'<button class="adw">+ Warm-up</button>':'')+(canRmW?'<button class="rmw">&minus; Warm-up</button>':'')+
-  '<span class="hint">'+(it.sets>1&&!canRm?'Clear the last set to remove it':'')+'</span>'+
+  '<span class="hint">'+(cut?setsOf(it)+' sets during the cut':it.sets>1&&!canRm?'Clear the last set to remove it':'')+'</span>'+
   (it.extra?'<button class="keep">Keep in plan</button>'+(anyDone(d.id,exId)?'':'<button class="rmx">Remove</button>'):
    (anyDone(d.id,exId)||role)?'':'<button class="skp">Skip today</button>');
- f.querySelector('.ads').addEventListener('click',()=>{ addSet(it); render(); });
- f.querySelector('.rms').addEventListener('click',()=>{ if(removeSet(it,d.id)) render(); });
+ const ads=f.querySelector('.ads'), rms=f.querySelector('.rms');
+ if(ads) ads.addEventListener('click',()=>{ addSet(it); render(); });
+ if(rms) rms.addEventListener('click',()=>{ if(removeSet(it,d.id)) render(); });
  const aw=f.querySelector('.adw'), rw=f.querySelector('.rmw');
  if(aw) aw.addEventListener('click',()=>{ if(addWarmup(d,it)) render(); });
  if(rw) rw.addEventListener('click',()=>{ if(removeWarmup(d,it)) render(); });
@@ -1266,7 +1347,7 @@ function pills(c,it,d){
  const rl=repsFor(it).map(r=>(r===null||r==='max')?'max':r).join(' · ');
  const b=pbOf(k);
  const rg=rangeLabel(it);
- let h='<span class="pill reps">'+it.sets+' × '+(rg||rl)+'</span>';
+ let h='<span class="pill reps">'+setsOf(it)+' × '+(rg||rl)+'</span>';
  const idx=d.items.indexOf(it), role=ssRole(d,idx), partner=ssPartner(d,idx);
  if(role==='first') h+='<span class="pill ss">then '+vName(partner.ex,swaps[partner.ex]||null)+', no rest</span>';
  else if(role==='second') h+='<span class="pill ss">after '+vName(partner.ex,swaps[partner.ex]||null)+'</span>';
@@ -1602,6 +1683,8 @@ function coachOn(k,it,h){
    }
    why='Under the '+lo+'-rep floor — normal straight after a jump. Stay and build up; if it\'s still under '+lo+' next time, drop back.';
   }
+  /* On a cut, holding a weight is the goal: no reset (45-phase). */
+  if(stalled(k,h)&&activeCut()) return stay('Holding '+top+'kg during the cut — that\'s the goal. Keep it there.');
   if(stalled(k,h)){
    let w=Math.floor(top*0.9/inc)*inc; if(w>=top) w=top-inc;
    if(w>0) return Object.assign(base,{kind:'stall',w:r25(w),why:'No progress in your last 3 sessions.'});
@@ -1926,7 +2009,7 @@ function muscleName(g){ return MUSCLES[g]||g; }
    one day when onlyDay is given. Today-only extras don't count. */
 function plannedByGroup(onlyDay){ const g={};
  PLAN.days.forEach(d=>{ if(onlyDay&&d.id!==onlyDay) return; d.items.forEach(it=>{ if(it.extra) return;
-  addSets(g,hkey(it.ex,swaps[it.ex]||null),it.ex,it.sets); }); });
+  addSets(g,hkey(it.ex,swaps[it.ex]||null),it.ex,setsOf(it)); }); });
  return g; }
 /* The plan editor's weekly view: [{g, n, day}] -- each group's sets a week
    across the whole plan, and how many of them come from the day being
@@ -1939,7 +2022,7 @@ function plannedWeekRows(dayId){ const all=plannedByGroup(), mine=plannedByGroup
 /* Planned sets for a history key, as the fallback count for entries from
    before per-set history. */
 function plannedSetsFor(k){ let n=0;
- PLAN.days.forEach(d=>d.items.forEach(it=>{ if(!n&&hkey(it.ex,swaps[it.ex]||null)===k) n=it.sets; }));
+ PLAN.days.forEach(d=>d.items.forEach(it=>{ if(!n&&hkey(it.ex,swaps[it.ex]||null)===k) n=setsOf(it); }));
  return n||3; }
 /* Working sets per group logged in [from, to), plus the live session(s) when
    live is set. */
@@ -2457,7 +2540,7 @@ function buildChart(pts,pts2){
  if(pts.length>1)ax+='<text class="cx-ax" x="'+(W-pr)+'" y="'+(H-8)+'" text-anchor="end">'+pts[pts.length-1].label+'</text>';
  ax+='<text class="cx-ax" x="4" y="'+(pt+4)+'">'+chartNum(mx)+'</text><text class="cx-ax" x="4" y="'+(pt+ih)+'">'+chartNum(mn)+'</text>';
  return '<div class="chartwrap"><svg viewBox="0 0 '+W+' '+H+'">'+
-  (path2?'<path class="cx-line2" d="'+path2.trim()+'"/>':'')+
+  cutBands(byDate,t0,t1,X0=>pl+X0*iw,pt,ih)+(path2?'<path class="cx-line2" d="'+path2.trim()+'"/>':'')+
   (pts.length>1?'<path class="cx-line" d="'+path.trim()+'"/>':'')+dots+lbls+ax+'</svg></div>';
 }
 /* --- Range ----------------------------------------------------------------
@@ -2648,7 +2731,14 @@ function variantBlock(exId,activeKey){
 }
 function closeChart(){ document.getElementById('chartbg').classList.remove('show'); }
 document.getElementById('chartbg').addEventListener('click',e=>{ if(e.target.id==='chartbg')closeChart(); });
-
+/* Cut periods (45-phase) shaded behind a dated chart, labelled once. */
+function cutBands(byDate,t0,t1,xAt,pt,ih){ if(!byDate||t1<=t0||!phases.length) return '';
+ let h=''; phases.forEach(p=>{ if(p.kind!=='cut') return;
+  const a=Math.max(t0,Date.parse(p.start)), b=Math.min(t1,Date.parse(p.stopped||today()));
+  if(b<a) return; const x0=xAt((a-t0)/(t1-t0)), x1=Math.max(x0+3,xAt((b-t0)/(t1-t0)));
+  h+='<rect class="cx-cut" x="'+x0.toFixed(1)+'" y="'+pt+'" width="'+(x1-x0).toFixed(1)+'" height="'+ih+'"/>'+
+   (x1-x0>22?'<text class="cx-cutl" x="'+(x0+3).toFixed(1)+'" y="'+(pt+9)+'">Cut</text>':''); });
+ return h; }
 /* ============ MILESTONES ============
    Worked out from history every time, never stored, so milestones reached
    before this existed show too, and an edited or deleted session moves
@@ -2765,7 +2855,9 @@ function monthBody(R){
   (kinds.length?' ('+kinds.join(', ')+')':'')+'</div>';
  if(R.gains.length) h+='<div class="ck-line good">Biggest gains:</div>'+R.gains.map(g=>'<div class="mgain"><div><span class="nm">'+escHTML(g.nm)+'</span><em>'+pctTxt(g.pct)+'</em></div>'+
   '<small>'+setTxt(bestSet(g.was))+' → <b>'+setTxt(bestSet(g.now))+'</b></small></div>').join('');
- if(R.stuck.length) h+='<div class="ck-line warn">No gain this month: '+R.stuck.map(s=>escHTML(s.nm)).join(', ')+'.</div>';
+ const B=monthBounds(R.ym), cut=cutIn(B.from,B.to);
+ if(cut) h+='<div class="ck-line">Cutting'+(cut.start>=B.from?' from '+shortDate(cut.start):'')+(cut.stopped&&cut.stopped<B.to?' to '+shortDate(cut.stopped):'')+': '+(cut.sets||CUT_SETS)+' sets per exercise. Holding a weight counts as a win.</div>';
+ if(R.stuck.length) h+=cut?'<div class="ck-line">Held: '+R.stuck.map(s=>escHTML(s.nm)).join(', ')+'.</div>':'<div class="ck-line warn">No gain this month: '+R.stuck.map(s=>escHTML(s.nm)).join(', ')+'.</div>';
  if(R.bwd!==null) h+='<div class="ck-line">Bodyweight '+R.bwFrom.kg+' → '+R.bwTo.kg+'kg ('+(R.bwd>0?'+':R.bwd<0?'−':'±')+Math.abs(R.bwd)+'kg).</div>';
  if(R.ms.length) h+='<div class="ck-line good">Milestones: '+R.ms.map(m=>m.label).join(', ')+' 🎉</div>';
  return h; }
@@ -2785,14 +2877,15 @@ function drawEdit(){
  const d=day(ACTIVE);
  document.getElementById('editTitle').textContent='Edit '+d.name+' — '+d.tag;
  const b=document.getElementById('editBody'); b.innerHTML='';
+ b.appendChild(cutEditBlock());
  d.items.forEach((it,idx)=>{
   const r=document.createElement('div'); r.className='erow';
   const canRm=it.sets>1&&!lastSetUsed(d.id,it.ex,wuOf(it)+it.sets), lo=loFor(it);
   r.innerHTML='<div class="en"><b>'+exName(it.ex)+(it.extra?' <small style="display:inline">· today only</small>':it.skip?' <small style="display:inline">· skipped today</small>':'')+'</b>'+
    '<div class="step"><button class="sb" data-a="minus"'+(canRm?'':' disabled')+'>&minus;</button>'+
-   '<span class="sv">'+it.sets+' set'+(it.sets===1?'':'s')+'</span>'+
+   '<span class="sv">'+it.sets+' set'+(it.sets===1?'':'s')+(setsOf(it)<it.sets?' <small style="display:inline">('+setsOf(it)+' now)</small>':'')+'</span>'+
    '<button class="sb" data-a="plus">+</button></div>'+
-   '<input value="'+repsFor(it).join(', ')+'" data-i="'+idx+'">'+
+   '<input value="'+planReps(it).join(', ')+'" data-i="'+idx+'">'+
    '<small>Top of the rep range per set, comma separated. Type <b>max</b> for to-failure.</small>'+
    (lo?'<input inputmode="numeric" data-lo="1" value="'+lo+'" style="width:72px">'+
     '<small>Bottom of the range: every set stays at or above this before the weight goes up.</small>':'')+
@@ -3001,7 +3094,7 @@ function planKeys(){ const sw=gymSwapMap(), seen={}, out=[];
    Focus: stalled (no better in 3 sessions) or not up on the 4 weeks before. */
 function strengthsFocus(){ const ks=planKeys(), rows=ks.map(k=>liftThenNow(k,'4w')).filter(r=>r&&r.was&&r.pct!==null);
  const moving=rows.filter(r=>r.pct>0.02).sort((a,b)=>b.pct-a.pct).slice(0,3);
- const focus=[]; ks.forEach(k=>{ const r=rows.find(x=>x.k===k);
+ const focus=[]; if(!activeCut()) ks.forEach(k=>{ const r=rows.find(x=>x.k===k);
   if(stalled(k)) focus.push({k,nm:keyName(k),why:'no better in its last 3 sessions'});
   else if(r&&r.pct<=0.02) focus.push({k,nm:keyName(k),why:r.pct<-0.02?pctTxt(r.pct)+' on the 4 weeks before':'level with the 4 weeks before'}); });
  return {moving,focus:focus.slice(0,4)}; }
@@ -3019,7 +3112,8 @@ function strengthBlock(){
  const SF=strengthsFocus();
  if(SF.moving.length) h+='<div class="ck-line good">Moving fastest: '+SF.moving.map(r=>escHTML(r.nm)+' '+pctTxt(r.pct)).join(', ')+'</div>';
  if(SF.focus.length) h+='<div class="ck-line warn">Could use focus: '+SF.focus.map(f=>escHTML(f.nm)+' ('+f.why+')').join('; ')+'</div>';
- if(!SF.moving.length&&!SF.focus.length) h+='<div class="note">Needs a few more weeks of sessions to compare.</div>';
+ if(activeCut()) h+='<div class="ck-line">Cutting: lifts that hold their weight are doing their job, so none are flagged for focus until the cut ends.</div>';
+ else if(!SF.moving.length&&!SF.focus.length) h+='<div class="note">Needs a few more weeks of sessions to compare.</div>';
  const PB=pairBalance();
  if(PB.length){
   h+=PB.map(p=>{ const t=p.na+p.nb, w=t?Math.round(p.na/t*100):50;
@@ -3133,7 +3227,7 @@ function openData(){
 function closeData(){ document.getElementById('databg').classList.remove('show'); }
 document.getElementById('databg').addEventListener('click',e=>{ if(e.target.id==='databg')closeData(); });
 function backup(){ return {app:"gym-tracker",version:4,build:BUILD,exported:new Date().toISOString(),
- plan:PLAN,cur,prev,swaps:gymSwapMap(),homeSwaps:homePicks,history:hist,warm:warmDone,custom,barWeight:BARWEIGHT,notes,weekTarget:WEEKTARGET,routines,bodyweight,incs,place:PLACE,effort:efforts,sessNotes,myAlts,profile}; }
+ plan:PLAN,cur,prev,swaps:gymSwapMap(),homeSwaps:homePicks,history:hist,warm:warmDone,custom,barWeight:BARWEIGHT,notes,weekTarget:WEEKTARGET,routines,bodyweight,incs,place:PLACE,effort:efforts,sessNotes,myAlts,profile,phases}; }
 function dl(n,t,m){ try{ const b=new Blob([t],{type:m}),u=URL.createObjectURL(b),a=document.createElement('a');
  a.href=u;a.download=n;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);return true;}catch(e){return false;} }
 function showExport(t,n){ document.getElementById('exportText').value=t;
@@ -3212,12 +3306,13 @@ async function applyImport(){ const d=window.__imp; if(!d)return;
  homePicks=(d.homeSwaps&&typeof d.homeSwaps==='object')?d.homeSwaps:{};
  myAlts=(d.myAlts&&typeof d.myAlts==='object')?d.myAlts:{};
  profile=(d.profile&&typeof d.profile==='object')?d.profile:{};
+ phases=Array.isArray(d.phases)?d.phases.filter(p=>p&&p.kind==='cut'&&p.start):[];
  notes=d.notes||{}; routines=d.routines||[]; incs=(d.incs&&typeof d.incs==='object')?d.incs:{};
  bodyweight=Array.isArray(d.bodyweight)?d.bodyweight.filter(e=>e&&e.date&&e.kg>0):[];
  await Promise.all([Store.set('gt4_plan',PLAN),Store.set('gt4_cur',cur),Store.set('gt4_prev',prev),Store.set('gt4_bodyweight',bodyweight),
   Store.set('gt4_hist',hist),Store.set('gt4_swaps',swaps),Store.set('gt4_warm',warmDone),Store.set('gt4_custom',custom),
   Store.set('gt4_barweight',BARWEIGHT),Store.set('gt4_notes',notes),Store.set('gt4_weektarget',WEEKTARGET),
-  Store.set('gt4_routines',routines),Store.set('gt4_incs',incs),Store.set('gt4_place',PLACE),Store.set('gt4_effort',efforts),Store.set('gt4_homeswaps',homePicks),Store.set('gt4_sessnote',sessNotes),Store.set('gt4_myalts',myAlts),Store.set('gt4_profile',profile)]);
+  Store.set('gt4_routines',routines),Store.set('gt4_incs',incs),Store.set('gt4_place',PLACE),Store.set('gt4_effort',efforts),Store.set('gt4_homeswaps',homePicks),Store.set('gt4_sessnote',sessNotes),Store.set('gt4_myalts',myAlts),Store.set('gt4_profile',profile),Store.set('gt4_phases',phases)]);
  enterPlace();
  window.__imp=null;
  document.getElementById('importPreview').innerHTML='<b>Restored ✓</b><div class="note">Your data is back.</div>';
@@ -3245,7 +3340,7 @@ function unskip(it){ delete it.skip; savePlan(); }
 function addExtra(d,exId){
  if(!LIB[exId]||d.items.some(it=>it.ex===exId)) return false;
  let src=null; PLAN.days.forEach(od=>od.items.forEach(it=>{ if(!src&&it.ex===exId&&!it.extra) src=it; }));
- const it={ex:exId,sets:src?src.sets:3,reps:src?repsFor(src).slice():[12,12,12],extra:true};
+ const it={ex:exId,sets:src?src.sets:3,reps:src?planReps(src).slice():[12,12,12],extra:true};
  if(src&&src.rest) it.rest=src.rest;
  d.items.push(it); savePlan(); return true; }
 function keepExtra(it){ delete it.extra; savePlan(); }
@@ -3719,6 +3814,7 @@ document.getElementById('progBtn').innerHTML=I.chart;
  homePicks=(await Store.get('gt4_homeswaps'))||{};
  myAlts=(await Store.get('gt4_myalts'))||{};
  profile=(await Store.get('gt4_profile'))||{};
+ phases=(await Store.get('gt4_phases'))||[];
  routines=(await Store.get('gt4_routines'))||[];
  lastAuto=(await Store.get('gt4_autobackup'))||null;
  bodyweight=(await Store.get('gt4_bodyweight'))||[];

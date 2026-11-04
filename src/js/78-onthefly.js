@@ -20,7 +20,7 @@ function unskip(it){ delete it.skip; savePlan(); }
 function addExtra(d,exId){
  if(!LIB[exId]||d.items.some(it=>it.ex===exId)) return false;
  let src=null; PLAN.days.forEach(od=>od.items.forEach(it=>{ if(!src&&it.ex===exId&&!it.extra) src=it; }));
- const it={ex:exId,sets:src?src.sets:3,reps:src?repsFor(src).slice():[12,12,12],extra:true};
+ const it={ex:exId,sets:src?src.sets:3,reps:src?planReps(src).slice():[12,12,12],extra:true};
  if(src&&src.rest) it.rest=src.rest;
  d.items.push(it); savePlan(); return true; }
 function keepExtra(it){ delete it.extra; savePlan(); }
