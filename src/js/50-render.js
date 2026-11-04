@@ -27,6 +27,7 @@ function render(){
   await Store.set('gt4_weektarget',WEEKTARGET); render(); };
  const app=document.getElementById('app'); app.innerHTML='';
  app.appendChild(placeBar(d));
+ const cb=cutBar(); if(cb) app.appendChild(cb);
  /* one card at a time: a workout left unsaved on an earlier day first, then
     last month's review, then the weekly check-in */
  const ck=staleCard()||monthCard()||checkinCard(); if(ck) app.appendChild(ck);
@@ -141,14 +142,15 @@ function card(it,d,idx){
  const f=document.createElement('div'); f.className='setfoot';
  const canRm=it.sets>1&&!lastSetUsed(d.id,exId,wu+it.sets);
  const wa=cur[d.id]&&cur[d.id][exId], canRmW=wu>0&&!(wa&&wa[wu-1]&&wa[wu-1].done);
- f.innerHTML='<button class="rms"'+(canRm?'':' disabled')+'>&minus; Set</button>'+
-  '<button class="ads">+ Set</button>'+
+ const cut=activeCut();
+ f.innerHTML=(cut?'':'<button class="rms"'+(canRm?'':' disabled')+'>&minus; Set</button><button class="ads">+ Set</button>')+
   (wu<WU_MAX?'<button class="adw">+ Warm-up</button>':'')+(canRmW?'<button class="rmw">&minus; Warm-up</button>':'')+
-  '<span class="hint">'+(it.sets>1&&!canRm?'Clear the last set to remove it':'')+'</span>'+
+  '<span class="hint">'+(cut?setsOf(it)+' sets during the cut':it.sets>1&&!canRm?'Clear the last set to remove it':'')+'</span>'+
   (it.extra?'<button class="keep">Keep in plan</button>'+(anyDone(d.id,exId)?'':'<button class="rmx">Remove</button>'):
    (anyDone(d.id,exId)||role)?'':'<button class="skp">Skip today</button>');
- f.querySelector('.ads').addEventListener('click',()=>{ addSet(it); render(); });
- f.querySelector('.rms').addEventListener('click',()=>{ if(removeSet(it,d.id)) render(); });
+ const ads=f.querySelector('.ads'), rms=f.querySelector('.rms');
+ if(ads) ads.addEventListener('click',()=>{ addSet(it); render(); });
+ if(rms) rms.addEventListener('click',()=>{ if(removeSet(it,d.id)) render(); });
  const aw=f.querySelector('.adw'), rw=f.querySelector('.rmw');
  if(aw) aw.addEventListener('click',()=>{ if(addWarmup(d,it)) render(); });
  if(rw) rw.addEventListener('click',()=>{ if(removeWarmup(d,it)) render(); });
@@ -164,7 +166,7 @@ function pills(c,it,d){
  const rl=repsFor(it).map(r=>(r===null||r==='max')?'max':r).join(' · ');
  const b=pbOf(k);
  const rg=rangeLabel(it);
- let h='<span class="pill reps">'+it.sets+' × '+(rg||rl)+'</span>';
+ let h='<span class="pill reps">'+setsOf(it)+' × '+(rg||rl)+'</span>';
  const idx=d.items.indexOf(it), role=ssRole(d,idx), partner=ssPartner(d,idx);
  if(role==='first') h+='<span class="pill ss">then '+vName(partner.ex,swaps[partner.ex]||null)+', no rest</span>';
  else if(role==='second') h+='<span class="pill ss">after '+vName(partner.ex,swaps[partner.ex]||null)+'</span>';

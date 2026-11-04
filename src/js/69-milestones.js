@@ -114,7 +114,9 @@ function monthBody(R){
   (kinds.length?' ('+kinds.join(', ')+')':'')+'</div>';
  if(R.gains.length) h+='<div class="ck-line good">Biggest gains:</div>'+R.gains.map(g=>'<div class="mgain"><div><span class="nm">'+escHTML(g.nm)+'</span><em>'+pctTxt(g.pct)+'</em></div>'+
   '<small>'+setTxt(bestSet(g.was))+' → <b>'+setTxt(bestSet(g.now))+'</b></small></div>').join('');
- if(R.stuck.length) h+='<div class="ck-line warn">No gain this month: '+R.stuck.map(s=>escHTML(s.nm)).join(', ')+'.</div>';
+ const B=monthBounds(R.ym), cut=cutIn(B.from,B.to);
+ if(cut) h+='<div class="ck-line">Cutting'+(cut.start>=B.from?' from '+shortDate(cut.start):'')+(cut.stopped&&cut.stopped<B.to?' to '+shortDate(cut.stopped):'')+': '+(cut.sets||CUT_SETS)+' sets per exercise. Holding a weight counts as a win.</div>';
+ if(R.stuck.length) h+=cut?'<div class="ck-line">Held: '+R.stuck.map(s=>escHTML(s.nm)).join(', ')+'.</div>':'<div class="ck-line warn">No gain this month: '+R.stuck.map(s=>escHTML(s.nm)).join(', ')+'.</div>';
  if(R.bwd!==null) h+='<div class="ck-line">Bodyweight '+R.bwFrom.kg+' → '+R.bwTo.kg+'kg ('+(R.bwd>0?'+':R.bwd<0?'−':'±')+Math.abs(R.bwd)+'kg).</div>';
  if(R.ms.length) h+='<div class="ck-line good">Milestones: '+R.ms.map(m=>m.label).join(', ')+' 🎉</div>';
  return h; }

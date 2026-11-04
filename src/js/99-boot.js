@@ -37,6 +37,7 @@ document.getElementById('progBtn').innerHTML=I.chart;
  homePicks=(await Store.get('gt4_homeswaps'))||{};
  myAlts=(await Store.get('gt4_myalts'))||{};
  profile=(await Store.get('gt4_profile'))||{};
+ phases=(await Store.get('gt4_phases'))||[];
  routines=(await Store.get('gt4_routines'))||[];
  lastAuto=(await Store.get('gt4_autobackup'))||null;
  bodyweight=(await Store.get('gt4_bodyweight'))||[];

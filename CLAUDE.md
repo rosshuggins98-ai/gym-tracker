@@ -149,7 +149,7 @@ cache-first would either never match (offline broken) or show the previous build
 One script scope; later modules call earlier ones. `src/js/`:
 `10-lib` (exercise library + cues) → `20-plans` (`DEFAULT_PLAN`, `FULL_BODY_PLAN`,
 `BEGINNER_PLAN`, `PRESETS`, `MIGRATE`, `BUILD`) → `30-storage` → `40-state`
-(helpers, PB, prefill, supersets, rest) → `50-render` → `55-rest` → `57-place`
+(helpers, PB, prefill, supersets, rest) → `45-phase` (cutting) → `50-render` → `55-rest` → `57-place`
 (gym / home) → `58-coach` → `59-effort` → `60-progress` → `61-week` (sets per
 muscle group, check-in, still-to-do strip, days done this week) → `62-cues` →
 `63-compare` (Progress "How you're doing": span vs the span before) → `64-swap` →
@@ -352,6 +352,23 @@ New module: pick a free number, end the file with a newline.
   - Each chart page links to Strength Level (`SL_SLUG`, pages confirmed to
     exist). Their terms forbid copying their standards, so it is a link only.
     The app never fetches from either site.
+- **Cutting** (`45-phase`, 2026-11-04, Ross asked): he diets in two 8-week
+  blocks with a break around Christmas, keeping intensity and dropping
+  volume. A cut is a date range in `phases` (`gt4_phases`, in backups):
+  `{kind:'cut', start, end, sets:2, stopped?}`. It's started and ended from
+  the top of the plan editor, and a bar on the workout screen shows "week n
+  of 8".
+  - The plan is never edited. `setsOf(it)` caps sets while a cut is on, and
+    `repsFor()` goes through it, so everything that reads `repsFor` follows:
+    cards, the coach, targets, the finish count, and the weekly targets
+    (`plannedByGroup`, `plannedSetsFor`).
+  - `planReps()` is the plan's own list. The editor and add/remove set use
+    it, and the card hides ± Set during a cut.
+  - The coach doesn't suggest a stall reset during a cut; it says hold.
+  - Strength check shows no focus flags during a cut.
+  - The monthly review says "Held:" instead of "No gain".
+  - Charts shade cut periods (`cutBands`).
+  - A cut ended the day it started is deleted, since that was a mistake.
 - **Days done this week**: read from `prev[dayId]._date` (stamped on finish), not
   history -- history entries don't record which day they came from. The tabs show
   "✓ Done Tue" and mark the not-done day finished longest ago as "Up next".
