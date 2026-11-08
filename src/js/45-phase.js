@@ -22,7 +22,21 @@ function activeCut(){ const td=today(); return phases.find(p=>p.kind==='cut'&&!p
 function cutOn(date){ return phases.find(p=>p.kind==='cut'&&p.start<=date&&(!p.stopped||date<=p.stopped))||null; }
 /* Any cut overlapping [from, to). */
 function cutIn(from,to){ return phases.find(p=>p.kind==='cut'&&p.start<to&&(!p.stopped||p.stopped>=from))||null; }
-function setsOf(it){ const p=activeCut(); return p?Math.max(1,Math.min(it.sets,p.sets||CUT_SETS)):it.sets; }
+function setsOf(it){ const p=activeCut(); return p?Math.max(1,Math.min(it.sets,p.sets||CUT_SETS)+(it.cutAdd||0)):it.sets; }
+/* + Set during a cut (Ross asked, 2026-11-08): one more set for today only.
+   it.cutAdd is a today-only flag like it.skip, cleared by endOfSession and
+   cleanDays, so the next session starts at the cut's 2 again. The plan's
+   own set count is never touched. − Set takes back only what was added. */
+const CUT_MAX=6;
+function cutAddSet(it){ if(!activeCut()||setsOf(it)>=CUT_MAX) return false; it.cutAdd=(it.cutAdd||0)+1; savePlan(); return true; }
+/* An added set arrives prefilled from last time, so only a ticked set, or
+   one typed into, keeps it from being taken back. */
+function cutLastTouched(dId,it){ const a=cur[dId]&&cur[dId][it.ex], x=a&&a[wuOf(it)+setsOf(it)-1]; return !!(x&&(x.done||x.wt||x.rt)); }
+function cutRemoveSet(it,dId){ if(!activeCut()||!(it.cutAdd>0)) return false;
+ const wu=wuOf(it), n=setsOf(it); if(cutLastTouched(dId,it)) return false;
+ it.cutAdd--; if(!it.cutAdd) delete it.cutAdd;
+ const a=cur[dId]&&cur[dId][it.ex]; if(a) a.length=Math.min(a.length,wu+n-1);
+ savePlan(); return true; }
 async function startCut(start,weeks){ const td=today();
  const s=/^\d{4}-\d{2}-\d{2}$/.test(String(start||''))&&start<=td?start:td, w=Math.max(1,Math.min(26,parseInt(weeks,10)||CUT_WEEKS));
  if(activeCut()) return null;

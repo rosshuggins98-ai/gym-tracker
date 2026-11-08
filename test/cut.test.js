@@ -66,3 +66,24 @@ test('phases are in the backup and come back on import; older backups load with 
  assert.ok(r2.app.activeCut());
  const r3=await load(); delete b.phases; r3.ctx.window.__imp=b; await r3.app.applyImport(); deq(r3.app.phases,[]);
 });
+
+test('+ Set during a cut adds one for today; the next session is back at 2',async()=>{
+ const {app,set,tick}=await beginner(); const d=app.day('bgA'), it=d.items.find(i=>i.ex==='dbbench');
+ await app.startCut(app.addDays(app.today(),-3),8);
+ assert.ok(app.cutAddSet(it)); assert.equal(app.setsOf(it),3); assert.equal(app.repsFor(it).length,3); assert.equal(it.sets,3,'plan unchanged');
+ assert.ok(app.cutAddSet(it)); assert.equal(app.setsOf(it),4); assert.equal(app.repsFor(it).length,4,'past the plan\'s own 3');
+ assert.ok(app.cleanDays(app.PLAN.days).every(x=>x.items.every(i=>i.cutAdd===undefined)),'not saved into routines');
+ set('cur',{bgA:{dbbench:[{w:'26',r:'10',done:true},{w:'26',r:'9',done:true},{w:'26',r:'8',done:true},{w:'26',r:'8',done:true}]}});
+ assert.equal(app.cutRemoveSet(it,'bgA'),false,'a ticked set stays');
+ app.cur.bgA.dbbench[3]={w:'26',r:'8'};  /* prefilled from last time, not ticked */
+ assert.ok(app.cutRemoveSet(it,'bgA')); assert.equal(app.setsOf(it),3);
+ set('sessionStart',{bgA:Date.now()}); await app.doNewSession('bgA'); await tick();
+ assert.equal(app.hist.dbbench[0].sets.length,3,'all three sets saved');
+ assert.equal(it.cutAdd,undefined); assert.equal(app.setsOf(it),2,'next session back at 2');
+ assert.equal(app.cutRemoveSet(it,'bgA'),false,'nothing added, nothing to take back');
+});
+
+test('+ Set with no cut still changes the plan, as before',async()=>{
+ const {app}=await beginner(); const it=app.day('bgA').items.find(i=>i.ex==='dbbench');
+ assert.equal(app.cutAddSet(it),false); app.addSet(it); assert.equal(it.sets,4); assert.equal(it.cutAdd,undefined);
+});

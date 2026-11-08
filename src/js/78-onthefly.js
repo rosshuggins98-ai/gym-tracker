@@ -28,9 +28,9 @@ function removeExtra(d,it){
  if(!it.extra||anyDone(d.id,it.ex)) return false;
  d.items=d.items.filter(x=>x!==it); if(cur[d.id]) delete cur[d.id][it.ex];
  queueSave(); savePlan(); return true; }
-function endOfSession(d){ d.items=d.items.filter(it=>!it.extra); d.items.forEach(it=>{ delete it.skip; }); savePlan(); }
+function endOfSession(d){ d.items=d.items.filter(it=>!it.extra); d.items.forEach(it=>{ delete it.skip; delete it.cutAdd; }); savePlan(); }
 function cleanDays(days){ const c=JSON.parse(JSON.stringify(days));
- c.forEach(d=>{ d.items=d.items.filter(it=>!it.extra); d.items.forEach(it=>{ delete it.skip; }); }); return c; }
+ c.forEach(d=>{ d.items=d.items.filter(it=>!it.extra); d.items.forEach(it=>{ delete it.skip; delete it.cutAdd; }); }); return c; }
 /* Exercises logged in the last 30 days that aren't in today's session, most
    recent first -- after one pec deck finisher, it's at the top next time. */
 function recentIds(d){

@@ -363,7 +363,10 @@ New module: pick a free number, end the file with a newline.
     cards, the coach, targets, the finish count, and the weekly targets
     (`plannedByGroup`, `plannedSetsFor`).
   - `planReps()` is the plan's own list. The editor and add/remove set use
-    it, and the card hides ± Set during a cut.
+    it.
+  - During a cut, the card's + Set adds a set for today only (`it.cutAdd`,
+    Ross asked 2026-11-08). It's cleared by `endOfSession`/`cleanDays`, like
+    `skip`, and − Set takes back only what was added.
   - The coach doesn't suggest a stall reset during a cut; it says hold.
   - Strength check shows no focus flags during a cut.
   - The monthly review says "Held:" instead of "No gain".
