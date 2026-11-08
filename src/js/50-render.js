@@ -125,8 +125,9 @@ function card(it,d,idx){
     carryWeight(d.id,exId,ri,wu+reps.length).forEach(j=>{ if(wIs[j]) wIs[j].value=cur[d.id][exId][j].w; }); }
    if(y.done&&!y.r&&tt&&tt!=='max'){ y.r=String(tt); rI.value=tt; }
    row.classList.toggle('unconf',repsUnconfirmed(y)); row.querySelectorAll('.last')[1].textContent=repsUnconfirmed(y)?'not typed':'';
-   if(y.done){ const sec=restAfter(d,idx), nd=setNudge(it,cur[d.id][exId],ri);
-    if(sec){ restStart(sec+(nd?nd.extra:0)); if(nd) document.getElementById('restL').textContent=nd.msg; }
+   if(y.done){ const full=restAfter(d,idx), a=cur[d.id][exId], wm=full&&isWarmSlot(it,a,ri), nd=wm?null:setNudge(it,a,ri);
+    const sec=wm?warmRest(it,a,ri,full):full;
+    if(sec){ restStart(sec+(nd?nd.extra:0)); if(nd||wm) document.getElementById('restL').textContent=wm?'Warm-up rest':nd.msg; }
     else restCue(vName(partner.ex,swaps[partner.ex]||null)); }
    pills(c,it,d);
    if(y.done&&pbCheck(d.id,exId,k0)) celebratePB();

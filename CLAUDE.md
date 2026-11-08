@@ -284,6 +284,13 @@ New module: pick a free number, end the file with a newline.
   - `warmSuggest()`: a warm-up row with no past warm-up prefills about 55% of
     the session's target (75% and 85% for later rows) on the lift's own step,
     for 10 reps.
+- **Warm-up rest** (`warmRest()` in `58-coach`, 2026-11-08, Ross chose it):
+  after a warm-up (a warm-up row, or a planned row marked warm) the rest
+  goes by its weight against the first working row's weight. Under 60%
+  gets 45s, 60–80% gets 75s, and over 80% gets two-thirds of the exercise's
+  rest (at least 90s). It's never more than the full rest, and the middle
+  tier is used when there's nothing to compare. The rest bar reads
+  "Warm-up rest", and `setNudge` doesn't apply to warm-ups.
 - **Weight carries forward** (2026-10-15, Ross asked): ticking a working set
   gives the sets after it its weight (`carryWeight()`), on screen and in `cur`.
   - Ticked sets, weights typed or stepped by hand (`wt` on the slot), warm-up
