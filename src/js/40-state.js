@@ -55,7 +55,7 @@ function restAfter(d,idx){ return ssRole(d,idx)==='first'?0:restFor(d.items[idx]
 /* planReps: the plan's own targets, one per planned set. repsFor: the sets
    for this session, which a cut (45-phase) trims to its set count. */
 function planReps(it){ const r=(it.reps||[]).slice(0,it.sets); while(r.length<it.sets) r.push(r.length?r[r.length-1]:10); return r; }
-function repsFor(it){ return planReps(it).slice(0,setsOf(it)); }
+function repsFor(it){ const n=setsOf(it), r=planReps(it).slice(0,n); while(r.length<n) r.push(r.length?r[r.length-1]:10); return r; }
 /* Rep ranges. it.reps holds the TOP of the range per set (the number to hit
    before adding weight); it.lo is the bottom, the floor every set must stay at
    or above. Plans from before 2026-10-07 have no lo, so it defaults from the

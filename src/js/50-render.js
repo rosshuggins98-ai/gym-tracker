@@ -142,15 +142,15 @@ function card(it,d,idx){
  const f=document.createElement('div'); f.className='setfoot';
  const canRm=it.sets>1&&!lastSetUsed(d.id,exId,wu+it.sets);
  const wa=cur[d.id]&&cur[d.id][exId], canRmW=wu>0&&!(wa&&wa[wu-1]&&wa[wu-1].done);
- const cut=activeCut();
- f.innerHTML=(cut?'':'<button class="rms"'+(canRm?'':' disabled')+'>&minus; Set</button><button class="ads">+ Set</button>')+
+ const cut=activeCut(), cutRm=cut&&it.cutAdd>0&&!cutLastTouched(d.id,it);
+ f.innerHTML='<button class="rms"'+((cut?cutRm:canRm)?'':' disabled')+'>&minus; Set</button><button class="ads">+ Set</button>'+
   (wu<WU_MAX?'<button class="adw">+ Warm-up</button>':'')+(canRmW?'<button class="rmw">&minus; Warm-up</button>':'')+
-  '<span class="hint">'+(cut?setsOf(it)+' sets during the cut':it.sets>1&&!canRm?'Clear the last set to remove it':'')+'</span>'+
+  '<span class="hint">'+(cut?(it.cutAdd?'+'+it.cutAdd+' for today only':'Cut: + Set adds one for today'):it.sets>1&&!canRm?'Clear the last set to remove it':'')+'</span>'+
   (it.extra?'<button class="keep">Keep in plan</button>'+(anyDone(d.id,exId)?'':'<button class="rmx">Remove</button>'):
    (anyDone(d.id,exId)||role)?'':'<button class="skp">Skip today</button>');
  const ads=f.querySelector('.ads'), rms=f.querySelector('.rms');
- if(ads) ads.addEventListener('click',()=>{ addSet(it); render(); });
- if(rms) rms.addEventListener('click',()=>{ if(removeSet(it,d.id)) render(); });
+ if(ads) ads.addEventListener('click',()=>{ if(cut){ if(cutAddSet(it)) render(); } else { addSet(it); render(); } });
+ if(rms) rms.addEventListener('click',()=>{ if(cut?cutRemoveSet(it,d.id):removeSet(it,d.id)) render(); });
  const aw=f.querySelector('.adw'), rw=f.querySelector('.rmw');
  if(aw) aw.addEventListener('click',()=>{ if(addWarmup(d,it)) render(); });
  if(rw) rw.addEventListener('click',()=>{ if(removeWarmup(d,it)) render(); });

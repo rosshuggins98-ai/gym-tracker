@@ -268,3 +268,6 @@ below.
   - Charts shade the cut; Progress and the monthly review treat a held
     weight as a win.
   - Started and ended from the plan editor; `gt4_phases` is in backups.
+- 2026-11-08: **Add sets during a cut** (Ross asked): + Set on a card adds
+  one for today only (`it.cutAdd`). The next session starts at 2 again, and
+  the plan is untouched.

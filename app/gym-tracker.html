@@ -761,7 +761,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-11-04a";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-11-08a";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -837,7 +837,7 @@ function restAfter(d,idx){ return ssRole(d,idx)==='first'?0:restFor(d.items[idx]
 /* planReps: the plan's own targets, one per planned set. repsFor: the sets
    for this session, which a cut (45-phase) trims to its set count. */
 function planReps(it){ const r=(it.reps||[]).slice(0,it.sets); while(r.length<it.sets) r.push(r.length?r[r.length-1]:10); return r; }
-function repsFor(it){ return planReps(it).slice(0,setsOf(it)); }
+function repsFor(it){ const n=setsOf(it), r=planReps(it).slice(0,n); while(r.length<n) r.push(r.length?r[r.length-1]:10); return r; }
 /* Rep ranges. it.reps holds the TOP of the range per set (the number to hit
    before adding weight); it.lo is the bottom, the floor every set must stay at
    or above. Plans from before 2026-10-07 have no lo, so it defaults from the
@@ -1140,7 +1140,21 @@ function activeCut(){ const td=today(); return phases.find(p=>p.kind==='cut'&&!p
 function cutOn(date){ return phases.find(p=>p.kind==='cut'&&p.start<=date&&(!p.stopped||date<=p.stopped))||null; }
 /* Any cut overlapping [from, to). */
 function cutIn(from,to){ return phases.find(p=>p.kind==='cut'&&p.start<to&&(!p.stopped||p.stopped>=from))||null; }
-function setsOf(it){ const p=activeCut(); return p?Math.max(1,Math.min(it.sets,p.sets||CUT_SETS)):it.sets; }
+function setsOf(it){ const p=activeCut(); return p?Math.max(1,Math.min(it.sets,p.sets||CUT_SETS)+(it.cutAdd||0)):it.sets; }
+/* + Set during a cut (Ross asked, 2026-11-08): one more set for today only.
+   it.cutAdd is a today-only flag like it.skip, cleared by endOfSession and
+   cleanDays, so the next session starts at the cut's 2 again. The plan's
+   own set count is never touched. − Set takes back only what was added. */
+const CUT_MAX=6;
+function cutAddSet(it){ if(!activeCut()||setsOf(it)>=CUT_MAX) return false; it.cutAdd=(it.cutAdd||0)+1; savePlan(); return true; }
+/* An added set arrives prefilled from last time, so only a ticked set, or
+   one typed into, keeps it from being taken back. */
+function cutLastTouched(dId,it){ const a=cur[dId]&&cur[dId][it.ex], x=a&&a[wuOf(it)+setsOf(it)-1]; return !!(x&&(x.done||x.wt||x.rt)); }
+function cutRemoveSet(it,dId){ if(!activeCut()||!(it.cutAdd>0)) return false;
+ const wu=wuOf(it), n=setsOf(it); if(cutLastTouched(dId,it)) return false;
+ it.cutAdd--; if(!it.cutAdd) delete it.cutAdd;
+ const a=cur[dId]&&cur[dId][it.ex]; if(a) a.length=Math.min(a.length,wu+n-1);
+ savePlan(); return true; }
 async function startCut(start,weeks){ const td=today();
  const s=/^\d{4}-\d{2}-\d{2}$/.test(String(start||''))&&start<=td?start:td, w=Math.max(1,Math.min(26,parseInt(weeks,10)||CUT_WEEKS));
  if(activeCut()) return null;
@@ -1323,15 +1337,15 @@ function card(it,d,idx){
  const f=document.createElement('div'); f.className='setfoot';
  const canRm=it.sets>1&&!lastSetUsed(d.id,exId,wu+it.sets);
  const wa=cur[d.id]&&cur[d.id][exId], canRmW=wu>0&&!(wa&&wa[wu-1]&&wa[wu-1].done);
- const cut=activeCut();
- f.innerHTML=(cut?'':'<button class="rms"'+(canRm?'':' disabled')+'>&minus; Set</button><button class="ads">+ Set</button>')+
+ const cut=activeCut(), cutRm=cut&&it.cutAdd>0&&!cutLastTouched(d.id,it);
+ f.innerHTML='<button class="rms"'+((cut?cutRm:canRm)?'':' disabled')+'>&minus; Set</button><button class="ads">+ Set</button>'+
   (wu<WU_MAX?'<button class="adw">+ Warm-up</button>':'')+(canRmW?'<button class="rmw">&minus; Warm-up</button>':'')+
-  '<span class="hint">'+(cut?setsOf(it)+' sets during the cut':it.sets>1&&!canRm?'Clear the last set to remove it':'')+'</span>'+
+  '<span class="hint">'+(cut?(it.cutAdd?'+'+it.cutAdd+' for today only':'Cut: + Set adds one for today'):it.sets>1&&!canRm?'Clear the last set to remove it':'')+'</span>'+
   (it.extra?'<button class="keep">Keep in plan</button>'+(anyDone(d.id,exId)?'':'<button class="rmx">Remove</button>'):
    (anyDone(d.id,exId)||role)?'':'<button class="skp">Skip today</button>');
  const ads=f.querySelector('.ads'), rms=f.querySelector('.rms');
- if(ads) ads.addEventListener('click',()=>{ addSet(it); render(); });
- if(rms) rms.addEventListener('click',()=>{ if(removeSet(it,d.id)) render(); });
+ if(ads) ads.addEventListener('click',()=>{ if(cut){ if(cutAddSet(it)) render(); } else { addSet(it); render(); } });
+ if(rms) rms.addEventListener('click',()=>{ if(cut?cutRemoveSet(it,d.id):removeSet(it,d.id)) render(); });
  const aw=f.querySelector('.adw'), rw=f.querySelector('.rmw');
  if(aw) aw.addEventListener('click',()=>{ if(addWarmup(d,it)) render(); });
  if(rw) rw.addEventListener('click',()=>{ if(removeWarmup(d,it)) render(); });
@@ -3348,9 +3362,9 @@ function removeExtra(d,it){
  if(!it.extra||anyDone(d.id,it.ex)) return false;
  d.items=d.items.filter(x=>x!==it); if(cur[d.id]) delete cur[d.id][it.ex];
  queueSave(); savePlan(); return true; }
-function endOfSession(d){ d.items=d.items.filter(it=>!it.extra); d.items.forEach(it=>{ delete it.skip; }); savePlan(); }
+function endOfSession(d){ d.items=d.items.filter(it=>!it.extra); d.items.forEach(it=>{ delete it.skip; delete it.cutAdd; }); savePlan(); }
 function cleanDays(days){ const c=JSON.parse(JSON.stringify(days));
- c.forEach(d=>{ d.items=d.items.filter(it=>!it.extra); d.items.forEach(it=>{ delete it.skip; }); }); return c; }
+ c.forEach(d=>{ d.items=d.items.filter(it=>!it.extra); d.items.forEach(it=>{ delete it.skip; delete it.cutAdd; }); }); return c; }
 /* Exercises logged in the last 30 days that aren't in today's session, most
    recent first -- after one pec deck finisher, it's at the top next time. */
 function recentIds(d){
