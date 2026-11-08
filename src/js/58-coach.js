@@ -211,6 +211,23 @@ function sinceJumpTxt(k){ const s=sinceJump(k); if(!s) return '';
    moves on the first set reaching the top with every set at the floor, so
    extra reps there don't help and cost the later sets), or 30s more rest when
    a set is 3+ reps down on the one before. */
+/* Rest after a warm-up (Ross chose 2026-11-08: by how heavy it was, and
+   longer than first suggested because he needs more). The warm-up's weight
+   against today's working weight, the first working row on screen (which
+   start-at-target fills with the coach's weight):
+     under 60%   45s
+     60-80%      75s
+     over 80%    two-thirds of the exercise's rest, at least 90s
+   Never more than the exercise's own rest. Without a weight to compare,
+   the middle tier. A warm-up is a warm-up row, or a planned row marked warm. */
+const WARM_REST={light:45,mid:75,heavyShare:2/3,heavyMin:90};
+function isWarmSlot(it,a,ri){ const x=a&&a[ri]; return ri<wuOf(it)||!!(x&&x.t==='warm'); }
+function warmRest(it,a,ri,full){ const x=a&&a[ri], w=parseFloat(x&&x.w);
+ let work=0; for(let j=wuOf(it);a&&j<a.length;j++){ const y=a[j]; if(y&&y.t!=='warm'&&parseFloat(y.w)>0){ work=parseFloat(y.w); break; } }
+ let sec=WARM_REST.mid;
+ if(w>0&&work>0){ const sh=w/work;
+  sec=sh<0.6?WARM_REST.light:sh<=0.8?WARM_REST.mid:Math.max(WARM_REST.heavyMin,Math.round(full*WARM_REST.heavyShare/5)*5); }
+ return Math.min(full,sec); }
 function setNudge(it,a,ri){ const wu=wuOf(it), x=a&&a[ri]; if(!x||!x.done||x.t==='warm'||ri<wu) return null;
  const r=parseInt(x.r,10); if(isNaN(r)) return null; const hi=topRep(it);
  if(ri===wu&&hi&&r>=hi+2) return {extra:0,msg:'Save some for sets 2 and 3'};

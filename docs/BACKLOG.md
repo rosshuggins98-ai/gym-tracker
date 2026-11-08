@@ -271,3 +271,8 @@ below.
 - 2026-11-08: **Add sets during a cut** (Ross asked): + Set on a card adds
   one for today only (`it.cutAdd`). The next session starts at 2 again, and
   the plan is untouched.
+- 2026-11-08: **Shorter rest after warm-ups** (Ross chose option C,
+  lengthened because he needs more). Rest goes by the warm-up's weight
+  against the working weight: 45s under 60%, 75s for 60–80%, and
+  two-thirds of the exercise's rest (at least 90s) above that. It's capped
+  at the full rest.

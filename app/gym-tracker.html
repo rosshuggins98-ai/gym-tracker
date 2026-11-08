@@ -761,7 +761,7 @@ const MIGRATE={sq:"squat",sq3:"squat",d2_squat:"squat",bp:"bench",d1_bench:"benc
  pr:"frontraise",d1_plate:"frontraise",d1_front:"frontraise",dip:"dips",d1_dips:"dips",cc:"cablecurl",d2_cablecurl:"cablecurl",
  d1_decline:"decline",d1_fly:"dbfly",d2_fly:"dbfly",d1_ohext:"ohext",d2_conc:"concentration",d2_dbpress:"dbshoulder",
  d2_preacher2:"preacher",d2_cablecurl2:"cablecurl"};
-const BUILD="2026-11-08a";   /* shown next to the title and in the Data panel so you can confirm the version */
+const BUILD="2026-11-08b";   /* shown next to the title and in the Data panel so you can confirm the version */
 
 /* ============ STORAGE ============ */
 const Store=(function(){
@@ -1320,8 +1320,9 @@ function card(it,d,idx){
     carryWeight(d.id,exId,ri,wu+reps.length).forEach(j=>{ if(wIs[j]) wIs[j].value=cur[d.id][exId][j].w; }); }
    if(y.done&&!y.r&&tt&&tt!=='max'){ y.r=String(tt); rI.value=tt; }
    row.classList.toggle('unconf',repsUnconfirmed(y)); row.querySelectorAll('.last')[1].textContent=repsUnconfirmed(y)?'not typed':'';
-   if(y.done){ const sec=restAfter(d,idx), nd=setNudge(it,cur[d.id][exId],ri);
-    if(sec){ restStart(sec+(nd?nd.extra:0)); if(nd) document.getElementById('restL').textContent=nd.msg; }
+   if(y.done){ const full=restAfter(d,idx), a=cur[d.id][exId], wm=full&&isWarmSlot(it,a,ri), nd=wm?null:setNudge(it,a,ri);
+    const sec=wm?warmRest(it,a,ri,full):full;
+    if(sec){ restStart(sec+(nd?nd.extra:0)); if(nd||wm) document.getElementById('restL').textContent=wm?'Warm-up rest':nd.msg; }
     else restCue(vName(partner.ex,swaps[partner.ex]||null)); }
    pills(c,it,d);
    if(y.done&&pbCheck(d.id,exId,k0)) celebratePB();
@@ -1760,6 +1761,23 @@ function sinceJumpTxt(k){ const s=sinceJump(k); if(!s) return '';
    moves on the first set reaching the top with every set at the floor, so
    extra reps there don't help and cost the later sets), or 30s more rest when
    a set is 3+ reps down on the one before. */
+/* Rest after a warm-up (Ross chose 2026-11-08: by how heavy it was, and
+   longer than first suggested because he needs more). The warm-up's weight
+   against today's working weight, the first working row on screen (which
+   start-at-target fills with the coach's weight):
+     under 60%   45s
+     60-80%      75s
+     over 80%    two-thirds of the exercise's rest, at least 90s
+   Never more than the exercise's own rest. Without a weight to compare,
+   the middle tier. A warm-up is a warm-up row, or a planned row marked warm. */
+const WARM_REST={light:45,mid:75,heavyShare:2/3,heavyMin:90};
+function isWarmSlot(it,a,ri){ const x=a&&a[ri]; return ri<wuOf(it)||!!(x&&x.t==='warm'); }
+function warmRest(it,a,ri,full){ const x=a&&a[ri], w=parseFloat(x&&x.w);
+ let work=0; for(let j=wuOf(it);a&&j<a.length;j++){ const y=a[j]; if(y&&y.t!=='warm'&&parseFloat(y.w)>0){ work=parseFloat(y.w); break; } }
+ let sec=WARM_REST.mid;
+ if(w>0&&work>0){ const sh=w/work;
+  sec=sh<0.6?WARM_REST.light:sh<=0.8?WARM_REST.mid:Math.max(WARM_REST.heavyMin,Math.round(full*WARM_REST.heavyShare/5)*5); }
+ return Math.min(full,sec); }
 function setNudge(it,a,ri){ const wu=wuOf(it), x=a&&a[ri]; if(!x||!x.done||x.t==='warm'||ri<wu) return null;
  const r=parseInt(x.r,10); if(isNaN(r)) return null; const hi=topRep(it);
  if(ri===wu&&hi&&r>=hi+2) return {extra:0,msg:'Save some for sets 2 and 3'};
